@@ -36,6 +36,9 @@ func NewEdgeComm() (*edgeComm, error) {
 	return &edgeComm{client}, nil
 }
 
+// TODO batch image frames when uploading
+// FIXME message size limit capped at 4 MB -- fails with larger images
+// FIXME shouldn't timeout with streaming rpc
 func (e *edgeComm) UploadImage(c chan gocv.Mat) {
 	log.Printf("UploadImage")
 	ctx, _ := context.WithTimeout(context.Background(), 60*time.Second)
