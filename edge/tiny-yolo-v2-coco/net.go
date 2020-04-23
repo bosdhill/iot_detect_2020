@@ -1,4 +1,4 @@
-package main
+package tiny_yolo
 
 import (
 	"gorgonia.org/gorgonia"

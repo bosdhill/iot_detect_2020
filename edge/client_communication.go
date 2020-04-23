@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"gocv.io/x/gocv"
 	"google.golang.org/grpc"
-	pb "github.com/bosdhill/iot_detect_2020/edge/interfaces"
+	pb "github.com/bosdhill/iot_detect_2020/interfaces"
 	"log"
 	"net"
+	yo "github.com/bosdhill/iot_detect_2020/edge/tiny-yolo-v2-coco"
 )
 
 var (
@@ -21,21 +22,45 @@ var (
 
 type clientComm struct {
 	server pb.UploaderServer
+	yo *yo.TinyYolo
 }
 
 func (comm *clientComm) UploadImage(ctx context.Context, img *pb.Image) (*pb.ImageResponse, error) {
 	log.Println("UploadImage")
-	_, err := gocv.NewMatFromBytes(int(img.Rows), int(img.Cols), gocv.MatType(int(img.Type)), img.Image)
+	height := int(img.Rows)
+	width := int(img.Cols)
+	mType := gocv.MatType(img.Type)
+	mat, err := gocv.NewMatFromBytes(height, width, mType, img.Image)
+
+	log.Println("Show")
+	window := gocv.NewWindow("edge")
+	window.IMShow(mat)
+	window.WaitKey(1)
+	err = window.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//mImg, err := mat.ToImage()
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//comm.yo.Detect(mImg)
 	log.Println("received image")
 	resp := pb.ImageResponse{Success: true}
+	err = mat.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
 	return &resp, nil
 }
 
 func newServer() *clientComm {
-	s := &clientComm{}
+	yo := yo.NewTinyYolo()
+	s := &clientComm{yo: yo}
 	return s
 }
 

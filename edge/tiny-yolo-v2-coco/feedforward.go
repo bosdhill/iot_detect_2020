@@ -1,4 +1,4 @@
-package main
+package tiny_yolo
 
 import (
 	"github.com/pkg/errors"
@@ -33,7 +33,7 @@ func (tiny *TinyYOLOv2Net) FeedForward(g *gorgonia.ExprGraph, x *gorgonia.Node) 
 	var conv10, bias10, leaky10 *gorgonia.Node
 	//   11 max               2 x 2/ 1     13 x  13 x 512 ->   13 x  13 x 512
 	var max11 *gorgonia.Node
-	//   12 conv   1024       3 x 3/ 1     13 x  13 x 512 ->   13 x  13 x1024
+	//   12 conv   1024       3 x 3/ 1     13 x  13 x 512 ->   13 x  13 x 1024
 	var conv12, bias12, leaky12 *gorgonia.Node
 	//   13 conv    512       3 x 3/ 1     13 x  13 x1024 ->   13 x  13 x 512
 	var conv13, bias13, leaky13 *gorgonia.Node

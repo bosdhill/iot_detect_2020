@@ -41,7 +41,8 @@ func (ds *dataSource) GetFrames(c chan <- gocv.Mat) {
 
 
 // Note: There is an occasional NSInternalInconsistencyException on MacOS
-// see https://github.com/swook/GazeML/issues/17
+// see https://github.com/hybridgroup/gocv/issues/599
+// and https://github.com/golang/go/wiki/LockOSThread
 func (ds *dataSource) Show(c chan gocv.Mat) {
 	log.Println("Show")
 	window := gocv.NewWindow("client")

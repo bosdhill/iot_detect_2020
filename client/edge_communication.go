@@ -7,7 +7,7 @@ import (
 	"google.golang.org/grpc"
 	"log"
 	"time"
-	pb "github.com/bosdhill/iot_detect_2020/client/interfaces"
+	pb "github.com/bosdhill/iot_detect_2020/interfaces"
 )
 
 var (
