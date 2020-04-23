@@ -38,7 +38,7 @@ func NewEdgeComm() (*edgeComm, error) {
 
 func (e *edgeComm) UploadImage(c chan gocv.Mat) {
 	log.Printf("UploadImage")
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, _ := context.WithTimeout(context.Background(), 60*time.Second)
 	//defer cancel()
 	for img := range c {
 		bImg := img.ToBytes()

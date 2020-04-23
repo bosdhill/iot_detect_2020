@@ -33,7 +33,13 @@ func (y *TinyYolo) Detect(img image.Image) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	//imgf32, err := GetFloat32Image("tiny-yolo-v2-coco/data/dog_416x416.jpg")
+	//if err != nil {
+	//	log.Fatalln(err)
+	//}
+
 	model := NewTinyYOLOv2Net(y.g, 80, 5, weights)
+	log.Println(tensor.WithBacking(imgf32))
 
 	image := tensor.New(tensor.WithShape(1, channels, height, width), tensor.Of(tensor.Float32), tensor.WithBacking(imgf32))
 	x := gorgonia.NewTensor(y.g, tensor.Float32, 4, gorgonia.WithShape(1, channels, width, height), gorgonia.WithName("x"))

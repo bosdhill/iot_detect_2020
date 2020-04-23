@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/bosdhill/iot_detect_2020/sdl"
 	"gocv.io/x/gocv"
 	"log"
 )
@@ -47,8 +48,7 @@ func (ds *dataSource) Show(c chan gocv.Mat) {
 	log.Println("Show")
 	window := gocv.NewWindow("client")
 	for img := range c {
-		window.IMShow(img)
-		window.WaitKey(1)
+		sdl.Show(window, &img)
 	}
 	err := window.Close()
 	if err != nil {

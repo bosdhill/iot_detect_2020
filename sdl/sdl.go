@@ -1,6 +1,10 @@
 package sdl
 
-import "runtime"
+import (
+	"gocv.io/x/gocv"
+	"log"
+	"runtime"
+)
 
 // Arrange that main.main runs on main thread.
 func init() {
@@ -30,8 +34,10 @@ func do(f func()) {
 	<-done
 }
 
-func Beep() {
+func Show(window *gocv.Window, mat *gocv.Mat) {
+	log.Println("Show")
 	do(func() {
-		// whatever must run in main thread
+		window.IMShow(*mat)
+		window.WaitKey(1)
 	})
 }
