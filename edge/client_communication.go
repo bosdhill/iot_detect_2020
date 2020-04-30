@@ -10,7 +10,8 @@ import (
 	"io"
 	"log"
 	"net"
-	yo "github.com/bosdhill/iot_detect_2020/edge/tiny-yolo-v2-coco"
+	"time"
+
 	//sdl "github.com/bosdhill/iot_detect_2020/sdl"
 )
 
@@ -81,6 +82,7 @@ func resizeToImage(img *gocv.Mat, height int, width int) image.Image {
 func (comm *clientComm) UploadImage(stream pb.Uploader_UploadImageServer) (error) {
 	log.Println("UploadImage")
 	count := 0
+	sec := time.Duration(0)
 	resCh := make(chan DetectionResult)
 	iCh := make(chan *gocv.Mat)
 	go caffeWorker(iCh, resCh)
@@ -90,6 +92,7 @@ func (comm *clientComm) UploadImage(stream pb.Uploader_UploadImageServer) (error
 		log.Println("received image from stream", count)
 		if err == io.EOF {
 			log.Println("EOF")
+			log.Println("AVG", sec / time.Duration(count))
 			return stream.SendAndClose(&pb.ImageResponse{Success: true})
 		}
 		if err != nil {
@@ -97,10 +100,13 @@ func (comm *clientComm) UploadImage(stream pb.Uploader_UploadImageServer) (error
 			return err
 		}
 		img := uploadReqToImg(req)
+		t := time.Now()
 		iCh <- &img
 		res := <- resCh
-		log.Println("Detected", res)
-		gocv.IMWrite("detect.jpg", res.img)
+		e := time.Since(t)
+		log.Println("Detected", res, e)
+		sec += e
+		//gocv.IMWrite("detect.jpg", res.img)
 	}
 }
 
