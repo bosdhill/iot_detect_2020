@@ -1,6 +1,5 @@
+edge/model/tiny-yolo-voc.caffemodel
 .idea/
 */.DS_Store
 client/client
 edge/edge
-edge/tiny-yolo-v2-coco/model/yolov2-tiny.weights
-edge/tiny-yolo-v2-coco/model/yolov2-tiny.cfg
