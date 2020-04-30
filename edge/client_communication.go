@@ -24,7 +24,6 @@ var (
 
 type clientComm struct {
 	server pb.UploaderServer
-	yo *yo.TinyYolo
 	//window *gocv.Window
 }
 
@@ -101,12 +100,12 @@ func (comm *clientComm) UploadImage(stream pb.Uploader_UploadImageServer) (error
 		iCh <- &img
 		res := <- resCh
 		log.Println("Detected", res)
+		gocv.IMWrite("detect.jpg", res.img)
 	}
 }
 
 func newServer() *clientComm {
-	yo := yo.NewTinyYolo()
-	s := &clientComm{yo: yo}
+	s := &clientComm{}
 	return s
 }
 
