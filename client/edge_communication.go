@@ -36,27 +36,37 @@ func NewEdgeComm() (*edgeComm, error) {
 	return &edgeComm{client}, nil
 }
 
+func imgToUploadReq(img gocv.Mat) *pb.Image {
+	bImg := img.ToBytes()
+	rows := int32(img.Rows())
+	cols := int32(img.Cols())
+	mType := img.Type()
+	return &pb.Image{Image:bImg, Rows:rows, Cols:cols, Type:int32(mType)}
+}
+
 // TODO batch image frames when uploading
 // FIXME message size limit capped at 4 MB -- fails with larger images
 // FIXME shouldn't timeout with streaming rpc
 func (e *edgeComm) UploadImage(c chan gocv.Mat) {
 	log.Printf("UploadImage")
-	ctx, _ := context.WithTimeout(context.Background(), 60*time.Second)
+	// TODO timeout should be twice FPS * number of Frames per video
+	//ctx, _ := context.WithTimeout(context.Background(), 0)
+	ctx, _ := context.WithCancel(context.Background())
 	//defer cancel()
+	stream, err := e.client.UploadImage(ctx)
+	if err != nil {
+		log.Fatalf("%v.UploadImage(_) = _, %v: ", e.client, err)
+	}
 	for img := range c {
-		bImg := img.ToBytes()
-		rows := int32(img.Rows())
-		cols := int32(img.Cols())
-		mType := img.Type()
-		req := 	&pb.Image{Image:bImg, Rows:rows, Cols:cols, Type:int32(mType)}
-		resp, err := e.client.UploadImage(ctx, req)
-		if err != nil {
-			log.Fatalf("%v.UploadImage(_) = _, %v: ", e.client, err)
-		}
-		if resp.Success {
-			log.Println("Success")
+		req := imgToUploadReq(img)
+		if err := stream.Send(req); err != nil {
+			log.Fatalf("%v.Send(%v) = %v", stream, req, err)
 		}
 	}
-	log.Println("done uploading images")
+	reply, err := stream.CloseAndRecv()
+	if err != nil {
+		log.Fatalf("%v.CloseAndRecv() got error %v, want %v", stream, err, nil)
+	}
+	log.Printf("ImageResponse: %v", reply.String())
 }
 

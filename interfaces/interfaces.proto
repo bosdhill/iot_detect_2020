@@ -1,8 +1,12 @@
 syntax = "proto3";
 
-// TODO should be client streaming rpc -- client doesn't need ACK
+// Interface exported by the server on the Edge
 service Uploader {
-    rpc UploadImage(Image) returns (ImageResponse) {}
+    // A server-to-client streaming RPC.
+    //
+    // Streams images from the data source in the client to the server
+    // in the edge.
+    rpc UploadImage(stream Image) returns (ImageResponse) {}
 }
 
 message Image {

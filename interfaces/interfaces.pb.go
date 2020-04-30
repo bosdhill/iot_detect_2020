@@ -159,11 +159,11 @@ var file_interfaces_proto_rawDesc = []byte{
 	0x65, 0x18, 0x04, 0x20, 0x01, 0x28, 0x05, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x22, 0x29, 0x0a,
 	0x0d, 0x49, 0x6d, 0x61, 0x67, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x18,
 	0x0a, 0x07, 0x73, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x52,
-	0x07, 0x73, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x32, 0x33, 0x0a, 0x08, 0x55, 0x70, 0x6c, 0x6f,
-	0x61, 0x64, 0x65, 0x72, 0x12, 0x27, 0x0a, 0x0b, 0x55, 0x70, 0x6c, 0x6f, 0x61, 0x64, 0x49, 0x6d,
+	0x07, 0x73, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x32, 0x35, 0x0a, 0x08, 0x55, 0x70, 0x6c, 0x6f,
+	0x61, 0x64, 0x65, 0x72, 0x12, 0x29, 0x0a, 0x0b, 0x55, 0x70, 0x6c, 0x6f, 0x61, 0x64, 0x49, 0x6d,
 	0x61, 0x67, 0x65, 0x12, 0x06, 0x2e, 0x49, 0x6d, 0x61, 0x67, 0x65, 0x1a, 0x0e, 0x2e, 0x49, 0x6d,
-	0x61, 0x67, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x62, 0x06, 0x70,
-	0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x61, 0x67, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x28, 0x01, 0x62,
+	0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -256,7 +256,11 @@ const _ = grpc.SupportPackageIsVersion6
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type UploaderClient interface {
-	UploadImage(ctx context.Context, in *Image, opts ...grpc.CallOption) (*ImageResponse, error)
+	// A server-to-client streaming RPC.
+	//
+	// Streams images from the data source in the client to the server
+	// in the edge.
+	UploadImage(ctx context.Context, opts ...grpc.CallOption) (Uploader_UploadImageClient, error)
 }
 
 type uploaderClient struct {
@@ -267,59 +271,97 @@ func NewUploaderClient(cc grpc.ClientConnInterface) UploaderClient {
 	return &uploaderClient{cc}
 }
 
-func (c *uploaderClient) UploadImage(ctx context.Context, in *Image, opts ...grpc.CallOption) (*ImageResponse, error) {
-	out := new(ImageResponse)
-	err := c.cc.Invoke(ctx, "/Uploader/UploadImage", in, out, opts...)
+func (c *uploaderClient) UploadImage(ctx context.Context, opts ...grpc.CallOption) (Uploader_UploadImageClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_Uploader_serviceDesc.Streams[0], "/Uploader/UploadImage", opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &uploaderUploadImageClient{stream}
+	return x, nil
+}
+
+type Uploader_UploadImageClient interface {
+	Send(*Image) error
+	CloseAndRecv() (*ImageResponse, error)
+	grpc.ClientStream
+}
+
+type uploaderUploadImageClient struct {
+	grpc.ClientStream
+}
+
+func (x *uploaderUploadImageClient) Send(m *Image) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *uploaderUploadImageClient) CloseAndRecv() (*ImageResponse, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(ImageResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 // UploaderServer is the server API for Uploader service.
 type UploaderServer interface {
-	UploadImage(context.Context, *Image) (*ImageResponse, error)
+	// A server-to-client streaming RPC.
+	//
+	// Streams images from the data source in the client to the server
+	// in the edge.
+	UploadImage(Uploader_UploadImageServer) error
 }
 
 // UnimplementedUploaderServer can be embedded to have forward compatible implementations.
 type UnimplementedUploaderServer struct {
 }
 
-func (*UnimplementedUploaderServer) UploadImage(context.Context, *Image) (*ImageResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UploadImage not implemented")
+func (*UnimplementedUploaderServer) UploadImage(Uploader_UploadImageServer) error {
+	return status.Errorf(codes.Unimplemented, "method UploadImage not implemented")
 }
 
 func RegisterUploaderServer(s *grpc.Server, srv UploaderServer) {
 	s.RegisterService(&_Uploader_serviceDesc, srv)
 }
 
-func _Uploader_UploadImage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Image)
-	if err := dec(in); err != nil {
+func _Uploader_UploadImage_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(UploaderServer).UploadImage(&uploaderUploadImageServer{stream})
+}
+
+type Uploader_UploadImageServer interface {
+	SendAndClose(*ImageResponse) error
+	Recv() (*Image, error)
+	grpc.ServerStream
+}
+
+type uploaderUploadImageServer struct {
+	grpc.ServerStream
+}
+
+func (x *uploaderUploadImageServer) SendAndClose(m *ImageResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *uploaderUploadImageServer) Recv() (*Image, error) {
+	m := new(Image)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
-	if interceptor == nil {
-		return srv.(UploaderServer).UploadImage(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/Uploader/UploadImage",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UploaderServer).UploadImage(ctx, req.(*Image))
-	}
-	return interceptor(ctx, in, info, handler)
+	return m, nil
 }
 
 var _Uploader_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "Uploader",
 	HandlerType: (*UploaderServer)(nil),
-	Methods: []grpc.MethodDesc{
+	Methods:     []grpc.MethodDesc{},
+	Streams: []grpc.StreamDesc{
 		{
-			MethodName: "UploadImage",
-			Handler:    _Uploader_UploadImage_Handler,
+			StreamName:    "UploadImage",
+			Handler:       _Uploader_UploadImage_Handler,
+			ClientStreams: true,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
 	Metadata: "interfaces.proto",
 }
