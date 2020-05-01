@@ -110,6 +110,7 @@ func (comm *clientComm) UploadImage(stream pb.Uploader_UploadImageServer) (error
 		//gocv.IMWrite("detect.jpg", res.img)
 		for _, box := range res.boxes {
 			gocv.Rectangle(&img, image.Rect(box.topleft.X, box.topleft.Y, box.bottomright.X, box.bottomright.Y), color.RGBA{230, 25, 75, 0}, 1)
+			gocv.PutText(&img, box.label, image.Point{box.topleft.X, box.topleft.Y - 5}, gocv.FontHersheySimplex, 0.5, color.RGBA{230, 25, 75, 0}, 1)
 		}
 		gocv.IMWrite("detect.jpg", img)
 	}

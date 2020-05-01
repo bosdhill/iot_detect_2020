@@ -7,6 +7,7 @@ import (
 	"log"
 	"math"
 	"sort"
+	"time"
 )
 
 const numClasses = 80
@@ -389,26 +390,27 @@ func caffeWorker(img_chan chan *gocv.Mat, res_chan chan DetectionResult) {
 	probMat := gocv.NewMat()
 	defer probMat.Close()
 
-
+	sec := time.Duration(0)
+	count := 0
 	for item := range(img_chan) {
 		if item.Empty(){
 			log.Println("img is empty")
 			continue
 		}
-
+		t := time.Now()
 		img = item.Clone()
 		blob = gocv.BlobFromImage(img, 1.0/255.0, image.Pt(416, 416), gocv.NewScalar(0, 0, 0, 0), true, false)
 		net.SetInput(blob, "data")
-		//names := net.GetLayerNames()
-		//for _, v := range names {
-		//	log.Println(v)
-		//}
 		prob = net.Forward("conv9")
 		probMat := prob.Reshape(1,1)
 
 		boxes := regionLayer(probMat, true, float32(img.Rows()), float32(img.Cols()))
 		//time.Sleep(time.Millisecond*30)
-
+		e := time.Since(t)
+		log.Println("detect time", e)
+		sec += e
+		count++
+		log.Println("last AVG", sec / time.Duration(count))
 		res_chan <- DetectionResult{boxes:boxes, img: img}
 	}
 }
