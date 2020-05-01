@@ -31,3 +31,8 @@ build modules with
 cd <module>
 go build
 ```
+
+# coco speedup
+AVG detect time for mp4 = 94.796409ms
+AVG python detect time for mp4 = 10899154700380465ms
+~15% speedup on AVG

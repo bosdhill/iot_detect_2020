@@ -29,31 +29,6 @@ type clientComm struct {
 	//window *gocv.Window
 }
 
-// FIXME resize() needs to return a matrix that is resized with aspect ratio and borders filled with black.
-//  Currently CopyMakeBorder crashes with:
-//  (-215:Assertion failed) top >= 0 && bottom >= 0 && left >= 0 && right >= 0 && _src.dims() <= 2 in function 'copyMakeBorder'
-//func resize(mat *gocv.Mat, height int, width int) {
-//	//border_v = 0
-//	//border_h = 0
-//	//if (IMG_COL/IMG_ROW) >= (img.shape[0]/img.shape[1]):
-//	//border_v = int((((IMG_COL/IMG_ROW)*img.shape[1])-img.shape[0])/2)
-//	//else:
-//	//border_h = int((((IMG_ROW/IMG_COL)*img.shape[0])-img.shape[1])/2)
-//	//img = cv2.copyMakeBorder(img, border_v, border_v, border_h, border_h, cv2.BORDER_CONSTANT, 0)
-//	//img = cv2.resize(img, (IMG_ROW, IMG_COL))
-//	border_v := 0
-//	border_h := 0
-//	if 1 >= width/height {
-//		border_v = int((height - width)/2)
-//	} else {
-//		border_v = int((width - height)/2)
-//	}
-//	black := color.RGBA{R: 0,G: 0, B: 0, A: 0}
-//	p := image.Point{X: 416, Y: 416}
-//	gocv.CopyMakeBorder(*mat, mat, border_v, border_v, border_h, border_h, gocv.BorderConstant, black)
-//	gocv.Resize(*mat, mat, p, 0, 0, gocv.InterpolationNearestNeighbor)
-//}
-
 func uploadReqToImg(req *pb.Image) gocv.Mat {
 	height := int(req.Rows)
 	width := int(req.Cols)
@@ -66,17 +41,6 @@ func uploadReqToImg(req *pb.Image) gocv.Mat {
 		log.Fatal(err)
 	}
 	return mat
-}
-
-func resizeToImage(img *gocv.Mat, height int, width int) image.Image {
-	p := image.Point{X: 416, Y: 416}
-	gocv.Resize(*img, img, p, 0, 0, gocv.InterpolationNearestNeighbor)
-	//gocv.IMWrite("recv.jpg", *img)
-	mImg, err := img.ToImage()
-	if err != nil {
-		log.Fatal(err)
-	}
-	return mImg
 }
 
 // TODO find a way to annotate image frames after object detection
@@ -107,7 +71,6 @@ func (comm *clientComm) UploadImage(stream pb.Uploader_UploadImageServer) (error
 		e := time.Since(t)
 		log.Println("Detected", res, e)
 		sec += e
-		//gocv.IMWrite("detect.jpg", res.img)
 		for _, box := range res.boxes {
 			gocv.Rectangle(&img, image.Rect(box.topleft.X, box.topleft.Y, box.bottomright.X, box.bottomright.Y), color.RGBA{230, 25, 75, 0}, 1)
 			gocv.PutText(&img, box.label, image.Point{box.topleft.X, box.topleft.Y - 5}, gocv.FontHersheySimplex, 0.5, color.RGBA{230, 25, 75, 0}, 1)
