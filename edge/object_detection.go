@@ -23,6 +23,17 @@ var anchors = [2*N]float32 {1.08,1.19,  3.42,4.41,  6.63,11.38,  9.42,5.11,  16.
 //[[1.08, 3.42, 6.63, 9.42, 16.62],
 //[1.19, 4.41, 11.38, 5.11, 10.52]]
 
+var cocoNames = [80]string{"airplane", "apple", "backpack", "banana", "baseball bat", "baseball glove", "bear", "bed",
+				"bench", "bicycle", "bird", "boat", "book", "bottle", "bowl" , "broccoli", "bus", "cake", "car",
+				"carrot", "cat", "cell phone", "chair", "clock", "couch", "cow", "cup", "dining table", "dog", "donut",
+				"elephant", "fire hydrant", "fork", "frisbee", "giraffe", "hair drier", "handbag", "horse", "hot dog",
+				"keyboard", "kite", "knife", "laptop", "microwave", "motorcycle", "mouse", "orange", "oven",
+				"parking meter", "person", "pizza", "potted plant", "refrigerator", "remote", "sandwich", "scissors",
+				"sheep", "sink", "skateboard", "skis", "snowboard", "spoon", "sports ball", "stop sign", "suitcase",
+				"surfboard", "teddy bear", "tennis racket", "tie", "toaster", "toilet", "toothbrush", "traffic light",
+				"train", "truck", "tv", "umbrella", "vase", "wine glass", "zebra"  }
+var cocoAnchors = [2*N]float32{0.738768, 0.874946, 2.42204, 2.65704, 4.30971, 7.04493, 10.246, 4.59428, 12.6868, 11.8741}
+
 //'coco': { 'classes': [
 //"person", "bicycle", "car", "motorcycle", "airplane", "bus", "train",
 //"truck", "boat", "traffic light", "fire hydrant", "stop sign",
@@ -384,18 +395,6 @@ func caffeWorker(img_chan chan *gocv.Mat, res_chan chan DetectionResult) {
 
 		img = item.Clone()
 		blob = gocv.BlobFromImage(img, 1.0/255.0, image.Pt(416, 416), gocv.NewScalar(0, 0, 0, 0), true, false)
-		// TODO: need to recreate original matrix from blob -- don't know how this would affect bounding boxes
-		// 		Also, I don't think it does, since the boxes are generated using the mat rows and cols
-		//imgs := make([]gocv.Mat, 5)
-		//gocv.ImagesFromBlob(blob, imgs)
-		//for _, v := range imgs {
-		//	log.Println("mat", v.Type().String())
-		//	v.Reshape(cn, rows)
-		//	v.ConvertTo(&v, gocv.MatTypeCV32F)
-		//	//v.ConvertTo(&v, gocv.MatTypeCV8UC3)
-		//	gocv.IMWrite("recv.jpg", v)
-		//}
-
 		net.SetInput(blob, "data")
 
 		prob = net.Forward("layer15-conv")
