@@ -4,13 +4,12 @@ import (
 	"fmt"
 	"gocv.io/x/gocv"
 	"image"
-	"image/color"
 	"log"
 	"math"
 	"sort"
 )
 
-const numClasses = 20
+const numClasses = 80
 const N = 5
 const size = numClasses + N
 const w = 12
@@ -18,21 +17,25 @@ const h = 12
 const blockwd float32 = 13
 const numBoxes = h*w*N
 
-var anchors = [2*N]float32 {1.08,1.19,  3.42,4.41,  6.63,11.38,  9.42,5.11,  16.62,10.52}
+//var anchors = [2*N]float32 {1.08,1.19,  3.42,4.41,  6.63,11.38,  9.42,5.11,  16.62,10.52}
 //var anchors = [2*N]float32 {0.57273, 0.677385, 1.87446, 2.06253, 3.33843, 5.47434, 7.88282, 3.52778, 9.77052, 9.16828}
 //[[1.08, 3.42, 6.63, 9.42, 16.62],
 //[1.19, 4.41, 11.38, 5.11, 10.52]]
 
-var cocoNames = [80]string{"airplane", "apple", "backpack", "banana", "baseball bat", "baseball glove", "bear", "bed",
-				"bench", "bicycle", "bird", "boat", "book", "bottle", "bowl" , "broccoli", "bus", "cake", "car",
-				"carrot", "cat", "cell phone", "chair", "clock", "couch", "cow", "cup", "dining table", "dog", "donut",
-				"elephant", "fire hydrant", "fork", "frisbee", "giraffe", "hair drier", "handbag", "horse", "hot dog",
-				"keyboard", "kite", "knife", "laptop", "microwave", "motorcycle", "mouse", "orange", "oven",
-				"parking meter", "person", "pizza", "potted plant", "refrigerator", "remote", "sandwich", "scissors",
-				"sheep", "sink", "skateboard", "skis", "snowboard", "spoon", "sports ball", "stop sign", "suitcase",
-				"surfboard", "teddy bear", "tennis racket", "tie", "toaster", "toilet", "toothbrush", "traffic light",
-				"train", "truck", "tv", "umbrella", "vase", "wine glass", "zebra"  }
-var cocoAnchors = [2*N]float32{0.738768, 0.874946, 2.42204, 2.65704, 4.30971, 7.04493, 10.246, 4.59428, 12.6868, 11.8741}
+var classNames = [numClasses]string{"person", "bicycle", "car", "motorcycle", "airplane", "bus", "train",
+	"truck", "boat", "traffic light", "fire hydrant", "stop sign",
+	"parking meter", "bench", "bird", "cat", "dog", "horse", "sheep", "cow",
+	"elephant", "bear", "zebra", "giraffe", "backpack", "umbrella",
+	"handbag", "tie", "suitcase", "frisbee", "skis", "snowboard",
+	"sports ball", "kite", "baseball bat", "baseball glove", "skateboard",
+	"surfboard", "tennis racket", "bottle", "wine glass", "cup", "fork",
+	"knife", "spoon", "bowl", "banana", "apple", "sandwich", "orange",
+	"broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair",
+	"couch", "potted plant", "bed", "dining table", "toilet", "tv",
+	"laptop", "mouse", "remote", "keyboard", "cell phone", "microwave",
+	"oven", "toaster", "sink", "refrigerator", "book", "clock", "vase",
+	"scissors", "teddy bear", "hair drier", "toothbrush"}
+var anchors = [2*N]float32{0.738768, 0.874946, 2.42204, 2.65704, 4.30971, 7.04493, 10.246, 4.59428, 12.6868, 11.8741}
 
 //'coco': { 'classes': [
 //"person", "bicycle", "car", "motorcycle", "airplane", "bus", "train",
@@ -55,29 +58,29 @@ var cocoAnchors = [2*N]float32{0.738768, 0.874946, 2.42204, 2.65704, 4.30971, 7.
 const thresh = 0.2
 const nms_threshold = 0.4
 
-var classNames = [20]string{"aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat","chair","cow","diningtable","dog","horse","motorbike","person","pottedplant","sheep","sofa","train","tvmonitor"}
-var colors = [20]color.RGBA{
-	color.RGBA{230, 25, 75, 0},
-	color.RGBA{60, 180, 75, 0},
-	color.RGBA{255, 225, 25, 0},
-	color.RGBA{0, 130, 200, 0},
-	color.RGBA{245, 130, 48, 0},
-	color.RGBA{145, 30, 180, 0},
-	color.RGBA{70, 240, 240, 0},
-	color.RGBA{240, 50, 230, 0},
-	color.RGBA{210, 245, 60, 0},
-	color.RGBA{250, 190, 190, 0},
-	color.RGBA{0, 128, 128, 0},
-	color.RGBA{230, 190, 255, 0},
-	color.RGBA{170, 110, 40, 0},
-	color.RGBA{255, 250, 200, 0},
-	color.RGBA{128, 0, 0, 0},
-	color.RGBA{170, 255, 195, 0},
-	color.RGBA{128, 128, 0, 0},
-	color.RGBA{255, 215, 180, 0},
-	color.RGBA{0, 0, 128, 0},
-	color.RGBA{128, 128, 128, 0},
-}
+//var classNames = [20]string{"aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat","chair","cow","diningtable","dog","horse","motorbike","person","pottedplant","sheep","sofa","train","tvmonitor"}
+//var colors = [20]color.RGBA{
+//	color.RGBA{230, 25, 75, 0},
+//	color.RGBA{60, 180, 75, 0},
+//	color.RGBA{255, 225, 25, 0},
+//	color.RGBA{0, 130, 200, 0},
+//	color.RGBA{245, 130, 48, 0},
+//	color.RGBA{145, 30, 180, 0},
+//	color.RGBA{70, 240, 240, 0},
+//	color.RGBA{240, 50, 230, 0},
+//	color.RGBA{210, 245, 60, 0},
+//	color.RGBA{250, 190, 190, 0},
+//	color.RGBA{0, 128, 128, 0},
+//	color.RGBA{230, 190, 255, 0},
+//	color.RGBA{170, 110, 40, 0},
+//	color.RGBA{255, 250, 200, 0},
+//	color.RGBA{128, 0, 0, 0},
+//	color.RGBA{170, 255, 195, 0},
+//	color.RGBA{128, 128, 0, 0},
+//	color.RGBA{255, 215, 180, 0},
+//	color.RGBA{0, 0, 128, 0},
+//	color.RGBA{128, 128, 128, 0},
+//}
 
 type DetectionResult struct {
 	boxes []BBox
@@ -108,7 +111,7 @@ func regionLayer(predictions gocv.Mat, transposePredictions bool, img_height, im
 	var data [w*h*5*(numClasses+5)]float32
 
 	if transposePredictions {
-		predictions = predictions.Reshape(1, 125)
+		predictions = predictions.Reshape(1, 425)
 		data = transpose(&predictions)
 	} else {
 		data = matToArray(&predictions)
@@ -360,10 +363,10 @@ func max_index(a []float32) int {
 
 func caffeWorker(img_chan chan *gocv.Mat, res_chan chan DetectionResult) {
 
-	proto := "model/tiny-yolo-voc.prototxt"
-	model := "model/tiny-yolo-voc.caffemodel"
-	//proto := "model/tiny-yolo.prototxt"
-	//model := "model/tiny-yolo-deploy.caffemodel"
+	//proto := "model/tiny-yolo-voc.prototxt"
+	//model := "model/tiny-yolo-voc.caffemodel"
+	proto := "model/tiny_yolo_deploy.prototxt"
+	model := "model/tiny_yolo.caffemodel"
 
 	// open DNN classifier
 	net := gocv.ReadNetFromCaffe(proto, model)
@@ -396,8 +399,11 @@ func caffeWorker(img_chan chan *gocv.Mat, res_chan chan DetectionResult) {
 		img = item.Clone()
 		blob = gocv.BlobFromImage(img, 1.0/255.0, image.Pt(416, 416), gocv.NewScalar(0, 0, 0, 0), true, false)
 		net.SetInput(blob, "data")
-
-		prob = net.Forward("layer15-conv")
+		//names := net.GetLayerNames()
+		//for _, v := range names {
+		//	log.Println(v)
+		//}
+		prob = net.Forward("conv9")
 		probMat := prob.Reshape(1,1)
 
 		boxes := regionLayer(probMat, true, float32(img.Rows()), float32(img.Cols()))
