@@ -77,7 +77,7 @@ type  BBox struct {
 	topleft image.Point
 	bottomright image.Point
 	center image.Point
-	label int
+	label string
 	confidence float32
 }
 
@@ -192,7 +192,7 @@ func regionLayer(predictions gocv.Mat, transposePredictions bool, img_height, im
 			bottomright: image.Point{int(right), int(bottom)},
 			center: image.Point{int(boxes[i].x*img_width), int(boxes[i].y*img_height)},
 			confidence: boxes[i].classProbs[max_i],
-			label: max_i,
+			label: classNames[max_i],
 		}
 
 		detectionBBoxes = append(detectionBBoxes, bbox)
