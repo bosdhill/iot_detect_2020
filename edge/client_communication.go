@@ -7,6 +7,7 @@ import (
 	"google.golang.org/grpc"
 	pb "github.com/bosdhill/iot_detect_2020/interfaces"
 	"image"
+	"image/color"
 	"io"
 	"log"
 	"net"
@@ -107,6 +108,10 @@ func (comm *clientComm) UploadImage(stream pb.Uploader_UploadImageServer) (error
 		log.Println("Detected", res, e)
 		sec += e
 		//gocv.IMWrite("detect.jpg", res.img)
+		for _, box := range res.boxes {
+			gocv.Rectangle(&img, image.Rect(box.topleft.X, box.topleft.Y, box.bottomright.X, box.bottomright.Y), color.RGBA{230, 25, 75, 0}, 1)
+		}
+		gocv.IMWrite("detect.jpg", img)
 	}
 }
 

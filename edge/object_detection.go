@@ -20,6 +20,26 @@ const numBoxes = h*w*N
 
 var anchors = [2*N]float32 {1.08,1.19,  3.42,4.41,  6.63,11.38,  9.42,5.11,  16.62,10.52}
 //var anchors = [2*N]float32 {0.57273, 0.677385, 1.87446, 2.06253, 3.33843, 5.47434, 7.88282, 3.52778, 9.77052, 9.16828}
+//[[1.08, 3.42, 6.63, 9.42, 16.62],
+//[1.19, 4.41, 11.38, 5.11, 10.52]]
+
+//'coco': { 'classes': [
+//"person", "bicycle", "car", "motorcycle", "airplane", "bus", "train",
+//"truck", "boat", "traffic light", "fire hydrant", "stop sign",
+//"parking meter", "bench", "bird", "cat", "dog", "horse", "sheep", "cow",
+//"elephant", "bear", "zebra", "giraffe", "backpack", "umbrella",
+//"handbag", "tie", "suitcase", "frisbee", "skis", "snowboard",
+//"sports ball", "kite", "baseball bat", "baseball glove", "skateboard",
+//"surfboard", "tennis racket", "bottle", "wine glass", "cup", "fork",
+//"knife", "spoon", "bowl", "banana", "apple", "sandwich", "orange",
+//"broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair",
+//"couch", "potted plant", "bed", "dining table", "toilet", "tv",
+//"laptop", "mouse", "remote", "keyboard", "cell phone", "microwave",
+//"oven", "toaster", "sink", "refrigerator", "book", "clock", "vase",
+//"scissors", "teddy bear", "hair drier", "toothbrush"
+//], 'anchors': [[0.738768, 2.42204, 4.30971, 10.246, 12.6868],
+//[0.874946, 2.65704, 7.04493, 4.59428, 11.8741]]
+//}
 
 const thresh = 0.2
 const nms_threshold = 0.4
@@ -53,7 +73,7 @@ type DetectionResult struct {
 	img gocv.Mat
 }
 
-type BBox struct {
+type  BBox struct {
 	topleft image.Point
 	bottomright image.Point
 	center image.Point
@@ -331,6 +351,8 @@ func caffeWorker(img_chan chan *gocv.Mat, res_chan chan DetectionResult) {
 
 	proto := "model/tiny-yolo-voc.prototxt"
 	model := "model/tiny-yolo-voc.caffemodel"
+	//proto := "model/tiny-yolo.prototxt"
+	//model := "model/tiny-yolo-deploy.caffemodel"
 
 	// open DNN classifier
 	net := gocv.ReadNetFromCaffe(proto, model)
@@ -362,6 +384,17 @@ func caffeWorker(img_chan chan *gocv.Mat, res_chan chan DetectionResult) {
 
 		img = item.Clone()
 		blob = gocv.BlobFromImage(img, 1.0/255.0, image.Pt(416, 416), gocv.NewScalar(0, 0, 0, 0), true, false)
+		// TODO: need to recreate original matrix from blob -- don't know how this would affect bounding boxes
+		// 		Also, I don't think it does, since the boxes are generated using the mat rows and cols
+		//imgs := make([]gocv.Mat, 5)
+		//gocv.ImagesFromBlob(blob, imgs)
+		//for _, v := range imgs {
+		//	log.Println("mat", v.Type().String())
+		//	v.Reshape(cn, rows)
+		//	v.ConvertTo(&v, gocv.MatTypeCV32F)
+		//	//v.ConvertTo(&v, gocv.MatTypeCV8UC3)
+		//	gocv.IMWrite("recv.jpg", v)
+		//}
 
 		net.SetInput(blob, "data")
 
