@@ -3,3 +3,4 @@ edge/model/tiny-yolo-voc.caffemodel
 */.DS_Store
 client/client
 edge/edge
+**/*.jpg
