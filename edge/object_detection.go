@@ -36,6 +36,7 @@ var anchors = [2*N]float32{0.738768, 0.874946, 2.42204, 2.65704, 4.30971, 7.0449
 const thresh = 0.2
 const nms_threshold = 0.4
 
+// TODO different color for each class -- can be used when augmenting images
 //var colors = [20]color.RGBA{
 //	color.RGBA{230, 25, 75, 0},
 //	color.RGBA{60, 180, 75, 0},
@@ -59,20 +60,6 @@ const nms_threshold = 0.4
 //	color.RGBA{128, 128, 128, 0},
 //}
 
-type DetectionResult struct {
-	boxes []BBox
-	img gocv.Mat
-}
-
-type BBox struct {
-	topleft image.Point
-	bottomright image.Point
-	center image.Point
-	label string
-	confidence float32
-}
-
-
 type Box struct {
 	x float32
 	y float32
@@ -83,7 +70,7 @@ type Box struct {
 	currentClassIdx int
 }
 
-func regionLayer(predictions gocv.Mat, transposePredictions bool, img_height, img_width float32) []BBox {
+func regionLayer(predictions gocv.Mat, transposePredictions bool, img_height, img_width float32) ([]string, map[string]*BoundingBox) {
 
 	var data [w*h*5*(numClasses+5)]float32
 
@@ -149,8 +136,8 @@ func regionLayer(predictions gocv.Mat, transposePredictions bool, img_height, im
 		}
 	}
 
-
-	detectionBBoxes := []BBox{}
+	detections := make(map[string]*BoundingBox)
+	labels := make([]string, 0)
 
 	for i := 0; i < len(boxes); i++ {
 		max_i := max_index(boxes[i].classProbs[:])
@@ -178,18 +165,18 @@ func regionLayer(predictions gocv.Mat, transposePredictions bool, img_height, im
 			continue
 		}
 
-		bbox := BBox{
-			topleft: image.Point{ int(left), int(top)},
-			bottomright: image.Point{int(right), int(bottom)},
-			center: image.Point{int(boxes[i].x*img_width), int(boxes[i].y*img_height)},
-			confidence: boxes[i].classProbs[max_i],
-			label: classNames[max_i],
+		bbBox := BoundingBox{
+			topLeftX:     int(left),
+			topLeftY:     int(top),
+			bottomRightX: int(right),
+			bottomRightY: int(bottom),
+			confidence:   boxes[i].classProbs[max_i],
 		}
-
-		detectionBBoxes = append(detectionBBoxes, bbox)
+		detections[classNames[max_i]] = &bbBox
+		labels = append(labels, classNames[max_i])
 	}
 
-	return detectionBBoxes
+	return labels, detections
 }
 
 func matToArray(m *gocv.Mat) [w*h*5*(numClasses+5)]float32 {
@@ -380,13 +367,13 @@ func caffeWorker(img_chan chan *gocv.Mat, res_chan chan DetectionResult) {
 		prob = net.Forward("conv9")
 		probMat := prob.Reshape(1,1)
 
-		boxes := regionLayer(probMat, true, float32(img.Rows()), float32(img.Cols()))
+		labels, detections := regionLayer(probMat, true, float32(img.Rows()), float32(img.Cols()))
 		//time.Sleep(time.Millisecond*30)
 		e := time.Since(t)
 		log.Println("detect time", e)
 		sec += e
 		count++
 		log.Println("last AVG", sec / time.Duration(count))
-		res_chan <- DetectionResult{boxes:boxes, img: img}
+		res_chan <- DetectionResult{labels: labels, img: img, detections: detections}
 	}
 }

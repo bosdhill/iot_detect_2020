@@ -9,6 +9,7 @@ import (
 
 func main() {
 	log.Println("in main")
+	NewDataStore()
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go ServeClient()

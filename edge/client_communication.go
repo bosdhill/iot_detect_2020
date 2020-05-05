@@ -3,11 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	pb "github.com/bosdhill/iot_detect_2020/interfaces"
 	"gocv.io/x/gocv"
 	"google.golang.org/grpc"
-	pb "github.com/bosdhill/iot_detect_2020/interfaces"
-	"image"
-	"image/color"
 	"io"
 	"log"
 	"net"
@@ -71,11 +69,12 @@ func (comm *clientComm) UploadImage(stream pb.Uploader_UploadImageServer) (error
 		e := time.Since(t)
 		log.Println("Detected", res, e)
 		sec += e
-		for _, box := range res.boxes {
-			gocv.Rectangle(&img, image.Rect(box.topleft.X, box.topleft.Y, box.bottomright.X, box.bottomright.Y), color.RGBA{230, 25, 75, 0}, 1)
-			gocv.PutText(&img, box.label, image.Point{box.topleft.X, box.topleft.Y - 5}, gocv.FontHersheySimplex, 0.5, color.RGBA{230, 25, 75, 0}, 1)
-		}
-		gocv.IMWrite("detect.jpg", img)
+		log.Println(res)
+		//for label, box := range res.detections {
+		//	gocv.Rectangle(&img, image.Rect(box.topleft.X, box.topleft.Y, box.bottomright.X, box.bottomright.Y), color.RGBA{230, 25, 75, 0}, 1)
+		//	gocv.PutText(&img, box.label, image.Point{box.topleft.X, box.topleft.Y - 5}, gocv.FontHersheySimplex, 0.5, color.RGBA{230, 25, 75, 0}, 1)
+		//}
+		//gocv.IMWrite("detect.jpg", img)
 	}
 }
 
