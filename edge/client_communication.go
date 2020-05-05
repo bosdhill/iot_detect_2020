@@ -24,7 +24,8 @@ var (
 
 type clientComm struct {
 	server pb.UploaderServer
-	//window *gocv.Window
+	ds *dataStore
+	lis net.Listener
 }
 
 func uploadReqToImg(req *pb.Image) gocv.Mat {
@@ -42,13 +43,14 @@ func uploadReqToImg(req *pb.Image) gocv.Mat {
 }
 
 // TODO find a way to annotate image frames after object detection
-func (comm *clientComm) UploadImage(stream pb.Uploader_UploadImageServer) (error) {
+func (comm *clientComm) UploadImage(stream pb.Uploader_UploadImageServer) error {
 	log.Println("UploadImage")
 	count := 0
 	sec := time.Duration(0)
 	resCh := make(chan DetectionResult)
 	iCh := make(chan *gocv.Mat)
 	go caffeWorker(iCh, resCh)
+	go comm.ds.InsertWorker(resCh)
 	for {
 		req, err := stream.Recv()
 		count++
@@ -63,13 +65,13 @@ func (comm *clientComm) UploadImage(stream pb.Uploader_UploadImageServer) (error
 			return err
 		}
 		img := uploadReqToImg(req)
-		t := time.Now()
+		//t := time.Now()
 		iCh <- &img
-		res := <- resCh
-		e := time.Since(t)
-		log.Println("Detected", res, e)
-		sec += e
-		log.Println(res)
+		//res := <- resCh
+		//e := time.Since(t)
+		//log.Println("Detected", res, e)
+		//sec += e
+		//log.Println(res)
 		//for label, box := range res.detections {
 		//	gocv.Rectangle(&img, image.Rect(box.topleft.X, box.topleft.Y, box.bottomright.X, box.bottomright.Y), color.RGBA{230, 25, 75, 0}, 1)
 		//	gocv.PutText(&img, box.label, image.Point{box.topleft.X, box.topleft.Y - 5}, gocv.FontHersheySimplex, 0.5, color.RGBA{230, 25, 75, 0}, 1)
@@ -78,20 +80,24 @@ func (comm *clientComm) UploadImage(stream pb.Uploader_UploadImageServer) (error
 	}
 }
 
-func newServer() *clientComm {
-	s := &clientComm{}
-	return s
-}
-
-func ServeClient() {
+func NewClientCommunication(ds *dataStore) (*clientComm, error) {
 	log.Println("ServeClient")
 	flag.Parse()
 	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", *port))
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		return nil, err
 	}
+	cComm := &clientComm{ds: ds, lis: lis}
+	return cComm, nil
+}
+
+func (comm *clientComm) ServeClient() error {
 	var opts []grpc.ServerOption
 	grpcServer := grpc.NewServer(opts...)
-	pb.RegisterUploaderServer(grpcServer, newServer())
-	grpcServer.Serve(lis)
+	pb.RegisterUploaderServer(grpcServer, comm)
+	err := grpcServer.Serve(comm.lis)
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -6,6 +6,7 @@ import (
 )
 
 type DetectionResult struct {
+	detectionTime int64
 	labels []string
 	img gocv.Mat
 	detections map[string]*BoundingBox

@@ -374,6 +374,6 @@ func caffeWorker(img_chan chan *gocv.Mat, res_chan chan DetectionResult) {
 		sec += e
 		count++
 		log.Println("last AVG", sec / time.Duration(count))
-		res_chan <- DetectionResult{labels: labels, img: img, detections: detections}
+		res_chan <- DetectionResult{detectionTime: time.Now().Unix(), labels: labels, img: img, detections: detections}
 	}
 }
