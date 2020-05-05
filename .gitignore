@@ -1,4 +1,5 @@
 edge/model/tiny-yolo-voc.caffemodel
+edge/model/tiny_yolo.caffemodel
 .idea/
 */.DS_Store
 client/client
