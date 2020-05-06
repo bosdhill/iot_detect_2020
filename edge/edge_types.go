@@ -1,9 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"gocv.io/x/gocv"
 )
+
+type EdgeContext struct {
+	ctx context.Context
+	cancel context.CancelFunc
+}
 
 type DetectionResult struct {
 	empty bool

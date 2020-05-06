@@ -1,20 +1,15 @@
 package main
 
 import (
-	"context"
 	"github.com/hashicorp/go-memdb"
 	"log"
-	"time"
 )
-
-// Use watch feature
-
-// Create a sample struct
 
 var dbTable = "detection"
 
 type dataStore struct {
 	db *memdb.MemDB
+	eCtx *EdgeContext
 }
 
 // Data store can handle writing out the annotated image frames, or it can be handled by client
@@ -25,6 +20,8 @@ func (ds *dataStore) WriteOutImg() {
 	//}
 	//gocv.IMWrite("detect.jpg", img)
 }
+
+//func (ds *dataStore) GetRange(int64)
 
 // TODO Should have a case when there is an empty Get
 func (ds *dataStore) Get() error {
@@ -69,26 +66,17 @@ func (ds *dataStore) Get() error {
 	return nil
 }
 
-func (ds *dataStore) InsertWorker(ctx context.Context, drCh chan DetectionResult) {
+func (ds *dataStore) InsertWorker(drCh chan DetectionResult) {
 	log.Println("InsertWorker")
 	txn := ds.db.Txn(true)
-	for {
-		select {
-			case <-ctx.Done():
-				log.Println("commit")
-				txn.Commit()
-				time.Sleep(5 * time.Second)
-				ds.Get()
-				return
-			case dr := <- drCh:
-				//log.Println("inserting...")
-				log.Println(dr)
-				if err := txn.Insert(dbTable, &dr); err != nil {
-					panic(err)
-				}
-				//log.Println("Finished inserting...")
+	for dr := range drCh {
+		log.Println(dr)
+		if err := txn.Insert(dbTable, &dr); err != nil {
+			panic(err)
 		}
 	}
+	txn.Commit()
+	ds.eCtx.cancel()
 }
 
 func (ds *dataStore) Insert(dr []DetectionResult) {
@@ -101,7 +89,7 @@ func (ds *dataStore) Insert(dr []DetectionResult) {
 	txn.Commit()
 }
 
-func NewDataStore() (*dataStore, error) {
+func NewDataStore(eCtx *EdgeContext) (*dataStore, error) {
 	log.Println("NewDataStore")
 
 	// TODO use logical clocks (unix time) so it's easier to get ranges
@@ -135,5 +123,5 @@ func NewDataStore() (*dataStore, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &dataStore{db: db}, nil
+	return &dataStore{db: db, eCtx: eCtx}, nil
 }

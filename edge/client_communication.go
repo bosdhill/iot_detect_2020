@@ -26,6 +26,8 @@ type clientComm struct {
 	ds *dataStore
 	od *objectDetect
 	lis net.Listener
+	eCtx *EdgeContext
+	cancel context.CancelFunc
 }
 
 func uploadReqToImg(req *pb.Image) gocv.Mat {
@@ -45,20 +47,19 @@ func uploadReqToImg(req *pb.Image) gocv.Mat {
 // TODO find a way to annotate image frames after object detection
 func (comm *clientComm) UploadImage(stream pb.Uploader_UploadImageServer) error {
 	log.Println("UploadImage")
-	ctx, cancel := context.WithCancel(context.Background())
 	count := 0
 	resCh := make(chan DetectionResult)
 	iCh := make(chan *gocv.Mat)
-	go comm.od.caffeWorker(ctx, iCh, resCh)
-	go comm.ds.InsertWorker(ctx, resCh)
+	go comm.od.caffeWorker(iCh, resCh)
+	go comm.ds.InsertWorker(resCh)
 	for {
 		req, err := stream.Recv()
 		count++
 		//log.Println("received image from stream", count)
 		if err == io.EOF {
 			log.Println("EOF")
-			cancel()
-			break
+			close(iCh)
+			return stream.SendAndClose(&pb.ImageResponse{Success: true})
 		}
 		if err != nil {
 			log.Println("err=", err)
@@ -67,20 +68,16 @@ func (comm *clientComm) UploadImage(stream pb.Uploader_UploadImageServer) error 
 		img := uploadReqToImg(req)
 		iCh <- &img
 	}
-	//if err := comm.ds.Get(); err != nil {
-	//	return err
-	//}
-	return stream.SendAndClose(&pb.ImageResponse{Success: true})
 }
 
-func NewClientCommunication(ds *dataStore, od *objectDetect) (*clientComm, error) {
+func NewClientCommunication(eCtx *EdgeContext, ds *dataStore, od *objectDetect) (*clientComm, error) {
 	log.Println("NewClientCommunication")
 	flag.Parse()
 	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", *port))
 	if err != nil {
 		return nil, err
 	}
-	cComm := &clientComm{ds: ds, od: od, lis: lis}
+	cComm := &clientComm{ds: ds, od: od, lis: lis, eCtx: eCtx}
 	return cComm, nil
 }
 

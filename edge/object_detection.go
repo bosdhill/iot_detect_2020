@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"gocv.io/x/gocv"
@@ -338,18 +337,19 @@ func max_index(a []float32) int {
 
 type objectDetect struct {
 	net *gocv.Net
+	eCtx *EdgeContext
 }
 
-func NewObjectDetection() (*objectDetect, error){
+func NewObjectDetection(eCtx *EdgeContext) (*objectDetect, error){
 	log.Println("NewObjectDetection")
 	caffeNet := gocv.ReadNetFromCaffe(proto, model)
 	if caffeNet.Empty() {
 		return nil, errors.New(fmt.Sprintf("Error reading network model from : %v %v\n", proto, model))
 	}
-	return &objectDetect{&caffeNet}, nil
+	return &objectDetect{net: &caffeNet, eCtx: eCtx}, nil
 }
 
-func (od *objectDetect) caffeWorker(ctx context.Context, imgChan chan *gocv.Mat, resChan chan DetectionResult) {
+func (od *objectDetect) caffeWorker(imgChan chan *gocv.Mat, resChan chan DetectionResult) {
 	log.Println("caffeWorker")
 	img := gocv.NewMat()
 	defer img.Close()
@@ -365,41 +365,36 @@ func (od *objectDetect) caffeWorker(ctx context.Context, imgChan chan *gocv.Mat,
 
 	sec := time.Duration(0)
 	count := 0
-	for {
-		select {
-			case <-ctx.Done():
-				log.Println("caffeWorker done")
-				return
-			case item := <- imgChan:
-				if item.Empty(){
-					log.Println("img is empty")
-					continue
-				}
-				t := time.Now()
-				img = item.Clone()
-				blob = gocv.BlobFromImage(img, 1.0/255.0, image.Pt(416, 416), gocv.NewScalar(0, 0, 0, 0), true, false)
-				od.net.SetInput(blob, "data")
-				prob = od.net.Forward("conv9")
-				probMat := prob.Reshape(1,1)
-
-				labels, detections := regionLayer(probMat, true, float32(img.Rows()), float32(img.Cols()))
-				//time.Sleep(time.Millisecond*30)
-				e := time.Since(t)
-				log.Println("detect time", e)
-				sec += e
-				count++
-				log.Println("last AVG", sec / time.Duration(count))
-
-				empty := false
-				if len(labels) == 0 {
-					empty = true
-				}
-
-				resChan <- DetectionResult{empty: empty,
-					    				   detectionTime: time.Now().UnixNano(),
-					    				   labels: labels,
-					    				   img: img,
-					    				   detections: detections}
+	for item := range imgChan {
+		if item.Empty(){
+			log.Println("img is empty")
+			continue
 		}
+		t := time.Now()
+		img = item.Clone()
+		blob = gocv.BlobFromImage(img, 1.0/255.0, image.Pt(416, 416), gocv.NewScalar(0, 0, 0, 0), true, false)
+		od.net.SetInput(blob, "data")
+		prob = od.net.Forward("conv9")
+		probMat := prob.Reshape(1,1)
+
+		labels, detections := regionLayer(probMat, true, float32(img.Rows()), float32(img.Cols()))
+		//time.Sleep(time.Millisecond*30)
+		e := time.Since(t)
+		log.Println("detect time", e)
+		sec += e
+		count++
+		log.Println("last AVG", sec / time.Duration(count))
+
+		empty := false
+		if len(labels) == 0 {
+			empty = true
+		}
+
+		resChan <- DetectionResult{empty: empty,
+			detectionTime: time.Now().UnixNano(),
+			labels: labels,
+			img: img,
+			detections: detections}
 	}
+	close(resChan)
 }
