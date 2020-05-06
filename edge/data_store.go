@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"github.com/hashicorp/go-memdb"
 	"log"
+	"time"
 )
 
 // Use watch feature
@@ -11,21 +13,80 @@ import (
 
 var dbTable = "detection"
 
-type Detection struct {
-	detectionTime int
-	labels []string
-}
-
 type dataStore struct {
 	db *memdb.MemDB
 }
 
-func (ds *dataStore) InsertWorker(drCh chan DetectionResult) {
+// Data store can handle writing out the annotated image frames, or it can be handled by client
+func (ds *dataStore) WriteOutImg() {
+	//for label, box := range res.detections {
+	//	gocv.Rectangle(&img, image.Rect(box.topleft.X, box.topleft.Y, box.bottomright.X, box.bottomright.Y), color.RGBA{230, 25, 75, 0}, 1)
+	//	gocv.PutText(&img, box.label, image.Point{box.topleft.X, box.topleft.Y - 5}, gocv.FontHersheySimplex, 0.5, color.RGBA{230, 25, 75, 0}, 1)
+	//}
+	//gocv.IMWrite("detect.jpg", img)
+}
+
+// TODO Should have a case when there is an empty Get
+func (ds *dataStore) Get() error {
+	log.Println("Get")
+	txn := ds.db.Txn(false)
+	defer txn.Abort()
+
+	it, err := txn.Get(dbTable, "id")
+	if err != nil {
+		return err
+	}
+
+	log.Println("All the detections:")
+	for obj := it.Next(); obj != nil; obj = it.Next() {
+		dr := obj.(*DetectionResult)
+		log.Println(dr.labels)
+	}
+	log.Println("end of get")
+
+	log.Println("Only detections with bus:")
+	it, err = txn.Get(dbTable, "labels", "bus", "t")
+	if err != nil {
+		return err
+	}
+	for obj := it.Next(); obj != nil; obj = it.Next() {
+		dr := obj.(*DetectionResult)
+		log.Println(dr.labels)
+	}
+
+	// Range scan
+	//it, err = txn.LowerBound(dbTable, "id", 25)
+	//if err != nil {
+	//	return err
+	//}
+	//fmt.Println("People aged 25 - 35:")
+	//for obj := it.Next(); obj != nil; obj = it.Next() {
+	//	p := obj.(*DetectionResult)
+	//	if p.detectionTime > 35 {
+	//		break
+	//	}
+	//}
+	return nil
+}
+
+func (ds *dataStore) InsertWorker(ctx context.Context, drCh chan DetectionResult) {
+	log.Println("InsertWorker")
 	txn := ds.db.Txn(true)
-	for dr := range drCh {
-		log.Println(dr)
-		if err := txn.Insert(dbTable, dr); err != nil {
-			panic(err)
+	for {
+		select {
+			case <-ctx.Done():
+				log.Println("commit")
+				txn.Commit()
+				time.Sleep(5 * time.Second)
+				ds.Get()
+				return
+			case dr := <- drCh:
+				//log.Println("inserting...")
+				log.Println(dr)
+				if err := txn.Insert(dbTable, &dr); err != nil {
+					panic(err)
+				}
+				//log.Println("Finished inserting...")
 		}
 	}
 }
@@ -33,7 +94,7 @@ func (ds *dataStore) InsertWorker(drCh chan DetectionResult) {
 func (ds *dataStore) Insert(dr []DetectionResult) {
 	txn := ds.db.Txn(true)
 	for _, p := range dr {
-		if err := txn.Insert(dbTable, p); err != nil {
+		if err := txn.Insert(dbTable, &p); err != nil {
 			panic(err)
 		}
 	}
@@ -41,11 +102,13 @@ func (ds *dataStore) Insert(dr []DetectionResult) {
 }
 
 func NewDataStore() (*dataStore, error) {
-	log.Println("data store")
+	log.Println("NewDataStore")
 
 	// TODO use logical clocks (unix time) so it's easier to get ranges
 	// 	last 24 hours == curr_unix_time - 24 hours in unix time
 	// 	last x unix_t == curr_unix_time - x
+	// TODO should there be separate tables for images with detections vs images without detections?
+	//  This is explained in paper I wrote.
 	schema := &memdb.DBSchema{
 		Tables: map[string]*memdb.TableSchema{
 			dbTable : {
@@ -59,7 +122,9 @@ func NewDataStore() (*dataStore, error) {
 					"labels" : {
 						Name: "labels",
 						Unique: false,
-						Indexer: &memdb.StringSliceFieldIndex{Field: "labels"},
+						Indexer: &memdb.StringMapFieldIndex{Field: "labels", Lowercase: true},
+						// Some detections may not produce any results, but we should store image frames anyways
+						AllowMissing: true,
 					},
 				},
 			},
@@ -69,62 +134,6 @@ func NewDataStore() (*dataStore, error) {
 	db, err := memdb.NewMemDB(schema)
 	if err != nil {
 		return nil, err
-		panic(err)
 	}
 	return &dataStore{db: db}, nil
-
-	//
-	//txn := db.Txn(true)
-	//
-	//detections := []*Detection{
-	//	&Detection{10002320, []string{"person", "bus"} },
-	//	&Detection{10005420, []string{"person", "bus", "car"} },
-	//}
-	//
-	//for _, p := range detections {
-	//	if err := txn.Insert("detection", p); err != nil {
-	//		panic(err)
-	//	}
-	//}
-	//
-	//txn.Commit()
-	//
-	//// Create read-only transaction
-	//txn = db.Txn(false)
-	//defer txn.Abort()
-	//
-	//raw, err := txn.First("detection", "labels", "person")
-	//
-	//// Say hi!
-	//fmt.Printf("Detection time %d!\n", raw.(*Detection).detectionTime)
-	//
-	//// List all the people
-	//it, err := txn.Get("detection", "id")
-	//if err != nil {
-	//	panic(err)
-	//}
-	//
-	//fmt.Println("All the detections:")
-	//for obj := it.Next(); obj != nil; obj = it.Next() {
-	//	p := obj.(*Detection)
-	//	fmt.Println(p.labels)
-	//}
-
-	//// Range scan over people with ages between 25 and 35 inclusive
-	//it, err = txn.LowerBound("person", "age", 25)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//
-	//fmt.Println("People aged 25 - 35:")
-	//for obj := it.Next(); obj != nil; obj = it.Next() {
-	//	p := obj.(*Person)
-	//	if p.Age > 35 {
-	//		break
-	//	}
-	//	fmt.Printf("  %s is aged %d\n", p.Name, p.Age)
-	//}
-
-
-
 }

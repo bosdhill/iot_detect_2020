@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"gocv.io/x/gocv"
 	"image"
@@ -17,24 +19,27 @@ const w = 12
 const h = 12
 const blockwd float32 = 13
 const numBoxes = h*w*N
-
-var classNames = [numClasses]string{"person", "bicycle", "car", "motorcycle", "airplane", "bus", "train",
-	"truck", "boat", "traffic light", "fire hydrant", "stop sign",
-	"parking meter", "bench", "bird", "cat", "dog", "horse", "sheep", "cow",
-	"elephant", "bear", "zebra", "giraffe", "backpack", "umbrella",
-	"handbag", "tie", "suitcase", "frisbee", "skis", "snowboard",
-	"sports ball", "kite", "baseball bat", "baseball glove", "skateboard",
-	"surfboard", "tennis racket", "bottle", "wine glass", "cup", "fork",
-	"knife", "spoon", "bowl", "banana", "apple", "sandwich", "orange",
-	"broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair",
-	"couch", "potted plant", "bed", "dining table", "toilet", "tv",
-	"laptop", "mouse", "remote", "keyboard", "cell phone", "microwave",
-	"oven", "toaster", "sink", "refrigerator", "book", "clock", "vase",
-	"scissors", "teddy bear", "hair drier", "toothbrush"}
-var anchors = [2*N]float32{0.738768, 0.874946, 2.42204, 2.65704, 4.30971, 7.04493, 10.246, 4.59428, 12.6868, 11.8741}
-
 const thresh = 0.2
 const nms_threshold = 0.4
+
+var (
+	proto = "model/tiny_yolo_deploy.prototxt"
+	model = "model/tiny_yolo.caffemodel"
+	classNames = [numClasses]string{"person", "bicycle", "car", "motorcycle", "airplane", "bus", "train",
+		"truck", "boat", "traffic light", "fire hydrant", "stop sign",
+		"parking meter", "bench", "bird", "cat", "dog", "horse", "sheep", "cow",
+		"elephant", "bear", "zebra", "giraffe", "backpack", "umbrella",
+		"handbag", "tie", "suitcase", "frisbee", "skis", "snowboard",
+		"sports ball", "kite", "baseball bat", "baseball glove", "skateboard",
+		"surfboard", "tennis racket", "bottle", "wine glass", "cup", "fork",
+		"knife", "spoon", "bowl", "banana", "apple", "sandwich", "orange",
+		"broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair",
+		"couch", "potted plant", "bed", "dining table", "toilet", "tv",
+		"laptop", "mouse", "remote", "keyboard", "cell phone", "microwave",
+		"oven", "toaster", "sink", "refrigerator", "book", "clock", "vase",
+		"scissors", "teddy bear", "hair drier", "toothbrush"}
+	anchors = [2*N]float32{0.738768, 0.874946, 2.42204, 2.65704, 4.30971, 7.04493, 10.246, 4.59428, 12.6868, 11.8741}
+)
 
 // TODO different color for each class -- can be used when augmenting images
 //var colors = [20]color.RGBA{
@@ -70,9 +75,10 @@ type Box struct {
 	currentClassIdx int
 }
 
-func regionLayer(predictions gocv.Mat, transposePredictions bool, img_height, img_width float32) ([]string, map[string]*BoundingBox) {
+func regionLayer(predictions gocv.Mat, transposePredictions bool, img_height, img_width float32) (map[string]string, map[string]([]*BoundingBox)) {
 
 	var data [w*h*5*(numClasses+5)]float32
+	var label string
 
 	if transposePredictions {
 		predictions = predictions.Reshape(1, 425)
@@ -136,8 +142,8 @@ func regionLayer(predictions gocv.Mat, transposePredictions bool, img_height, im
 		}
 	}
 
-	detections := make(map[string]*BoundingBox)
-	labels := make([]string, 0)
+	detections := make(map[string]([]*BoundingBox))
+	labels := make(map[string]string)
 
 	for i := 0; i < len(boxes); i++ {
 		max_i := max_index(boxes[i].classProbs[:])
@@ -164,6 +170,7 @@ func regionLayer(predictions gocv.Mat, transposePredictions bool, img_height, im
 		if int(right - left) == 0 || int(bottom - top) == 0 {
 			continue
 		}
+		label = classNames[max_i]
 
 		bbBox := BoundingBox{
 			topLeftX:     int(left),
@@ -172,8 +179,13 @@ func regionLayer(predictions gocv.Mat, transposePredictions bool, img_height, im
 			bottomRightY: int(bottom),
 			confidence:   boxes[i].classProbs[max_i],
 		}
-		detections[classNames[max_i]] = &bbBox
-		labels = append(labels, classNames[max_i])
+		detections[label] = append(detections[label], &bbBox)
+
+		// TODO Hacky way around memdb indexing... implementing StringMapBoolIndex in memdb
+		//  would allow use of map[string]bool
+		if labels[label] == "" {
+			labels[label] = "t"
+		}
 	}
 
 	return labels, detections
@@ -324,25 +336,23 @@ func max_index(a []float32) int {
 	return max_i
 }
 
+type objectDetect struct {
+	net *gocv.Net
+}
 
-func caffeWorker(img_chan chan *gocv.Mat, res_chan chan DetectionResult) {
-
-	//proto := "model/tiny-yolo-voc.prototxt"
-	//model := "model/tiny-yolo-voc.caffemodel"
-	proto := "model/tiny_yolo_deploy.prototxt"
-	model := "model/tiny_yolo.caffemodel"
-
-	// open DNN classifier
-	net := gocv.ReadNetFromCaffe(proto, model)
-	if net.Empty() {
-		fmt.Printf("Error reading network model from : %v %v\n", proto, model)
-		return
+func NewObjectDetection() (*objectDetect, error){
+	log.Println("NewObjectDetection")
+	caffeNet := gocv.ReadNetFromCaffe(proto, model)
+	if caffeNet.Empty() {
+		return nil, errors.New(fmt.Sprintf("Error reading network model from : %v %v\n", proto, model))
 	}
-	defer net.Close()
+	return &objectDetect{&caffeNet}, nil
+}
 
+func (od *objectDetect) caffeWorker(ctx context.Context, imgChan chan *gocv.Mat, resChan chan DetectionResult) {
+	log.Println("caffeWorker")
 	img := gocv.NewMat()
 	defer img.Close()
-
 
 	blob := gocv.NewMat()
 	defer blob.Close()
@@ -355,25 +365,41 @@ func caffeWorker(img_chan chan *gocv.Mat, res_chan chan DetectionResult) {
 
 	sec := time.Duration(0)
 	count := 0
-	for item := range(img_chan) {
-		if item.Empty(){
-			log.Println("img is empty")
-			continue
-		}
-		t := time.Now()
-		img = item.Clone()
-		blob = gocv.BlobFromImage(img, 1.0/255.0, image.Pt(416, 416), gocv.NewScalar(0, 0, 0, 0), true, false)
-		net.SetInput(blob, "data")
-		prob = net.Forward("conv9")
-		probMat := prob.Reshape(1,1)
+	for {
+		select {
+			case <-ctx.Done():
+				log.Println("caffeWorker done")
+				return
+			case item := <- imgChan:
+				if item.Empty(){
+					log.Println("img is empty")
+					continue
+				}
+				t := time.Now()
+				img = item.Clone()
+				blob = gocv.BlobFromImage(img, 1.0/255.0, image.Pt(416, 416), gocv.NewScalar(0, 0, 0, 0), true, false)
+				od.net.SetInput(blob, "data")
+				prob = od.net.Forward("conv9")
+				probMat := prob.Reshape(1,1)
 
-		labels, detections := regionLayer(probMat, true, float32(img.Rows()), float32(img.Cols()))
-		//time.Sleep(time.Millisecond*30)
-		e := time.Since(t)
-		log.Println("detect time", e)
-		sec += e
-		count++
-		log.Println("last AVG", sec / time.Duration(count))
-		res_chan <- DetectionResult{detectionTime: time.Now().Unix(), labels: labels, img: img, detections: detections}
+				labels, detections := regionLayer(probMat, true, float32(img.Rows()), float32(img.Cols()))
+				//time.Sleep(time.Millisecond*30)
+				e := time.Since(t)
+				log.Println("detect time", e)
+				sec += e
+				count++
+				log.Println("last AVG", sec / time.Duration(count))
+
+				empty := false
+				if len(labels) == 0 {
+					empty = true
+				}
+
+				resChan <- DetectionResult{empty: empty,
+					    				   detectionTime: time.Now().UnixNano(),
+					    				   labels: labels,
+					    				   img: img,
+					    				   detections: detections}
+		}
 	}
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	pb "github.com/bosdhill/iot_detect_2020/interfaces"
@@ -9,8 +10,6 @@ import (
 	"io"
 	"log"
 	"net"
-	"time"
-
 	//sdl "github.com/bosdhill/iot_detect_2020/sdl"
 )
 
@@ -25,6 +24,7 @@ var (
 type clientComm struct {
 	server pb.UploaderServer
 	ds *dataStore
+	od *objectDetect
 	lis net.Listener
 }
 
@@ -45,53 +45,47 @@ func uploadReqToImg(req *pb.Image) gocv.Mat {
 // TODO find a way to annotate image frames after object detection
 func (comm *clientComm) UploadImage(stream pb.Uploader_UploadImageServer) error {
 	log.Println("UploadImage")
+	ctx, cancel := context.WithCancel(context.Background())
 	count := 0
-	sec := time.Duration(0)
 	resCh := make(chan DetectionResult)
 	iCh := make(chan *gocv.Mat)
-	go caffeWorker(iCh, resCh)
-	go comm.ds.InsertWorker(resCh)
+	go comm.od.caffeWorker(ctx, iCh, resCh)
+	go comm.ds.InsertWorker(ctx, resCh)
 	for {
 		req, err := stream.Recv()
 		count++
-		log.Println("received image from stream", count)
+		//log.Println("received image from stream", count)
 		if err == io.EOF {
 			log.Println("EOF")
-			log.Println("AVG", sec / time.Duration(count))
-			return stream.SendAndClose(&pb.ImageResponse{Success: true})
+			cancel()
+			break
 		}
 		if err != nil {
 			log.Println("err=", err)
 			return err
 		}
 		img := uploadReqToImg(req)
-		//t := time.Now()
 		iCh <- &img
-		//res := <- resCh
-		//e := time.Since(t)
-		//log.Println("Detected", res, e)
-		//sec += e
-		//log.Println(res)
-		//for label, box := range res.detections {
-		//	gocv.Rectangle(&img, image.Rect(box.topleft.X, box.topleft.Y, box.bottomright.X, box.bottomright.Y), color.RGBA{230, 25, 75, 0}, 1)
-		//	gocv.PutText(&img, box.label, image.Point{box.topleft.X, box.topleft.Y - 5}, gocv.FontHersheySimplex, 0.5, color.RGBA{230, 25, 75, 0}, 1)
-		//}
-		//gocv.IMWrite("detect.jpg", img)
 	}
+	//if err := comm.ds.Get(); err != nil {
+	//	return err
+	//}
+	return stream.SendAndClose(&pb.ImageResponse{Success: true})
 }
 
-func NewClientCommunication(ds *dataStore) (*clientComm, error) {
-	log.Println("ServeClient")
+func NewClientCommunication(ds *dataStore, od *objectDetect) (*clientComm, error) {
+	log.Println("NewClientCommunication")
 	flag.Parse()
 	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", *port))
 	if err != nil {
 		return nil, err
 	}
-	cComm := &clientComm{ds: ds, lis: lis}
+	cComm := &clientComm{ds: ds, od: od, lis: lis}
 	return cComm, nil
 }
 
 func (comm *clientComm) ServeClient() error {
+	log.Println("ServeClient")
 	var opts []grpc.ServerOption
 	grpcServer := grpc.NewServer(opts...)
 	pb.RegisterUploaderServer(grpcServer, comm)

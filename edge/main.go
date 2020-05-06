@@ -14,7 +14,17 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	cComm, err := NewClientCommunication(ds)
+
+	od, err := NewObjectDetection()
+	if err != nil {
+		panic(err)
+	}
+
+	cComm, err := NewClientCommunication(ds, od)
+	if err != nil {
+		panic(err)
+	}
+
 	wg.Add(1)
 	go func() {
 		err := cComm.ServeClient()
