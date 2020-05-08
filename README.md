@@ -7,6 +7,8 @@ go get -u -d gocv.io/x/gocv # may need to symlink /usr/local/lib/pkgconfig/openc
 go get google.golang.org/grpc
 go get -u github.com/golang/protobuf/protoc-gen-go
 protoc -I interfaces/ interfaces/interfaces.proto --go_out=plugins=grpc:interfaces
+
+go build ./...
 ```
 
 ```
