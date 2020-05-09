@@ -3,17 +3,19 @@ package main
 import (
 	"context"
 	"flag"
-	"gocv.io/x/gocv"
-	"google.golang.org/grpc"
 	"log"
 	"time"
+
 	pb "github.com/bosdhill/iot_detect_2020/interfaces"
+	"gocv.io/x/gocv"
+	"google.golang.org/grpc"
 )
 
 var (
 	tls                = flag.Bool("tls", false, "Connection uses TLS if true, else plain TCP")
 	caFile             = flag.String("ca_file", "", "The file containing the CA root cert file")
 	serverAddr         = flag.String("server_addr", "localhost:10000", "The server address in the format of host:port")
+	piServerAddr       = flag.String("pi_server_addr", "192.168.1.121:10000", "The server address in the format of host:port")
 	serverHostOverride = flag.String("server_host_override", "x.test.youtube.com", "The server name used to verify the hostname returned by the TLS handshake")
 )
 
@@ -27,7 +29,7 @@ func NewEdgeComm() (*edgeComm, error) {
 	opts = append(opts, grpc.WithBlock(), grpc.WithInsecure())
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	//defer cancel()
-	conn, err := grpc.DialContext(ctx, *serverAddr, opts...)
+	conn, err := grpc.DialContext(ctx, *piServerAddr, opts...)
 	if err != nil {
 		log.Fatalf("Error while dialing. Err: %v", err)
 	}
@@ -41,7 +43,7 @@ func imgToUploadReq(img gocv.Mat) *pb.Image {
 	rows := int32(img.Rows())
 	cols := int32(img.Cols())
 	mType := img.Type()
-	return &pb.Image{Image:bImg, Rows:rows, Cols:cols, Type:int32(mType)}
+	return &pb.Image{Image: bImg, Rows: rows, Cols: cols, Type: int32(mType)}
 }
 
 // TODO batch image frames when uploading
@@ -69,4 +71,3 @@ func (e *edgeComm) UploadImage(c chan gocv.Mat) {
 	}
 	log.Printf("ImageResponse: %v", reply.String())
 }
-

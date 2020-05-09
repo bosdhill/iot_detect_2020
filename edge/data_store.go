@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/hashicorp/go-memdb"
 	"log"
 )
@@ -52,17 +53,17 @@ func (ds *dataStore) Get() error {
 	}
 
 	// Range scan
-	//it, err = txn.LowerBound(dbTable, "id", 25)
-	//if err != nil {
-	//	return err
-	//}
-	//fmt.Println("People aged 25 - 35:")
-	//for obj := it.Next(); obj != nil; obj = it.Next() {
-	//	p := obj.(*DetectionResult)
-	//	if p.detectionTime > 35 {
-	//		break
-	//	}
-	//}
+	it, err = txn.LowerBound(dbTable, "topLeftX",2)
+	if err != nil {
+		return err
+	}
+	fmt.Println("People aged 25 - 35:")
+	for obj := it.Next(); obj != nil; obj = it.Next() {
+		p := obj.(*DetectionResult)
+		if p.detectionTime > 35 {
+			break
+		}
+	}
 	return nil
 }
 
@@ -114,6 +115,14 @@ func NewDataStore(eCtx *EdgeContext) (*dataStore, error) {
 						// Some detections may not produce any results, but we should store image frames anyways
 						AllowMissing: true,
 					},
+					"detections" : {
+						Name: "detections",
+						Unique: false,
+						Indexer: &memdb.CompoundIndex{
+
+						},
+					},
+ 					// TODO need a way to index by confidence... ranging over float32 or turning float32 to int
 				},
 			},
 		},

@@ -40,13 +40,38 @@ func (dr DetectionResult) String() string {
 	return ret
 }
 
-// TODO implementing this would make comparison faster in memdb for sets
-type StringMapBoolIndex struct {
-	Field bool
-	Lowercase bool
+// TODO implement below Indexers
+// Need Indexer that yields DetectionResults that have detections with label with confidence greater than or equal to threshold
+// Need Indexer that yields DetectionResults that have detections with multiple labels with confidence greater than or equal to threshold
+// Need Indexer that yields DetectionResults that have detections with multiple labels - Done
+
+// Indexer that yields DetectionResults with at least one detection of detections with confidence greater than or equal to threshold
+type DetectionMapIndex struct {
+	Field string
 }
 
-//var MapType = reflect.MapOf(reflect.TypeOf(""), reflect.TypeOf("")).Kind()
+// receiving detections
+func (s *DetectionMapIndex) FromArgs(args ...interface{}) ([]byte, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("must provide only a single argument")
+	}
+	arg, ok := args[0].(string)
+	if !ok {
+		return nil, fmt.Errorf("argument must be a string: %#v", args[0])
+	}
+	// Add the null character as a terminator
+	arg += "\x00"
+	return []byte(arg), nil
+}
+
+
+//// TODO implementing this would make comparison faster in memdb for sets
+//type StringMapBoolIndex struct {
+//	Field string
+//	Lowercase bool
+//}
+//
+//var MapType = reflect.MapOf(reflect.TypeOf(""), reflect.TypeOf(true)).Kind()
 //
 //func (s *StringMapBoolIndex) FromObject(obj interface{}) (bool, [][]byte, error) {
 //	v := reflect.ValueOf(obj)
@@ -58,7 +83,7 @@ type StringMapBoolIndex struct {
 //	}
 //
 //	if fv.Kind() != MapType {
-//		return false, nil, fmt.Errorf("field '%s' is not a map[string]string", s.Field)
+//		return false, nil, fmt.Errorf("field '%s' is not a map[string]bool", s.Field)
 //	}
 //
 //	length := fv.Len()
