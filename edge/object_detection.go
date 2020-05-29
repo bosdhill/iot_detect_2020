@@ -74,7 +74,7 @@ type Box struct {
 	currentClassIdx int
 }
 
-func regionLayer(predictions gocv.Mat, transposePredictions bool, img_height, img_width float32) (map[string]string, map[string]([]*BoundingBox)) {
+func regionLayer(predictions gocv.Mat, transposePredictions bool, img_height, img_width float32) (map[string]bool, map[string]([]*BoundingBox)) {
 
 	var data [w*h*5*(numClasses+5)]float32
 	var label string
@@ -142,7 +142,7 @@ func regionLayer(predictions gocv.Mat, transposePredictions bool, img_height, im
 	}
 
 	detections := make(map[string]([]*BoundingBox))
-	labels := make(map[string]string)
+	labels := make(map[string]bool)
 
 	for i := 0; i < len(boxes); i++ {
 		max_i := max_index(boxes[i].classProbs[:])
@@ -180,10 +180,8 @@ func regionLayer(predictions gocv.Mat, transposePredictions bool, img_height, im
 		}
 		detections[label] = append(detections[label], &bbBox)
 
-		// TODO Hacky way around memdb indexing... implementing StringMapBoolIndex in memdb
-		//  would allow use of map[string]bool
-		if labels[label] == "" {
-			labels[label] = "t"
+		if !labels[label] {
+			labels[label] = true
 		}
 	}
 
@@ -377,7 +375,7 @@ func (od *objectDetect) caffeWorker(imgChan chan *gocv.Mat, resChan chan Detecti
 		prob = od.net.Forward("conv9")
 		probMat := prob.Reshape(1,1)
 
-		labels, detections := regionLayer(probMat, true, float32(img.Rows()), float32(img.Cols()))
+		labels, labelBoxes := regionLayer(probMat, true, float32(img.Rows()), float32(img.Cols()))
 		//time.Sleep(time.Millisecond*30)
 		e := time.Since(t)
 		log.Println("detect time", e)
@@ -385,16 +383,13 @@ func (od *objectDetect) caffeWorker(imgChan chan *gocv.Mat, resChan chan Detecti
 		count++
 		log.Println("last AVG", sec / time.Duration(count))
 
-		empty := false
-		if len(labels) == 0 {
-			empty = true
-		}
 
-		resChan <- DetectionResult{empty: empty,
+		resChan <- DetectionResult{
+			empty: len(labels) == 0,
 			detectionTime: time.Now().UnixNano(),
-			labels: labels,
-			img: img,
-			detections: detections}
+			labels:        labels,
+			img:           img,
+			labelBoxes:    labelBoxes}
 	}
 	close(resChan)
 }

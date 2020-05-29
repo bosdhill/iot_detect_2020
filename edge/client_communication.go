@@ -4,12 +4,13 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	pb "github.com/bosdhill/iot_detect_2020/interfaces"
-	"gocv.io/x/gocv"
-	"google.golang.org/grpc"
 	"io"
 	"log"
 	"net"
+
+	pb "github.com/bosdhill/iot_detect_2020/interfaces"
+	"gocv.io/x/gocv"
+	"google.golang.org/grpc"
 	//sdl "github.com/bosdhill/iot_detect_2020/sdl"
 )
 
@@ -23,10 +24,10 @@ var (
 
 type clientComm struct {
 	server pb.UploaderServer
-	ds *dataStore
-	od *objectDetect
-	lis net.Listener
-	eCtx *EdgeContext
+	ds     *dataStore
+	od     *objectDetect
+	lis    net.Listener
+	eCtx   *EdgeContext
 	cancel context.CancelFunc
 }
 
