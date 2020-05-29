@@ -72,14 +72,15 @@ func (ds *dataStore) Get() error {
 
 func (ds *dataStore) InsertWorker(drCh chan DetectionResult) {
 	log.Println("InsertWorker")
-	db, err := sql.Open("sqlite3", "./object_detection.db")
-	defer db.Close()
-	txn, err := ds.db.Begin()
-	if err != nil {
-		log.Fatalf("InsertWorker: could not db.begin with err = %s", err)
-	}
+//	db, err := sql.Open("sqlite3", "./object_detection.db")
+//	defer db.Close()
 
 	for dr := range drCh {
+		txn, err := ds.db.Begin()
+		if err != nil {
+			log.Fatalf("InsertWorker: could not db.begin with err = %s", err)
+		}
+
 		log.Println(dr)
 		// Insert into images table
 		stmt, err := txn.Prepare("INSERT INTO images VALUES(?,?,?)")
@@ -90,6 +91,8 @@ func (ds *dataStore) InsertWorker(drCh chan DetectionResult) {
 		if err != nil {
 			log.Fatalf("InsertWorker: could not exec insert into images with err = %s", err)
 		}
+		stmt.Close()
+
 		stmt, err = txn.Prepare("INSERT INTO bounding_box VALUES(?,?,?,?)")
 		if err != nil {
 			log.Fatalf("InsertWorker: could not prepare insert into bounding_box with err = %s", err)
@@ -108,11 +111,8 @@ func (ds *dataStore) InsertWorker(drCh chan DetectionResult) {
 				}
 			}
 		}
+		stmt.Close()
 		//// Commit bounding_box and images row insertions
-		err = txn.Commit()
-		if err != nil {
-			log.Fatalf("InsertWorker: could not commit txn for bounding_box and images with err = %s", err)
-		}
 		//
 		//// Insert default row with foreign key of detection time in the Labels table
 		//insertLabels := fmt.Sprintf("INSERT INTO labels VALUES (%d, %s", dr.DetectionTime, strings.Repeat("false, ", 79) + "false)")
@@ -134,11 +134,20 @@ func (ds *dataStore) InsertWorker(drCh chan DetectionResult) {
 			false, false, false, false, false, false, false, false, false, false, false, false, false,
 			false, false, false, false, false, false, false, false, false, false, false, false, false,
 			false, false, false, false, false)
+		stmt.Close()
 
 		if err != nil {
 			log.Fatalf("InsertWorker: could not exec insert statement into labels with err = %s", err)
 		}
+		err = txn.Commit()
+		if err != nil {
+			log.Fatalf("InsertWorker: could not commit txn for bounding_box and images with err = %s", err)
+		}
 
+		txn, err = ds.db.Begin()
+		if err != nil {
+			log.Fatalf("InsertWorker: could not db.begin for second txn with err = %s", err)
+		}
 		// Update each column of that newly added row
 		for label, exists := range dr.Labels {
 			_, err = ds.db.Exec(fmt.Sprintf("UPDATE labels SET %s = %v WHERE detection_time = %d", label, exists, dr.DetectionTime))
@@ -172,7 +181,7 @@ func NewDataStore(eCtx *EdgeContext) (*dataStore, error) {
 	log.Println("NewDataStore")
 
 	db, err := sql.Open("sqlite3", "./object_detection.db")
-	defer db.Close()
+//	defer db.Close()
 
 	createImageTable := `
 	CREATE TABLE IF NOT EXISTS images (
