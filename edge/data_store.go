@@ -238,6 +238,20 @@ func NewDataStore(eCtx *EdgeContext) (*dataStore, error) {
 //	defer db.Close()
 
 	createImageTable := `
+	PRAGMA automatic_index = ON;
+	PRAGMA cache_size = 32768;
+	PRAGMA cache_spill = OFF;
+	PRAGMA foreign_keys = ON;
+	PRAGMA journal_size_limit = 67110000;
+	PRAGMA locking_mode = NORMAL;
+	PRAGMA page_size = 4096;
+	PRAGMA recursive_triggers = ON;
+	PRAGMA secure_delete = ON;
+	PRAGMA synchronous = NORMAL;
+	PRAGMA temp_store = MEMORY;
+	PRAGMA journal_mode = WAL;
+	PRAGMA wal_autocheckpoint = 16384;
+        
 	CREATE TABLE IF NOT EXISTS images (
 	  detection_time integer,
 	  image blob,
