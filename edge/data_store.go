@@ -106,17 +106,35 @@ func (ds *dataStore) InsertWorker(drCh chan DetectionResult) {
 				}
 			}
 		}
-		// Commit bounding_box and images row insertions
-		err = txn.Commit()
-		if err != nil {
-			log.Fatalf("InsertWorker: could not commit txn for bounding_box and images with err = %s", err)
-		}
+		//// Commit bounding_box and images row insertions
+		//err = txn.Commit()
+		//if err != nil {
+		//	log.Fatalf("InsertWorker: could not commit txn for bounding_box and images with err = %s", err)
+		//}
+		//
+		//// Insert default row with foreign key of detection time in the Labels table
+		//insertLabels := fmt.Sprintf("INSERT INTO labels VALUES (%d, %s", dr.DetectionTime, strings.Repeat("false, ", 79) + "false)")
+		//_, err = ds.db.Exec(insertLabels)
+		//if err != nil {
+		//	log.Fatalf("InsertWorker: could not exec for labels with err = %s", err)
+		//}
 
 		// Insert default row with foreign key of detection time in the Labels table
-		insertLabels := fmt.Sprintf("INSERT INTO labels VALUES (%d, %s", dr.DetectionTime, strings.Repeat("false, ", 79) + "false)")
-		_, err = ds.db.Exec(insertLabels)
+		prepLabels := fmt.Sprintf("INSERT INTO labels VALUES(?, %s", strings.Repeat("?, ", 79) + "?)")
+		stmt, err = txn.Prepare(prepLabels)
 		if err != nil {
-			log.Fatalf("InsertWorker: could not exec for labels with err = %s", err)
+			log.Fatalf("InsertWorker: could not prepare insert into labels with err = %s", err)
+		}
+		_, err = stmt.Exec(dr.DetectionTime, false, false, false, false, false, false, false, false, false, false,
+			false, false, false, false, false, false, false, false, false, false, false, false, false,
+			false, false, false, false, false, false, false, false, false, false, false, false, false,
+			false, false, false, false, false, false, false, false, false, false, false, false, false,
+			false, false, false, false, false, false, false, false, false, false, false, false, false,
+			false, false, false, false, false, false, false, false, false, false, false, false, false,
+			false, false, false, false, false)
+
+		if err != nil {
+			log.Fatalf("InsertWorker: could not exec insert statement into labels with err = %s", err)
 		}
 
 		// Update each column of that newly added row
