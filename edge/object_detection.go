@@ -172,11 +172,11 @@ func regionLayer(predictions gocv.Mat, transposePredictions bool, img_height, im
 		label = classNames[max_i]
 
 		bbBox := BoundingBox{
-			topLeftX:     int(left),
-			topLeftY:     int(top),
-			bottomRightX: int(right),
-			bottomRightY: int(bottom),
-			confidence:   boxes[i].classProbs[max_i],
+			TopLeftX:     int(left),
+			TopLeftY:     int(top),
+			BottomRightX: int(right),
+			BottomRightY: int(bottom),
+			Confidence:   boxes[i].classProbs[max_i],
 		}
 		detections[label] = append(detections[label], &bbBox)
 
@@ -365,7 +365,7 @@ func (od *objectDetect) caffeWorker(imgChan chan *gocv.Mat, resChan chan Detecti
 	count := 0
 	for item := range imgChan {
 		if item.Empty(){
-			log.Println("img is empty")
+			log.Println("Img is Empty")
 			continue
 		}
 		t := time.Now()
@@ -385,11 +385,11 @@ func (od *objectDetect) caffeWorker(imgChan chan *gocv.Mat, resChan chan Detecti
 
 
 		resChan <- DetectionResult{
-			empty: len(labels) == 0,
-			detectionTime: time.Now().UnixNano(),
-			labels:        labels,
-			img:           img,
-			labelBoxes:    labelBoxes}
+			Empty:         len(labels) == 0,
+			DetectionTime: time.Now().UnixNano(),
+			Labels:        labels,
+			Img:           img,
+			LabelBoxes:    labelBoxes}
 	}
 	close(resChan)
 }

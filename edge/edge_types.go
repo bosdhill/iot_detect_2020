@@ -12,28 +12,28 @@ type EdgeContext struct {
 }
 
 type DetectionResult struct {
-	empty bool
-	detectionTime int64
-	labels map[string]bool
-	img gocv.Mat
-	labelBoxes map[string]([]*BoundingBox)
+	Empty         bool
+	DetectionTime int64
+	Labels        map[string]bool
+	Img           gocv.Mat
+	LabelBoxes    map[string]([]*BoundingBox)
 }
 
 type BoundingBox struct {
-	topLeftX     int
-	topLeftY     int
-	bottomRightX int
-	bottomRightY int
-	confidence   float32
+	TopLeftX     int
+	TopLeftY     int
+	BottomRightX int
+	BottomRightY int
+	Confidence   float32
 }
 
 func (dr DetectionResult) String() string {
-	ret := fmt.Sprintf("\n%v\n", dr.labels)
+	ret := fmt.Sprintf("\n%v\n", dr.Labels)
 	format := "detection: %s\ntopLeftX: %d\ntopLeftY: %d\nbottomRightX: %d\nbottomRightY: %d\nconf: %f\n"
-	for label, boxSl := range dr.labelBoxes {
+	for label, boxSl := range dr.LabelBoxes {
 		ret += label + "\n"
 		for _, b := range boxSl {
-			ret += fmt.Sprintf(format, label, b.topLeftX, b.topLeftY, b.bottomRightX, b.bottomRightY, b.confidence)
+			ret += fmt.Sprintf(format, label, b.TopLeftX, b.TopLeftY, b.BottomRightX, b.BottomRightY, b.Confidence)
 		}
 		ret += "\n"
 	}
@@ -41,6 +41,6 @@ func (dr DetectionResult) String() string {
 }
 
 // TODO implement below Indexers
-// Need Indexer that yields DetectionResults that have labelBoxes with label with confidence greater than or equal to threshold
-// Need Indexer that yields DetectionResults that have labelBoxes with multiple labels with confidence greater than or equal to threshold
-// Need Indexer that yields DetectionResults that have labelBoxes with multiple labels - Done
+// Need Indexer that yields DetectionResults that have LabelBoxes with label with Confidence greater than or equal to threshold
+// Need Indexer that yields DetectionResults that have LabelBoxes with multiple Labels with Confidence greater than or equal to threshold
+// Need Indexer that yields DetectionResults that have LabelBoxes with multiple Labels - Done

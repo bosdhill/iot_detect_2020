@@ -6,6 +6,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"strings"
+	"encoding/json"
 )
 
 var dbTable = "detection"
@@ -17,16 +18,16 @@ type dataStore struct {
 
 // Data store can handle writing out the annotated image frames, or it can be handled by client
 func (ds *dataStore) WriteOutImg() {
-	//for label, box := range res.labelBoxes {
-	//	gocv.Rectangle(&img, image.Rect(box.topleft.X, box.topleft.Y, box.bottomright.X, box.bottomright.Y), color.RGBA{230, 25, 75, 0}, 1)
-	//	gocv.PutText(&img, box.label, image.Point{box.topleft.X, box.topleft.Y - 5}, gocv.FontHersheySimplex, 0.5, color.RGBA{230, 25, 75, 0}, 1)
+	//for label, box := range res.LabelBoxes {
+	//	gocv.Rectangle(&Img, image.Rect(box.topleft.X, box.topleft.Y, box.bottomright.X, box.bottomright.Y), color.RGBA{230, 25, 75, 0}, 1)
+	//	gocv.PutText(&Img, box.label, image.Point{box.topleft.X, box.topleft.Y - 5}, gocv.FontHersheySimplex, 0.5, color.RGBA{230, 25, 75, 0}, 1)
 	//}
-	//gocv.IMWrite("detect.jpg", img)
+	//gocv.IMWrite("detect.jpg", Img)
 }
 
 //func (ds *dataStore) GetRange(int64)
 
-// TODO Should have a case when there is an empty Get
+// TODO Should have a case when there is an Empty Get
 func (ds *dataStore) Get() error {
 	log.Println("Get")
 	//txn := ds.db.Txn(false)
@@ -37,32 +38,32 @@ func (ds *dataStore) Get() error {
 	//	return err
 	//}
 	//
-	//log.Println("All the labelBoxes:")
+	//log.Println("All the LabelBoxes:")
 	//for obj := it.Next(); obj != nil; obj = it.Next() {
 	//	dr := obj.(*DetectionResult)
-	//	log.Println(dr.labels)
+	//	log.Println(dr.Labels)
 	//}
 	//log.Println("end of get")
 	//
-	//log.Println("Only labelBoxes with bus:")
-	//it, err = txn.Get(dbTable, "labels", "bus", "t")
+	//log.Println("Only LabelBoxes with bus:")
+	//it, err = txn.Get(dbTable, "Labels", "bus", "t")
 	//if err != nil {
 	//	return err
 	//}
 	//for obj := it.Next(); obj != nil; obj = it.Next() {
 	//	dr := obj.(*DetectionResult)
-	//	log.Println(dr.labels)
+	//	log.Println(dr.Labels)
 	//}
 	//
 	//// Range scan
-	//it, err = txn.LowerBound(dbTable, "topLeftX",2)
+	//it, err = txn.LowerBound(dbTable, "TopLeftX",2)
 	//if err != nil {
 	//	return err
 	//}
 	//fmt.Println("People aged 25 - 35:")
 	//for obj := it.Next(); obj != nil; obj = it.Next() {
 	//	p := obj.(*DetectionResult)
-	//	if p.detectionTime > 35 {
+	//	if p.DetectionTime > 35 {
 	//		break
 	//	}
 	//}
@@ -83,19 +84,26 @@ func (ds *dataStore) InsertWorker(drCh chan DetectionResult) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		_, err = stmt.Exec(dr.detectionTime, dr.img, dr.empty)
+		_, err = stmt.Exec(dr.DetectionTime, dr.Img.ToBytes(), dr.Empty)
+		if err != nil {
+			log.Fatal(err)
+		}
+		stmt, err = txn.Prepare("INSERT INTO bounding_box VALUES(?,?,?,?)")
 		if err != nil {
 			log.Fatal(err)
 		}
 		// Insert into bounding_box table
-		for label, boundingBox := range dr.labels {
-			stmt, err = txn.Prepare("INSERT INTO bounding_box VALUES(?,?,?)")
-			if err != nil {
-				log.Fatal(err)
-			}
-			_, err = stmt.Exec(dr.detectionTime, label, boundingBox)
-			if err != nil {
-				log.Fatal(err)
+		for label, bboxSl := range dr.LabelBoxes {
+			for _, bbox := range bboxSl {
+				b, err := json.Marshal(bbox)
+				if err != nil {
+					log.Fatal(err)
+				}
+				fmt.Print(bbox)
+				_, err = stmt.Exec(dr.DetectionTime, label, b, bbox.Confidence)
+				if err != nil {
+					log.Fatal(err)
+				}
 			}
 		}
 		// Commit bounding_box and images row insertions
@@ -104,26 +112,26 @@ func (ds *dataStore) InsertWorker(drCh chan DetectionResult) {
 			log.Fatal(err)
 		}
 
-		// Insert default row with foreign key of detection time in the labels table
-		insertLabels := fmt.Sprintf("INSERT INTO labels VALUES %d, %s", dr.detectionTime, strings.Repeat("false, ", 79) + "false")
+		// Insert default row with foreign key of detection time in the Labels table
+		insertLabels := fmt.Sprintf("INSERT INTO Labels VALUES %d, %s", dr.DetectionTime, strings.Repeat("false, ", 79) + "false")
 		_, err = ds.db.Exec(insertLabels)
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		// Update each column of that newly added row
-		for label, exists := range dr.labels {
-			stmt, err = txn.Prepare(fmt.Sprintf("UPDATE labels SET %s = %v WHERE detection_time = %d", label, exists, dr.detectionTime))
+		for label, exists := range dr.Labels {
+			stmt, err = txn.Prepare(fmt.Sprintf("UPDATE Labels SET %s = %v WHERE detection_time = %d", label, exists, dr.DetectionTime))
 			if err != nil {
 				log.Fatal(err)
 			}
-			_, err = stmt.Exec(dr.detectionTime, label, exists)
+			_, err = stmt.Exec(dr.DetectionTime, label, exists)
 			if err != nil {
 				log.Fatal(err)
 			}
 		}
 
-		// Commit labels table row update
+		// Commit Labels table row update
 		err = txn.Commit()
 		if err != nil {
 			log.Fatal(err)
@@ -156,9 +164,10 @@ func NewDataStore(eCtx *EdgeContext) (*dataStore, error) {
 	  detection_time integer,
 	  label string,
 	  dimensions blob,
+	  Confidence float, 
 	  FOREIGN KEY(detection_time) REFERENCES image(detection_time)
 	);
-	CREATE TABLE IF NOT EXISTS labels (
+	CREATE TABLE IF NOT EXISTS Labels (
 	 detection_time integer,
 	"person" boolean DEFAULT false, 
 	"bicycle" boolean DEFAULT false, 
