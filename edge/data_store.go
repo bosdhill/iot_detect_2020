@@ -249,6 +249,7 @@ func NewDataStore(eCtx *EdgeContext) (*dataStore, error) {
 		log.Printf("%q: %s\n", err, createImageTable)
 		return nil, err
 	}
+	log.Println("Succesfully created tables")
 
 	return &dataStore{db: db, eCtx: eCtx}, nil
 }
