@@ -72,6 +72,8 @@ func (ds *dataStore) Get() error {
 
 func (ds *dataStore) InsertWorker(drCh chan DetectionResult) {
 	log.Println("InsertWorker")
+	db, err := sql.Open("sqlite3", "./object_detection.db")
+	defer db.Close()
 	txn, err := ds.db.Begin()
 	if err != nil {
 		log.Fatalf("InsertWorker: could not db.begin with err = %s", err)
@@ -170,6 +172,7 @@ func NewDataStore(eCtx *EdgeContext) (*dataStore, error) {
 	log.Println("NewDataStore")
 
 	db, err := sql.Open("sqlite3", "./object_detection.db")
+	defer db.Close()
 
 	createImageTable := `
 	CREATE TABLE IF NOT EXISTS images (
