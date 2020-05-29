@@ -20,6 +20,7 @@ var (
 	keyFile    = flag.String("key_file", "", "The TLS key file")
 	jsonDBFile = flag.String("json_db_file", "", "A json file containing a list of features")
 	port       = flag.Int("port", 10000, "The server port")
+	piAddr 	   = flag.String("pi_addr", "192.168.1.12", "Raspberry Pi IP address")
 )
 
 type clientComm struct {
@@ -74,7 +75,7 @@ func (comm *clientComm) UploadImage(stream pb.Uploader_UploadImageServer) error 
 func NewClientCommunication(eCtx *EdgeContext, ds *dataStore, od *objectDetect) (*clientComm, error) {
 	log.Println("NewClientCommunication")
 	flag.Parse()
-	lis, err := net.Listen("tcp", fmt.Sprintf("192.168.1.121:%d", *port))
+	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", *port))
 	if err != nil {
 		return nil, err
 	}

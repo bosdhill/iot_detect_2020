@@ -70,101 +70,155 @@ func (ds *dataStore) Get() error {
 	return nil
 }
 
+func (ds *dataStore) InsertImageTable(dr *DetectionResult) {
+	txn, err := ds.db.Begin()
+	if err != nil {
+		log.Fatalf("InsertWorker: could not db.begin with err = %s", err)
+	}
+	// Insert into images table
+	stmt, err := txn.Prepare("INSERT INTO images VALUES(?,?,?)")
+	defer func() {
+		stmt = nil
+		txn = nil
+	}()
+	if err != nil {
+		log.Fatalf("InsertWorker: could not prepare insert into images table with err = %s", err)
+	}
+	_, err = stmt.Exec(dr.DetectionTime, dr.Img.ToBytes(), dr.Empty)
+	if err != nil {
+		log.Fatalf("InsertWorker: could not exec insert into images table with err = %s", err)
+	}
+	err = stmt.Close()
+	if err != nil {
+		log.Fatalf("InsertWorker: could not close stmt for images table with err = %s", err)
+	}
+	if err := txn.Commit(); err != nil {
+		log.Fatalf("InsertWorker: could not commit images table txn with err = %s", err)
+	}
+}
+
+func (ds *dataStore) InsertBoundingBoxTable(dr *DetectionResult) {
+	txn, err := ds.db.Begin()
+	if err != nil {
+		log.Fatalf("InsertWorker: could not db.begin with err = %s", err)
+	}
+	stmt, err := txn.Prepare("INSERT INTO bounding_box VALUES(?,?,?,?)")
+	defer func() {
+		stmt = nil
+		txn = nil
+	}()
+	if err != nil {
+		log.Fatalf("InsertWorker: could not prepare insert into bounding_box with err = %s", err)
+	}
+	// Insert into bounding_box table
+	for label, bboxSl := range dr.LabelBoxes {
+		for _, bbox := range bboxSl {
+			b, err := json.Marshal(bbox)
+			if err != nil {
+				log.Fatalf("InsertWorker: could not marshal bbox with err = %s", err)
+			}
+			fmt.Print(bbox)
+			_, err = stmt.Exec(dr.DetectionTime, label, b, bbox.Confidence)
+			if err != nil {
+				log.Fatalf("InsertWorker: could not exec insert into bounding_box with err = %s", err)
+			}
+		}
+	}
+	err = stmt.Close()
+	if err != nil {
+		log.Fatalf("InsertWorker: could not close stmt with err = %s", err)
+	}
+	if err := txn.Commit(); err != nil {
+		log.Fatalf("InsertWorker: could not commit images table txn with err = %s", err)
+	}
+}
+
 func (ds *dataStore) InsertWorker(drCh chan DetectionResult) {
 	log.Println("InsertWorker")
 //	db, err := sql.Open("sqlite3", "./object_detection.db")
 //	defer db.Close()
 
 	for dr := range drCh {
-		txn, err := ds.db.Begin()
+		ds.InsertImageTable(&dr)
+		ds.InsertBoundingBoxTable(&dr)
+		ds.InsertLabelsTable(&dr)
+	}
+	rows, err := ds.db.Query("SELECT * FROM labels")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+	var dTime int64
+	var labels [80] bool
+	ret := []interface{}{&dTime}
+	for _, b := range labels {
+		ret = append(ret, &b)
+	}
+	for rows.Next() {
+		err = rows.Scan(ret...)
 		if err != nil {
-			log.Fatalf("InsertWorker: could not db.begin with err = %s", err)
+			log.Fatalf("InsertWorker: scan error with err = %s", err)
 		}
+		log.Printf("Row and Col Values")
+		log.Println(dTime, labels)
+	}
+	if err := rows.Err(); err != nil {
+		log.Fatal(err)
+	}
 
-		log.Println(dr)
-		// Insert into images table
-		stmt, err := txn.Prepare("INSERT INTO images VALUES(?,?,?)")
-		if err != nil {
-			log.Fatalf("InsertWorker: could not prepare insert into images with err = %s", err)
-		}
-		_, err = stmt.Exec(dr.DetectionTime, dr.Img.ToBytes(), dr.Empty)
-		if err != nil {
-			log.Fatalf("InsertWorker: could not exec insert into images with err = %s", err)
-		}
-		stmt.Close()
+}
 
-		stmt, err = txn.Prepare("INSERT INTO bounding_box VALUES(?,?,?,?)")
+func (ds *dataStore) InsertLabelsTable(dr *DetectionResult) {
+	txn, err := ds.db.Begin()
+	if err != nil {
+		log.Fatalf("InsertWorker: could not db.begin with err = %s", err)
+	}
+	//// Commit bounding_box and images row insertions
+	//
+	//// Insert default row with foreign key of detection time in the Labels table
+	//insertLabels := fmt.Sprintf("INSERT INTO labels VALUES (%d, %s", dr.DetectionTime, strings.Repeat("false, ", 79) + "false)")
+	//_, err = ds.db.Exec(insertLabels)
+	//if err != nil {
+	//	log.Fatalf("InsertWorker: could not exec for labels with err = %s", err)
+	//}
+	// Insert default row with foreign key of detection time in the Labels table
+	prepLabels := fmt.Sprintf("INSERT INTO labels VALUES(?, %s", strings.Repeat("?, ", 79)+"?)")
+	stmt, err := txn.Prepare(prepLabels)
+	defer func() {
+		stmt = nil
+		txn = nil
+	}()
+	if err != nil {
+		log.Fatalf("InsertWorker: could not prepare insert into labels with err = %s", err)
+	}
+	_, err = stmt.Exec(dr.DetectionTime, false, false, false, false, false, false, false, false, false, false,
+		false, false, false, false, false, false, false, false, false, false, false, false, false,
+		false, false, false, false, false, false, false, false, false, false, false, false, false,
+		false, false, false, false, false, false, false, false, false, false, false, false, false,
+		false, false, false, false, false, false, false, false, false, false, false, false, false,
+		false, false, false, false, false, false, false, false, false, false, false, false, false,
+		false, false, false, false, false)
+	if err != nil {
+		log.Fatalf("InsertWorker: could not exec insert statement into labels with err = %s", err)
+	}
+	err = stmt.Close()
+	if err != nil {
+		log.Fatalf("InsertWorker: could not close stmt with err = %s", err)
+	}
+	err = txn.Commit()
+	if err != nil {
+		log.Fatalf("InsertWorker: could not commit txn for bounding_box and images with err = %s", err)
+	}
+	// Update each column of that newly added row
+	for label, exists := range dr.Labels {
+		_, err := ds.db.Exec(fmt.Sprintf("UPDATE labels SET %s = %v WHERE detection_time = %d", label, exists, dr.DetectionTime))
 		if err != nil {
-			log.Fatalf("InsertWorker: could not prepare insert into bounding_box with err = %s", err)
+			log.Fatalf("InsertWorker: could not prepare update into labels err = %s", err)
 		}
-		// Insert into bounding_box table
-		for label, bboxSl := range dr.LabelBoxes {
-			for _, bbox := range bboxSl {
-				b, err := json.Marshal(bbox)
-				if err != nil {
-					log.Fatalf("InsertWorker: could not marshal bbox with err = %s", err)
-				}
-				fmt.Print(bbox)
-				_, err = stmt.Exec(dr.DetectionTime, label, b, bbox.Confidence)
-				if err != nil {
-					log.Fatalf("InsertWorker: could not exec insert into bounding_box with err = %s", err)
-				}
-			}
-		}
-		stmt.Close()
-		//// Commit bounding_box and images row insertions
-		//
-		//// Insert default row with foreign key of detection time in the Labels table
-		//insertLabels := fmt.Sprintf("INSERT INTO labels VALUES (%d, %s", dr.DetectionTime, strings.Repeat("false, ", 79) + "false)")
-		//_, err = ds.db.Exec(insertLabels)
+		//_, err = stmt.Exec(dr.DetectionTime, label, exists)
 		//if err != nil {
-		//	log.Fatalf("InsertWorker: could not exec for labels with err = %s", err)
+		//	log.Fatalf("InsertWorker: could not exec update into labels err = %s", err)
 		//}
-
-		// Insert default row with foreign key of detection time in the Labels table
-		prepLabels := fmt.Sprintf("INSERT INTO labels VALUES(?, %s", strings.Repeat("?, ", 79) + "?)")
-		stmt, err = txn.Prepare(prepLabels)
-		if err != nil {
-			log.Fatalf("InsertWorker: could not prepare insert into labels with err = %s", err)
-		}
-		_, err = stmt.Exec(dr.DetectionTime, false, false, false, false, false, false, false, false, false, false,
-			false, false, false, false, false, false, false, false, false, false, false, false, false,
-			false, false, false, false, false, false, false, false, false, false, false, false, false,
-			false, false, false, false, false, false, false, false, false, false, false, false, false,
-			false, false, false, false, false, false, false, false, false, false, false, false, false,
-			false, false, false, false, false, false, false, false, false, false, false, false, false,
-			false, false, false, false, false)
-		stmt.Close()
-
-		if err != nil {
-			log.Fatalf("InsertWorker: could not exec insert statement into labels with err = %s", err)
-		}
-		err = txn.Commit()
-		if err != nil {
-			log.Fatalf("InsertWorker: could not commit txn for bounding_box and images with err = %s", err)
-		}
-
-		txn, err = ds.db.Begin()
-		if err != nil {
-			log.Fatalf("InsertWorker: could not db.begin for second txn with err = %s", err)
-		}
-		// Update each column of that newly added row
-		for label, exists := range dr.Labels {
-			_, err = ds.db.Exec(fmt.Sprintf("UPDATE labels SET %s = %v WHERE detection_time = %d", label, exists, dr.DetectionTime))
-			if err != nil {
-				log.Fatalf("InsertWorker: could not prepare update into labels err = %s", err)
-			}
-			//_, err = stmt.Exec(dr.DetectionTime, label, exists)
-			//if err != nil {
-			//	log.Fatalf("InsertWorker: could not exec update into labels err = %s", err)
-			//}
-		}
-
-		// Commit Labels table row update
-		err = txn.Commit()
-		if err != nil {
-			log.Fatalf("InsertWorker: could not commit update into labels err = %s", err)
-		}
 	}
 }
 
