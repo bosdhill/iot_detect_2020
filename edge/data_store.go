@@ -109,10 +109,10 @@ func (ds *dataStore) InsertWorker(drCh chan DetectionResult) {
 			}
 		}
 		//// Commit bounding_box and images row insertions
-		//err = txn.Commit()
-		//if err != nil {
-		//	log.Fatalf("InsertWorker: could not commit txn for bounding_box and images with err = %s", err)
-		//}
+		err = txn.Commit()
+		if err != nil {
+			log.Fatalf("InsertWorker: could not commit txn for bounding_box and images with err = %s", err)
+		}
 		//
 		//// Insert default row with foreign key of detection time in the Labels table
 		//insertLabels := fmt.Sprintf("INSERT INTO labels VALUES (%d, %s", dr.DetectionTime, strings.Repeat("false, ", 79) + "false)")
