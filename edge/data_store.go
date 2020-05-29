@@ -139,14 +139,14 @@ func (ds *dataStore) InsertWorker(drCh chan DetectionResult) {
 
 		// Update each column of that newly added row
 		for label, exists := range dr.Labels {
-			stmt, err = txn.Prepare(fmt.Sprintf("UPDATE labels SET %s = %v WHERE detection_time = %d", label, exists, dr.DetectionTime))
+			_, err = ds.db.Exec(fmt.Sprintf("UPDATE labels SET %s = %v WHERE detection_time = %d", label, exists, dr.DetectionTime))
 			if err != nil {
 				log.Fatalf("InsertWorker: could not prepare update into labels err = %s", err)
 			}
-			_, err = stmt.Exec(dr.DetectionTime, label, exists)
-			if err != nil {
-				log.Fatalf("InsertWorker: could not exec update into labels err = %s", err)
-			}
+			//_, err = stmt.Exec(dr.DetectionTime, label, exists)
+			//if err != nil {
+			//	log.Fatalf("InsertWorker: could not exec update into labels err = %s", err)
+			//}
 		}
 
 		// Commit Labels table row update
