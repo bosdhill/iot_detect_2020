@@ -146,7 +146,7 @@ func NewDataStore(eCtx *EdgeContext) (*dataStore, error) {
 	db, err := sql.Open("sqlite3", "./object_detection.db")
 
 	createImageTable := `
-	CREATE TABLE IF NOT EXISTS image (
+	CREATE TABLE IF NOT EXISTS images (
 	  detection_time integer,
 	  image blob,
 	  results boolean,
