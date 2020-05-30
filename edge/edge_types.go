@@ -6,6 +6,9 @@ import (
 	"gocv.io/x/gocv"
 )
 
+// TODO create a separate file for global variables
+const numClasses = 80
+
 type EdgeContext struct {
 	ctx context.Context
 	cancel context.CancelFunc

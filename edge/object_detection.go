@@ -13,7 +13,6 @@ import (
 	"time"
 )
 
-const numClasses = 80
 const N = 5
 const size = numClasses + N
 const w = 12

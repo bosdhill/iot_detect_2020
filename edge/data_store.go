@@ -2,13 +2,12 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"os"
 	"runtime"
-	"strings"
-	"encoding/json"
 )
 
 var dbTable = "detection"
@@ -31,13 +30,13 @@ func (ds *dataStore) WriteOutImg() {
 // TODO test Get with a gRPC application interface (next step)
 func (ds *dataStore) Get() error {
 	log.Println("Get")
-	rows, err := ds.db.Query("SELECT * FROM labels WHERE person = TRUE")
+	rows, err := ds.db.Query("SELECT * FROM labels WHERE person = FALSE AND bus = TRUE")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer rows.Close()
 	var dTime int64
-	var labels [80] bool
+	var labels [numClasses]bool
 	ret := []interface{}{&dTime}
 	for _, b := range labels {
 		ret = append(ret, &b)
@@ -48,16 +47,8 @@ func (ds *dataStore) Get() error {
 			log.Fatalf("InsertWorker: scan error with err = %s", err)
 		}
 		log.Printf("Row and Col Values")
-		v := ret[0].(*int64)
-		log.Print(*v)
-		sl := ret[1:]
-		for _, v := range sl {
-			t := v.(*bool)
-			if *t == true {
-				log.Print(*t)
-			}
-		}
-		log.Println()
+		dt := ret[0].(*int64)
+		log.Println(*dt)
 	}
 	if err := rows.Err(); err != nil {
 		log.Fatal(err)
@@ -149,8 +140,8 @@ func (ds *dataStore) InsertLabelsTable(dr *DetectionResult) {
 	if err != nil {
 		log.Fatalf("InsertWorker: could not db.begin with err = %s", err)
 	}
-	// Insert default row with foreign key of detection time in the Labels table
-	prepLabels := fmt.Sprintf("INSERT INTO labels VALUES(?, %s", strings.Repeat("?, ", 79)+"?)")
+	// Insert default row with foreign key of detection time in the labels table
+	prepLabels := fmt.Sprintf("INSERT INTO labels (detection_time) VALUES(?)")
 	stmt, err := txn.Prepare(prepLabels)
 	defer func() {
 		stmt = nil
@@ -159,13 +150,7 @@ func (ds *dataStore) InsertLabelsTable(dr *DetectionResult) {
 	if err != nil {
 		log.Fatalf("InsertWorker: could not prepare insert into labels with err = %s", err)
 	}
-	_, err = stmt.Exec(dr.DetectionTime, false, false, false, false, false, false, false, false, false, false,
-		false, false, false, false, false, false, false, false, false, false, false, false, false,
-		false, false, false, false, false, false, false, false, false, false, false, false, false,
-		false, false, false, false, false, false, false, false, false, false, false, false, false,
-		false, false, false, false, false, false, false, false, false, false, false, false, false,
-		false, false, false, false, false, false, false, false, false, false, false, false, false,
-		false, false, false, false, false)
+	_, err = stmt.Exec(dr.DetectionTime)
 	if err != nil {
 		log.Fatalf("InsertWorker: could not exec insert statement into labels with err = %s", err)
 	}
@@ -201,6 +186,7 @@ func NewDataStore(eCtx *EdgeContext) (*dataStore, error) {
 	os.Remove("./object_detection.db")
 	db, err := sql.Open("sqlite3", "./object_detection.db")
 
+	// TODO make labels table dynamic so we can swap out models with different label sets
 	createImageTable := `        
 	CREATE TABLE IF NOT EXISTS images (
 	  detection_time integer,
