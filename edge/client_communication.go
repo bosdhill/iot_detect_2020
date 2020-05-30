@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"io"
 	"log"
 	"net"
@@ -72,10 +71,10 @@ func (comm *clientComm) UploadImage(stream pb.Uploader_UploadImageServer) error 
 	}
 }
 
-func NewClientCommunication(eCtx *EdgeContext, ds *dataStore, od *objectDetect) (*clientComm, error) {
+func NewClientCommunication(eCtx *EdgeContext, addr string, ds *dataStore, od *objectDetect) (*clientComm, error) {
 	log.Println("NewClientCommunication")
 	flag.Parse()
-	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", *port))
+	lis, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, err
 	}

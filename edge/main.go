@@ -11,7 +11,10 @@ import (
 	_ "net/http/pprof"
 	//"github.com/bosdhill/iot_detect_2020/sdl"
 )
-var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+var (
+	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+	serverAddr = flag.String("server_addr", "192.168.1.121:10000", "The server address in the format of host:port")
+)
 
 func main() {
 	flag.Parse()
@@ -40,7 +43,7 @@ func main() {
 		panic(err)
 	}
 
-	cComm, err := NewClientCommunication(eCtx, ds, od)
+	cComm, err := NewClientCommunication(eCtx, *serverAddr, ds, od)
 	if err != nil {
 		panic(err)
 	}
