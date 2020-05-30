@@ -50,6 +50,9 @@ cd <module>
 go build
 ```
 
+
+## Preqrequisites 
+- Need to install sqlite3 on raspberry pi
 # coco speedup
 AVG detect time for mp4 = 94.796409ms
 AVG python detect time for mp4 = 10899154700380465ms

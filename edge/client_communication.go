@@ -49,7 +49,7 @@ func uploadReqToImg(req *pb.Image) gocv.Mat {
 func (comm *clientComm) UploadImage(stream pb.Uploader_UploadImageServer) error {
 	log.Println("UploadImage")
 	count := 0
-	resCh := make(chan DetectionResult)
+	resCh := make(chan *DetectionResult)
 	iCh := make(chan *gocv.Mat)
 	go comm.od.caffeWorker(iCh, resCh)
 	go comm.ds.InsertWorker(resCh)

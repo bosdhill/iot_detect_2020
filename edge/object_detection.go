@@ -347,7 +347,7 @@ func NewObjectDetection(eCtx *EdgeContext) (*objectDetect, error){
 	return &objectDetect{net: &caffeNet, eCtx: eCtx}, nil
 }
 
-func (od *objectDetect) caffeWorker(imgChan chan *gocv.Mat, resChan chan DetectionResult) {
+func (od *objectDetect) caffeWorker(imgChan chan *gocv.Mat, resChan chan *DetectionResult) {
 	log.Println("caffeWorker")
 	img := gocv.NewMat()
 	defer img.Close()
@@ -384,11 +384,11 @@ func (od *objectDetect) caffeWorker(imgChan chan *gocv.Mat, resChan chan Detecti
 		log.Println("last AVG", sec / time.Duration(count))
 
 
-		resChan <- DetectionResult{
+		resChan <- &DetectionResult{
 			Empty:         len(labels) == 0,
 			DetectionTime: time.Now().UnixNano(),
 			Labels:        labels,
-			Img:           img,
+			Img:           img.Clone(),
 			LabelBoxes:    labelBoxes}
 	}
 	close(resChan)

@@ -102,6 +102,10 @@ func (ds *dataStore) InsertImageTable(dr *DetectionResult) {
 	defer func() {
 		stmt = nil
 		txn = nil
+		// to prevent memory leak
+		if err := dr.Img.Close(); err != nil {
+			log.Fatalf("InsertWorker: could not close image with err = %s", err)
+		}
 	}()
 	if err != nil {
 		log.Fatalf("InsertWorker: could not prepare insert into images table with err = %s", err)
@@ -155,12 +159,12 @@ func (ds *dataStore) InsertBoundingBoxTable(dr *DetectionResult) {
 	}
 }
 
-func (ds *dataStore) InsertWorker(drCh chan DetectionResult) {
+func (ds *dataStore) InsertWorker(drCh chan *DetectionResult) {
 	log.Println("InsertWorker")
 	for dr := range drCh {
-		ds.InsertImageTable(&dr)
-		ds.InsertBoundingBoxTable(&dr)
-		ds.InsertLabelsTable(&dr)
+		ds.InsertImageTable(dr)
+		ds.InsertBoundingBoxTable(dr)
+		ds.InsertLabelsTable(dr)
 	}
 	ds.Get()
 }
