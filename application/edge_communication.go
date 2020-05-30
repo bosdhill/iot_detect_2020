@@ -62,10 +62,6 @@ func (e *edgeComm) UploadImage(c chan gocv.Mat) {
 		if err := stream.Send(req); err != nil {
 			log.Fatalf("%v.Send(%v) = %v", stream, req, err)
 		}
-		// prevent memory leak
-		if err := img.Close(); err != nil {
-			log.Fatalf("UploadImage: could not close img with error = %s", err)
-		}
 	}
 	reply, err := stream.CloseAndRecv()
 	if err != nil {

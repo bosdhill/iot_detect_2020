@@ -56,6 +56,16 @@ func (ds *dataStore) Get() error {
 	return nil
 }
 
+func (ds *dataStore) InsertWorker(drCh chan DetectionResult) {
+	log.Println("InsertWorker")
+	for dr := range drCh {
+		ds.InsertImageTable(&dr)
+		ds.InsertBoundingBoxTable(&dr)
+		ds.InsertLabelsTable(&dr)
+	}
+	ds.Get()
+}
+
 func (ds *dataStore) InsertImageTable(dr *DetectionResult) {
 	txn, err := ds.db.Begin()
 	log.Println(dr)
@@ -125,16 +135,6 @@ func (ds *dataStore) InsertBoundingBoxTable(dr *DetectionResult) {
 	}
 }
 
-func (ds *dataStore) InsertWorker(drCh chan DetectionResult) {
-	log.Println("InsertWorker")
-	for dr := range drCh {
-		ds.InsertImageTable(&dr)
-		ds.InsertBoundingBoxTable(&dr)
-		ds.InsertLabelsTable(&dr)
-	}
-	ds.Get()
-}
-
 func (ds *dataStore) InsertLabelsTable(dr *DetectionResult) {
 	txn, err := ds.db.Begin()
 	if err != nil {
@@ -169,15 +169,6 @@ func (ds *dataStore) InsertLabelsTable(dr *DetectionResult) {
 			log.Fatalf("InsertWorker: could not prepare update into labels err = %s", err)
 		}
 	}
-}
-
-func (ds *dataStore) Insert(dr []DetectionResult) {
-	//for _, p := range dr {
-	//	if err := txn.Insert(dbTable, &p); err != nil {
-	//		panic(err)
-	//	}
-	//}
-	//txn.Commit()
 }
 
 // TODO update schema for labels, and make it number of labels instead of existence of labels
