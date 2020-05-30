@@ -3,6 +3,18 @@ go version
 
 # Raspberry Pi set up (Linux)
 1. Install the latest version of go and set your GOPATH and GOROOT in .bashrc. Clone this repo into $GOPATH/src/github.com/bosdhill/
+```
+cd $HOME
+file='go1.14.2.linux-armv6l.tar.gz'
+wget "https://dl.google.com/go/$file"
+sudo tar -C /usr/local -xvf "$file"
+cat >> ~/.bashrc << 'EOF'
+export GOPATH=$HOME/go
+export GOROOT=/usr/local/go
+export PATH=/usr/local/go/bin:$PATH:$GOPATH/bin
+EOF
+source ~/.bashrc
+```
 2. add 
 ```
 export GOBIN=/home/pi/go/bin
@@ -57,3 +69,9 @@ go build
 AVG detect time for mp4 = 94.796409ms
 AVG python detect time for mp4 = 10899154700380465ms
 ~15% speedup on AVG
+
+## profiling
+`go build -x -tags matprofile`
+`./edge --cpuprofile=edge.prof`
+`go tool pprof http://localhost:6060/debug/pprof/heap` + `top` and `web` or
+`go tool pprof -png http://localhost:6060/debug/pprof/heap > out.png`
