@@ -29,7 +29,7 @@ func NewEdgeComm() (*edgeComm, error) {
 	opts = append(opts, grpc.WithBlock(), grpc.WithInsecure())
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	//defer cancel()
-	conn, err := grpc.DialContext(ctx, *piServerAddr, opts...)
+	conn, err := grpc.DialContext(ctx, *serverAddr, opts...)
 	if err != nil {
 		log.Fatalf("Error while dialing. Err: %v", err)
 	}

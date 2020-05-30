@@ -67,6 +67,28 @@ func (ds *dataStore) Get() error {
 	//		break
 	//	}
 	//}
+	rows, err := ds.db.Query("SELECT * FROM labels")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+	var dTime int64
+	var labels [80] bool
+	ret := []interface{}{&dTime}
+	for _, b := range labels {
+		ret = append(ret, &b)
+	}
+	for rows.Next() {
+		err = rows.Scan(ret...)
+		if err != nil {
+			log.Fatalf("InsertWorker: scan error with err = %s", err)
+		}
+		log.Printf("Row and Col Values")
+		log.Println(dTime, labels)
+	}
+	if err := rows.Err(); err != nil {
+		log.Fatal(err)
+	}
 	return nil
 }
 
@@ -135,37 +157,12 @@ func (ds *dataStore) InsertBoundingBoxTable(dr *DetectionResult) {
 
 func (ds *dataStore) InsertWorker(drCh chan DetectionResult) {
 	log.Println("InsertWorker")
-//	db, err := sql.Open("sqlite3", "./object_detection.db")
-//	defer db.Close()
-
 	for dr := range drCh {
 		ds.InsertImageTable(&dr)
 		ds.InsertBoundingBoxTable(&dr)
 		ds.InsertLabelsTable(&dr)
 	}
-	rows, err := ds.db.Query("SELECT * FROM labels")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer rows.Close()
-	var dTime int64
-	var labels [80] bool
-	ret := []interface{}{&dTime}
-	for _, b := range labels {
-		ret = append(ret, &b)
-	}
-	for rows.Next() {
-		err = rows.Scan(ret...)
-		if err != nil {
-			log.Fatalf("InsertWorker: scan error with err = %s", err)
-		}
-		log.Printf("Row and Col Values")
-		log.Println(dTime, labels)
-	}
-	if err := rows.Err(); err != nil {
-		log.Fatal(err)
-	}
-
+	ds.Get()
 }
 
 func (ds *dataStore) InsertLabelsTable(dr *DetectionResult) {
@@ -238,19 +235,18 @@ func NewDataStore(eCtx *EdgeContext) (*dataStore, error) {
 //	defer db.Close()
 
 	createImageTable := `
-	PRAGMA automatic_index = ON;
-	PRAGMA cache_size = 32768;
-	PRAGMA cache_spill = OFF;
-	PRAGMA foreign_keys = ON;
-	PRAGMA journal_size_limit = 67110000;
-	PRAGMA locking_mode = NORMAL;
-	PRAGMA page_size = 4096;
-	PRAGMA recursive_triggers = ON;
-	PRAGMA secure_delete = ON;
-	PRAGMA synchronous = NORMAL;
-	PRAGMA temp_store = MEMORY;
-	PRAGMA journal_mode = WAL;
-	PRAGMA wal_autocheckpoint = 16384;
+-- 	PRAGMA automatic_index = ON;
+-- 	PRAGMA cache_size = 32768;
+-- 	PRAGMA cache_spill = OFF;
+-- 	PRAGMA foreign_keys = ON;
+-- 	PRAGMA journal_size_limit = 67110000;
+-- 	PRAGMA locking_mode = NORMAL;
+-- 	PRAGMA page_size = 4096;
+-- 	PRAGMA recursive_triggers = ON;
+-- 	PRAGMA secure_delete = ON;
+-- 	PRAGMA synchronous = NORMAL;
+-- 	PRAGMA journal_mode = WAL;
+-- 	PRAGMA wal_autocheckpoint = 16384;
         
 	CREATE TABLE IF NOT EXISTS images (
 	  detection_time integer,
