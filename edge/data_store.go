@@ -5,6 +5,7 @@ import (
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
 	"log"
+	"os"
 	"runtime"
 	"strings"
 	"encoding/json"
@@ -26,49 +27,11 @@ func (ds *dataStore) WriteOutImg() {
 	//gocv.IMWrite("detect.jpg", Img)
 }
 
-//func (ds *dataStore) GetRange(int64)
-
 // TODO Should have a case when there is an Empty Get
+// TODO test Get with a gRPC application interface (next step)
 func (ds *dataStore) Get() error {
 	log.Println("Get")
-	//txn := ds.db.Txn(false)
-	//defer txn.Abort()
-	//
-	//it, err := txn.Get(dbTable, "id")
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//log.Println("All the LabelBoxes:")
-	//for obj := it.Next(); obj != nil; obj = it.Next() {
-	//	dr := obj.(*DetectionResult)
-	//	log.Println(dr.Labels)
-	//}
-	//log.Println("end of get")
-	//
-	//log.Println("Only LabelBoxes with bus:")
-	//it, err = txn.Get(dbTable, "Labels", "bus", "t")
-	//if err != nil {
-	//	return err
-	//}
-	//for obj := it.Next(); obj != nil; obj = it.Next() {
-	//	dr := obj.(*DetectionResult)
-	//	log.Println(dr.Labels)
-	//}
-	//
-	//// Range scan
-	//it, err = txn.LowerBound(dbTable, "TopLeftX",2)
-	//if err != nil {
-	//	return err
-	//}
-	//fmt.Println("People aged 25 - 35:")
-	//for obj := it.Next(); obj != nil; obj = it.Next() {
-	//	p := obj.(*DetectionResult)
-	//	if p.DetectionTime > 35 {
-	//		break
-	//	}
-	//}
-	rows, err := ds.db.Query("SELECT * FROM labels")
+	rows, err := ds.db.Query("SELECT * FROM labels WHERE person = TRUE")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -85,7 +48,16 @@ func (ds *dataStore) Get() error {
 			log.Fatalf("InsertWorker: scan error with err = %s", err)
 		}
 		log.Printf("Row and Col Values")
-		log.Println(dTime, labels)
+		v := ret[0].(*int64)
+		log.Print(*v)
+		sl := ret[1:]
+		for _, v := range sl {
+			t := v.(*bool)
+			if *t == true {
+				log.Print(*t)
+			}
+		}
+		log.Println()
 	}
 	if err := rows.Err(); err != nil {
 		log.Fatal(err)
@@ -177,14 +149,6 @@ func (ds *dataStore) InsertLabelsTable(dr *DetectionResult) {
 	if err != nil {
 		log.Fatalf("InsertWorker: could not db.begin with err = %s", err)
 	}
-	//// Commit bounding_box and images row insertions
-	//
-	//// Insert default row with foreign key of detection time in the Labels table
-	//insertLabels := fmt.Sprintf("INSERT INTO labels VALUES (%d, %s", dr.DetectionTime, strings.Repeat("false, ", 79) + "false)")
-	//_, err = ds.db.Exec(insertLabels)
-	//if err != nil {
-	//	log.Fatalf("InsertWorker: could not exec for labels with err = %s", err)
-	//}
 	// Insert default row with foreign key of detection time in the Labels table
 	prepLabels := fmt.Sprintf("INSERT INTO labels VALUES(?, %s", strings.Repeat("?, ", 79)+"?)")
 	stmt, err := txn.Prepare(prepLabels)
@@ -219,10 +183,6 @@ func (ds *dataStore) InsertLabelsTable(dr *DetectionResult) {
 		if err != nil {
 			log.Fatalf("InsertWorker: could not prepare update into labels err = %s", err)
 		}
-		//_, err = stmt.Exec(dr.DetectionTime, label, exists)
-		//if err != nil {
-		//	log.Fatalf("InsertWorker: could not exec update into labels err = %s", err)
-		//}
 	}
 }
 
@@ -235,30 +195,17 @@ func (ds *dataStore) Insert(dr []DetectionResult) {
 	//txn.Commit()
 }
 
+// TODO update schema for labels, and make it number of labels instead of existence of labels
 func NewDataStore(eCtx *EdgeContext) (*dataStore, error) {
 	log.Println("NewDataStore")
-
+	os.Remove("./object_detection.db")
 	db, err := sql.Open("sqlite3", "./object_detection.db")
-//	defer db.Close()
 
-	createImageTable := `
--- 	PRAGMA automatic_index = ON;
--- 	PRAGMA cache_size = 32768;
--- 	PRAGMA cache_spill = OFF;
--- 	PRAGMA foreign_keys = ON;
--- 	PRAGMA journal_size_limit = 67110000;
--- 	PRAGMA locking_mode = NORMAL;
--- 	PRAGMA page_size = 4096;
--- 	PRAGMA recursive_triggers = ON;
--- 	PRAGMA secure_delete = ON;
--- 	PRAGMA synchronous = NORMAL;
--- 	PRAGMA journal_mode = WAL;
--- 	PRAGMA wal_autocheckpoint = 16384;
-        
+	createImageTable := `        
 	CREATE TABLE IF NOT EXISTS images (
 	  detection_time integer,
 	  image blob,
-	  results boolean,
+	  objects_detected boolean,
 	  PRIMARY KEY(detection_time)
 	);
 	CREATE TABLE IF NOT EXISTS bounding_box (
@@ -268,7 +215,7 @@ func NewDataStore(eCtx *EdgeContext) (*dataStore, error) {
 	  Confidence float, 
 	  FOREIGN KEY(detection_time) REFERENCES image(detection_time)
 	);
-	CREATE TABLE IF NOT EXISTS Labels (
+	CREATE TABLE IF NOT EXISTS labels (
 	 detection_time integer,
 	"person" boolean DEFAULT false, 
 	"bicycle" boolean DEFAULT false, 
