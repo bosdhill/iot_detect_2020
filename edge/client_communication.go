@@ -31,7 +31,7 @@ type clientComm struct {
 	cancel context.CancelFunc
 }
 
-func uploadReqToImg(req *pb.Image) gocv.Mat {
+func uploadReqToImg(req *pb.Image) *gocv.Mat {
 	height := int(req.Rows)
 	width := int(req.Cols)
 	mType := gocv.MatType(req.Type)
@@ -42,14 +42,14 @@ func uploadReqToImg(req *pb.Image) gocv.Mat {
 	if err != nil {
 		log.Fatal(err)
 	}
-	return mat
+	return &mat
 }
 
 // TODO find a way to annotate image frames after object detection
 func (comm *clientComm) UploadImage(stream pb.Uploader_UploadImageServer) error {
 	log.Println("UploadImage")
 	count := 0
-	resCh := make(chan *DetectionResult)
+	resCh := make(chan DetectionResult)
 	iCh := make(chan *gocv.Mat)
 	go comm.od.caffeWorker(iCh, resCh)
 	go comm.ds.InsertWorker(resCh)
@@ -66,8 +66,7 @@ func (comm *clientComm) UploadImage(stream pb.Uploader_UploadImageServer) error 
 			log.Println("err=", err)
 			return err
 		}
-		img := uploadReqToImg(req)
-		iCh <- &img
+		iCh <- uploadReqToImg(req)
 	}
 }
 

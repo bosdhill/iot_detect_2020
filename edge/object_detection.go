@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"gocv.io/x/gocv"
 	"image"
 	"log"
 	"math"
+	"runtime"
 	"sort"
 	"time"
 )
@@ -74,16 +76,16 @@ type Box struct {
 	currentClassIdx int
 }
 
-func regionLayer(predictions gocv.Mat, transposePredictions bool, img_height, img_width float32) (map[string]bool, map[string]([]*BoundingBox)) {
+func regionLayer(predictions *gocv.Mat, transposePredictions bool, img_height, img_width float32) (map[string]bool, map[string]([]*BoundingBox)) {
 
 	var data [w*h*5*(numClasses+5)]float32
 	var label string
 
 	if transposePredictions {
-		predictions = predictions.Reshape(1, 425)
-		data = transpose(&predictions)
+		*predictions = predictions.Reshape(1, 425)
+		data = transpose(predictions)
 	} else {
-		data = matToArray(&predictions)
+		data = matToArray(predictions)
 	}
 
 
@@ -347,35 +349,22 @@ func NewObjectDetection(eCtx *EdgeContext) (*objectDetect, error){
 	return &objectDetect{net: &caffeNet, eCtx: eCtx}, nil
 }
 
-func (od *objectDetect) caffeWorker(imgChan chan *gocv.Mat, resChan chan *DetectionResult) {
+func (od *objectDetect) caffeWorker(imgChan chan *gocv.Mat, resChan chan DetectionResult) {
 	log.Println("caffeWorker")
-	img := gocv.NewMat()
-	defer img.Close()
-
-	blob := gocv.NewMat()
-	defer blob.Close()
-
-	prob := gocv.NewMat()
-	defer prob.Close()
-
-	probMat := gocv.NewMat()
-	defer probMat.Close()
-
 	sec := time.Duration(0)
 	count := 0
-	for item := range imgChan {
-		if item.Empty(){
+	for img := range imgChan {
+		if img.Empty(){
 			log.Println("Img is Empty")
 			continue
 		}
 		t := time.Now()
-		img = item.Clone()
-		blob = gocv.BlobFromImage(img, 1.0/255.0, image.Pt(416, 416), gocv.NewScalar(0, 0, 0, 0), true, false)
+		blob := gocv.BlobFromImage(*img, 1.0/255.0, image.Pt(416, 416), gocv.NewScalar(0, 0, 0, 0), true, false)
 		od.net.SetInput(blob, "data")
-		prob = od.net.Forward("conv9")
+		prob := od.net.Forward("conv9")
 		probMat := prob.Reshape(1,1)
 
-		labels, labelBoxes := regionLayer(probMat, true, float32(img.Rows()), float32(img.Cols()))
+		labels, labelBoxes := regionLayer(&probMat, true, float32(img.Rows()), float32(img.Cols()))
 		//time.Sleep(time.Millisecond*30)
 		e := time.Since(t)
 		log.Println("detect time", e)
@@ -383,13 +372,36 @@ func (od *objectDetect) caffeWorker(imgChan chan *gocv.Mat, resChan chan *Detect
 		count++
 		log.Println("last AVG", sec / time.Duration(count))
 
-
-		resChan <- &DetectionResult{
+		resChan <- DetectionResult {
 			Empty:         len(labels) == 0,
 			DetectionTime: time.Now().UnixNano(),
 			Labels:        labels,
 			Img:           img.Clone(),
-			LabelBoxes:    labelBoxes}
+			LabelBoxes:    labelBoxes,
+		}
+
+		blob.Close()
+		probMat.Close()
+		prob.Close()
+		img.Close()
+		runtime.GC()
+		// close mat to avoid memory leak
+		//if err := blob.Close(); err != nil {
+		//	log.Fatalf("caffeWorker: Could not close blob mat with err = %s", err)
+		//}
+		//if err := probMat.Close(); err != nil {
+		//	log.Fatalf("caffeWorker: Could not close probMat mat with err = %s", err)
+		//}
+		//if err := prob.Close(); err != nil {
+		//	log.Fatalf("caffeWorker: Could not close prob mat with err = %s", err)
+		//}
+		//if err := img.Close(); err != nil {
+		//	log.Fatalf("caffeWorker: Could not close img mat with err = %s", err)
+		//}
+		log.Println("profile count:", gocv.MatProfile.Count())
+		var b bytes.Buffer
+		gocv.MatProfile.WriteTo(&b, 1)
+		log.Println("Mat frames", b.String())
 	}
 	close(resChan)
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
 	"log"
+	"runtime"
 	"strings"
 	"encoding/json"
 )
@@ -94,6 +95,7 @@ func (ds *dataStore) Get() error {
 
 func (ds *dataStore) InsertImageTable(dr *DetectionResult) {
 	txn, err := ds.db.Begin()
+	log.Println(dr)
 	if err != nil {
 		log.Fatalf("InsertWorker: could not db.begin with err = %s", err)
 	}
@@ -106,6 +108,7 @@ func (ds *dataStore) InsertImageTable(dr *DetectionResult) {
 		if err := dr.Img.Close(); err != nil {
 			log.Fatalf("InsertWorker: could not close image with err = %s", err)
 		}
+		runtime.GC()
 	}()
 	if err != nil {
 		log.Fatalf("InsertWorker: could not prepare insert into images table with err = %s", err)
@@ -159,12 +162,12 @@ func (ds *dataStore) InsertBoundingBoxTable(dr *DetectionResult) {
 	}
 }
 
-func (ds *dataStore) InsertWorker(drCh chan *DetectionResult) {
+func (ds *dataStore) InsertWorker(drCh chan DetectionResult) {
 	log.Println("InsertWorker")
 	for dr := range drCh {
-		ds.InsertImageTable(dr)
-		ds.InsertBoundingBoxTable(dr)
-		ds.InsertLabelsTable(dr)
+		ds.InsertImageTable(&dr)
+		ds.InsertBoundingBoxTable(&dr)
+		ds.InsertLabelsTable(&dr)
 	}
 	ds.Get()
 }
