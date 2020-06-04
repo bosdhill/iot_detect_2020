@@ -3,3 +3,55 @@
 - Look into Intel https://software.intel.com/en-us/articles/intel-movidius-neural-compute-stick that can interface with https://github.com/dymat/GOLOv2
 - Since NMSBoxes is not yet implemented in gocv, we can leave that up to the application to annotate
 
+# Interfaces
+- Split up into client - edge interface, cloud - edge interface, app - edge interface
+
+# Docker and Kubernetes
+- Eventually containerize components in client, edge, and cloud 
+
+# Events and Actions
+- Action-on-detect is a form of complex query
+- Events are conditions that can trigger Actions
+- Need search syntax or query engine to parse the complex queries
+## What type of unique conditions can events hold?
+- Proximity conditions (close, far) between bounding boxes of objects in a frame
+    - e.g. person on a bike 
+    - e.g. people that are close together
+- Number of different objects occurring together in a frame
+    - e.g. at least 1 person and 1 bus
+- Number of similar objects occurring together in a frame
+    - e.g. at most 5 people
+- Label with above certain threshold
+    - e.g. person with conf 0.5
+- Combination of the above
+    - e.g. a person on a bike and at least 3 people close together in a frame
+- Events also hold flags specifying the data granularity
+    - Such as including metadata, image frame itself, annotated frame, etc.
+## What does an Action hold
+- The name of the Event that triggered this action (hash of the unique conditions)
+- The data that corresponds to the Event, such as:
+    - Image frame (jpg)
+    - annotated image frame (jpg)
+    - metadata
+        - labels
+        - bounding box frames (annotations)
+        - label confidence
+- The Action would be handled by the appropriate callback method defined by the application (implement callback interface)
+
+## Event query object (defined by user/application)
+``` json
+{
+    labels: [...], (sorted)
+    conf_thresholds: [...], (maps to index of labels)
+    quantity: [...], (maps to index of labels)
+    quantity_bounds: [...], (maps to index of labels)
+    proximities: [...], (maps to index of labels)
+    proximity_distance_measure: enum
+    data_return_flags: enum (bitwise XOR flags?)
+}
+```
+
+## Caching
+- The Event "queries" can happen in real time (right after an object is detected), and can be cached on the Edge and Cloud 
+until the application makes a request such as `PullActions` or `PullEvents`
+ 

@@ -1,4 +1,5 @@
 syntax = "proto3";
+import "google/protobuf/empty.proto";
 
 // Interface exported by the server on the Edge
 service Uploader {
@@ -19,3 +20,133 @@ message Image {
 message ImageResponse {
     bool success = 1;
 }
+
+service Actions {
+    rpc SetActions(Events) returns (SetActionsResponse) {}
+    rpc ActionOnDetect(Action) returns (google.protobuf.Empty) {}
+    rpc EventStream(stream Event) returns (google.protobuf.Empty) {}
+}
+
+message SetActionsResponse {
+    // note that:
+    //  An event is:
+    //      - a collection of conditions required for a detection, which results in an Action to be triggered
+    //      - used to define the granularity of metadata and data required for ingestion by the callback on the application
+    map<string, Action> actions = 1;
+}
+
+// Events is just a wrapper around a list of Event messages
+message Events {
+   repeated Event events = 1;
+}
+
+// Event message defines the conditions required for an Action to be triggered as well as the granularity of data to be
+// wrapped in an Action.
+message Event {
+
+    // label_union is the set of labels used in determining an Event, with the key as the label. For an Event to trigger
+    // an Action, all labels in label_union must be present in the frame, and each label's EventConditions must be
+    // satisfied.
+    map<string, EventConditions> label_union = 1;
+
+    // distance_measure is the distance measure to be used when determining proximity between objects
+    DistanceMeasure distance_measure = 2;
+
+    // flags determine the granularity of data returned in an Action
+    uint32 flags = 3;
+
+    // Flags enum provides for the bitwise field flags
+    enum Flags {
+
+        // Return only metadata
+        METADATA = 0x00;
+
+        // Return bounding boxes
+        BOXES = 0x01;
+
+        // Return jpg image
+        IMAGE = 0x02;
+
+        // Return annotated jpg image image
+        ANNOTATED = 0x04;
+
+        // Return confidence
+        CONFIDENCE = 0x16;
+
+        // Store this result (event object detection result) on the edge
+        PERSIST = 0x32;
+    }
+
+    // DistanceMeasure enum defines different distance measures that can be used while measuring object proximity
+    enum DistanceMeasure {
+
+        // euclidean distance measure used in proximity detection
+        EUCLIDEAN = 0;
+
+        // manhattan distance measure used in proximity detection
+        MANHATTAN = 1;
+    }
+}
+
+// EventSpecification message defines the relationship this label has with other labels in label_union. When there is
+// more than 1 label in label_union, the EventSpecification message can be used for more complex queries
+message EventConditions {
+
+    // lower bound confidence threshold
+    float conf_threshold = 1;
+
+    // quantity of objects with this label
+    int32 quantity = 2;
+
+    // bound on quantity required for this label
+    uint32 bound = 3;
+
+    // proximity method used for this label to other labels in label_union
+    Proximity proximity = 4;
+
+    // QuantityBound enum defines the different bounds on the number of labels
+    enum QuantityBound {
+        LESS = 0x00;
+        GREATER = 0x01;
+        EQUAL = 0x02;
+    }
+
+    // Proximity enum defines which proximity method to use
+    enum Proximity {
+        // Apply distance measure to bounding box perimeters
+        BOX = 0;
+        // Apply distance measure to centers of bounding boxes
+        CENTER = 1;
+    }
+}
+
+message Action {
+    bytes img = 1;
+    bytes annotated_img = 2;
+    float confidence = 3;
+    Box bounding_box = 4;
+}
+
+message Box {
+    float top_left_x = 1;
+    float top_left_y = 2;
+    float bottom_right_x = 3;
+    float bottom_right_y = 4;
+}
+
+//service Downloader {
+//    rpc Get(Query) returns (Response) {}
+//    rpc StreamImage(Flags) returns (stream Response) {}
+//}
+//
+//message Flags {
+//
+//}
+//
+//message Query {
+//
+//}
+//
+//message Response {
+//
+//}
