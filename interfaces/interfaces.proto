@@ -1,5 +1,6 @@
 syntax = "proto3";
 import "google/protobuf/empty.proto";
+option go_package = ".;interfaces";
 
 // Interface exported by the server on the Edge
 service Uploader {
@@ -21,7 +22,7 @@ message ImageResponse {
     bool success = 1;
 }
 
-service Actions {
+service ActionOnDetect {
     rpc SetActions(Events) returns (SetActionsResponse) {}
     rpc ActionOnDetect(Action) returns (google.protobuf.Empty) {}
     rpc EventStream(stream Event) returns (google.protobuf.Empty) {}
@@ -113,25 +114,35 @@ message EventConditions {
 
     // Proximity enum defines which proximity method to use
     enum Proximity {
+
         // Apply distance measure to bounding box perimeters
         BOX = 0;
+
         // Apply distance measure to centers of bounding boxes
         CENTER = 1;
     }
 }
 
+// Action message corresponds to the trigger of an Event (similar to DetectionResult)
 message Action {
-    bytes img = 1;
-    bytes annotated_img = 2;
-    float confidence = 3;
-    Box bounding_box = 4;
+    // labels are the labels of the objects detected in the event, mapped to their BoundingBox
+    map<string, BoundingBox> labels = 1;
+
+    // img is the jpg image
+    bytes img = 2;
+
+    // annotated_img is the img annotated with bounding boxes
+    bytes annotated_img = 3;
 }
 
-message Box {
+// BoundingBox message is the representation of the bounding box output by the object detection component as well as its
+// confidence
+message BoundingBox {
     float top_left_x = 1;
     float top_left_y = 2;
     float bottom_right_x = 3;
     float bottom_right_y = 4;
+    float confidence = 5;
 }
 
 //service Downloader {

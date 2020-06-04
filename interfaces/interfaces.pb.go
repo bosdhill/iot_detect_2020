@@ -9,6 +9,7 @@ package interfaces
 import (
 	context "context"
 	proto "github.com/golang/protobuf/proto"
+	empty "github.com/golang/protobuf/ptypes/empty"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -28,6 +29,219 @@ const (
 // This is a compile-time assertion that a sufficiently up-to-date version
 // of the legacy proto package is being used.
 const _ = proto.ProtoPackageIsVersion4
+
+// Flags enum provides for the bitwise field flags
+type Event_Flags int32
+
+const (
+	// Return only metadata
+	Event_METADATA Event_Flags = 0
+	// Return bounding boxes
+	Event_BOXES Event_Flags = 1
+	// Return jpg image
+	Event_IMAGE Event_Flags = 2
+	// Return annotated jpg image image
+	Event_ANNOTATED Event_Flags = 4
+	// Return confidence
+	Event_CONFIDENCE Event_Flags = 22
+	// Store this result (event object detection result) on the edge
+	Event_PERSIST Event_Flags = 50
+)
+
+// Enum value maps for Event_Flags.
+var (
+	Event_Flags_name = map[int32]string{
+		0:  "METADATA",
+		1:  "BOXES",
+		2:  "IMAGE",
+		4:  "ANNOTATED",
+		22: "CONFIDENCE",
+		50: "PERSIST",
+	}
+	Event_Flags_value = map[string]int32{
+		"METADATA":   0,
+		"BOXES":      1,
+		"IMAGE":      2,
+		"ANNOTATED":  4,
+		"CONFIDENCE": 22,
+		"PERSIST":    50,
+	}
+)
+
+func (x Event_Flags) Enum() *Event_Flags {
+	p := new(Event_Flags)
+	*p = x
+	return p
+}
+
+func (x Event_Flags) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (Event_Flags) Descriptor() protoreflect.EnumDescriptor {
+	return file_interfaces_proto_enumTypes[0].Descriptor()
+}
+
+func (Event_Flags) Type() protoreflect.EnumType {
+	return &file_interfaces_proto_enumTypes[0]
+}
+
+func (x Event_Flags) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use Event_Flags.Descriptor instead.
+func (Event_Flags) EnumDescriptor() ([]byte, []int) {
+	return file_interfaces_proto_rawDescGZIP(), []int{4, 0}
+}
+
+// DistanceMeasure enum defines different distance measures that can be used while measuring object proximity
+type Event_DistanceMeasure int32
+
+const (
+	// euclidean distance measure used in proximity detection
+	Event_EUCLIDEAN Event_DistanceMeasure = 0
+	// manhattan distance measure used in proximity detection
+	Event_MANHATTAN Event_DistanceMeasure = 1
+)
+
+// Enum value maps for Event_DistanceMeasure.
+var (
+	Event_DistanceMeasure_name = map[int32]string{
+		0: "EUCLIDEAN",
+		1: "MANHATTAN",
+	}
+	Event_DistanceMeasure_value = map[string]int32{
+		"EUCLIDEAN": 0,
+		"MANHATTAN": 1,
+	}
+)
+
+func (x Event_DistanceMeasure) Enum() *Event_DistanceMeasure {
+	p := new(Event_DistanceMeasure)
+	*p = x
+	return p
+}
+
+func (x Event_DistanceMeasure) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (Event_DistanceMeasure) Descriptor() protoreflect.EnumDescriptor {
+	return file_interfaces_proto_enumTypes[1].Descriptor()
+}
+
+func (Event_DistanceMeasure) Type() protoreflect.EnumType {
+	return &file_interfaces_proto_enumTypes[1]
+}
+
+func (x Event_DistanceMeasure) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use Event_DistanceMeasure.Descriptor instead.
+func (Event_DistanceMeasure) EnumDescriptor() ([]byte, []int) {
+	return file_interfaces_proto_rawDescGZIP(), []int{4, 1}
+}
+
+// QuantityBound enum defines the different bounds on the number of labels
+type EventConditions_QuantityBound int32
+
+const (
+	EventConditions_LESS    EventConditions_QuantityBound = 0
+	EventConditions_GREATER EventConditions_QuantityBound = 1
+	EventConditions_EQUAL   EventConditions_QuantityBound = 2
+)
+
+// Enum value maps for EventConditions_QuantityBound.
+var (
+	EventConditions_QuantityBound_name = map[int32]string{
+		0: "LESS",
+		1: "GREATER",
+		2: "EQUAL",
+	}
+	EventConditions_QuantityBound_value = map[string]int32{
+		"LESS":    0,
+		"GREATER": 1,
+		"EQUAL":   2,
+	}
+)
+
+func (x EventConditions_QuantityBound) Enum() *EventConditions_QuantityBound {
+	p := new(EventConditions_QuantityBound)
+	*p = x
+	return p
+}
+
+func (x EventConditions_QuantityBound) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (EventConditions_QuantityBound) Descriptor() protoreflect.EnumDescriptor {
+	return file_interfaces_proto_enumTypes[2].Descriptor()
+}
+
+func (EventConditions_QuantityBound) Type() protoreflect.EnumType {
+	return &file_interfaces_proto_enumTypes[2]
+}
+
+func (x EventConditions_QuantityBound) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use EventConditions_QuantityBound.Descriptor instead.
+func (EventConditions_QuantityBound) EnumDescriptor() ([]byte, []int) {
+	return file_interfaces_proto_rawDescGZIP(), []int{5, 0}
+}
+
+// Proximity enum defines which proximity method to use
+type EventConditions_Proximity int32
+
+const (
+	// Apply distance measure to bounding box perimeters
+	EventConditions_BOX EventConditions_Proximity = 0
+	// Apply distance measure to centers of bounding boxes
+	EventConditions_CENTER EventConditions_Proximity = 1
+)
+
+// Enum value maps for EventConditions_Proximity.
+var (
+	EventConditions_Proximity_name = map[int32]string{
+		0: "BOX",
+		1: "CENTER",
+	}
+	EventConditions_Proximity_value = map[string]int32{
+		"BOX":    0,
+		"CENTER": 1,
+	}
+)
+
+func (x EventConditions_Proximity) Enum() *EventConditions_Proximity {
+	p := new(EventConditions_Proximity)
+	*p = x
+	return p
+}
+
+func (x EventConditions_Proximity) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (EventConditions_Proximity) Descriptor() protoreflect.EnumDescriptor {
+	return file_interfaces_proto_enumTypes[3].Descriptor()
+}
+
+func (EventConditions_Proximity) Type() protoreflect.EnumType {
+	return &file_interfaces_proto_enumTypes[3]
+}
+
+func (x EventConditions_Proximity) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use EventConditions_Proximity.Descriptor instead.
+func (EventConditions_Proximity) EnumDescriptor() ([]byte, []int) {
+	return file_interfaces_proto_rawDescGZIP(), []int{5, 1}
+}
 
 type Image struct {
 	state         protoimpl.MessageState
@@ -147,23 +361,505 @@ func (x *ImageResponse) GetSuccess() bool {
 	return false
 }
 
+type SetActionsResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// note that:
+	//  An event is:
+	//      - a collection of conditions required for a detection, which results in an Action to be triggered
+	//      - used to define the granularity of metadata and data required for ingestion by the callback on the application
+	Actions map[string]*Action `protobuf:"bytes,1,rep,name=actions,proto3" json:"actions,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+}
+
+func (x *SetActionsResponse) Reset() {
+	*x = SetActionsResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_interfaces_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SetActionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetActionsResponse) ProtoMessage() {}
+
+func (x *SetActionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_interfaces_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetActionsResponse.ProtoReflect.Descriptor instead.
+func (*SetActionsResponse) Descriptor() ([]byte, []int) {
+	return file_interfaces_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *SetActionsResponse) GetActions() map[string]*Action {
+	if x != nil {
+		return x.Actions
+	}
+	return nil
+}
+
+// Events is just a wrapper around a list of Event messages
+type Events struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Events []*Event `protobuf:"bytes,1,rep,name=events,proto3" json:"events,omitempty"`
+}
+
+func (x *Events) Reset() {
+	*x = Events{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_interfaces_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Events) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Events) ProtoMessage() {}
+
+func (x *Events) ProtoReflect() protoreflect.Message {
+	mi := &file_interfaces_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Events.ProtoReflect.Descriptor instead.
+func (*Events) Descriptor() ([]byte, []int) {
+	return file_interfaces_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *Events) GetEvents() []*Event {
+	if x != nil {
+		return x.Events
+	}
+	return nil
+}
+
+// Event message defines the conditions required for an Action to be triggered as well as the granularity of data to be
+// wrapped in an Action.
+type Event struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// label_union is the set of labels used in determining an Event, with the key as the label. For an Event to trigger
+	// an Action, all labels in label_union must be present in the frame, and each label's EventConditions must be
+	// satisfied.
+	LabelUnion map[string]*EventConditions `protobuf:"bytes,1,rep,name=label_union,json=labelUnion,proto3" json:"label_union,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	// distance_measure is the distance measure to be used when determining proximity between objects
+	DistanceMeasure Event_DistanceMeasure `protobuf:"varint,2,opt,name=distance_measure,json=distanceMeasure,proto3,enum=Event_DistanceMeasure" json:"distance_measure,omitempty"`
+	// flags determine the granularity of data returned in an Action
+	Flags uint32 `protobuf:"varint,3,opt,name=flags,proto3" json:"flags,omitempty"`
+}
+
+func (x *Event) Reset() {
+	*x = Event{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_interfaces_proto_msgTypes[4]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Event) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Event) ProtoMessage() {}
+
+func (x *Event) ProtoReflect() protoreflect.Message {
+	mi := &file_interfaces_proto_msgTypes[4]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Event.ProtoReflect.Descriptor instead.
+func (*Event) Descriptor() ([]byte, []int) {
+	return file_interfaces_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *Event) GetLabelUnion() map[string]*EventConditions {
+	if x != nil {
+		return x.LabelUnion
+	}
+	return nil
+}
+
+func (x *Event) GetDistanceMeasure() Event_DistanceMeasure {
+	if x != nil {
+		return x.DistanceMeasure
+	}
+	return Event_EUCLIDEAN
+}
+
+func (x *Event) GetFlags() uint32 {
+	if x != nil {
+		return x.Flags
+	}
+	return 0
+}
+
+// EventSpecification message defines the relationship this label has with other labels in label_union. When there is
+// more than 1 label in label_union, the EventSpecification message can be used for more complex queries
+type EventConditions struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// lower bound confidence threshold
+	ConfThreshold float32 `protobuf:"fixed32,1,opt,name=conf_threshold,json=confThreshold,proto3" json:"conf_threshold,omitempty"`
+	// quantity of objects with this label
+	Quantity int32 `protobuf:"varint,2,opt,name=quantity,proto3" json:"quantity,omitempty"`
+	// bound on quantity required for this label
+	Bound uint32 `protobuf:"varint,3,opt,name=bound,proto3" json:"bound,omitempty"`
+	// proximity method used for this label to other labels in label_union
+	Proximity EventConditions_Proximity `protobuf:"varint,4,opt,name=proximity,proto3,enum=EventConditions_Proximity" json:"proximity,omitempty"`
+}
+
+func (x *EventConditions) Reset() {
+	*x = EventConditions{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_interfaces_proto_msgTypes[5]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *EventConditions) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EventConditions) ProtoMessage() {}
+
+func (x *EventConditions) ProtoReflect() protoreflect.Message {
+	mi := &file_interfaces_proto_msgTypes[5]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EventConditions.ProtoReflect.Descriptor instead.
+func (*EventConditions) Descriptor() ([]byte, []int) {
+	return file_interfaces_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *EventConditions) GetConfThreshold() float32 {
+	if x != nil {
+		return x.ConfThreshold
+	}
+	return 0
+}
+
+func (x *EventConditions) GetQuantity() int32 {
+	if x != nil {
+		return x.Quantity
+	}
+	return 0
+}
+
+func (x *EventConditions) GetBound() uint32 {
+	if x != nil {
+		return x.Bound
+	}
+	return 0
+}
+
+func (x *EventConditions) GetProximity() EventConditions_Proximity {
+	if x != nil {
+		return x.Proximity
+	}
+	return EventConditions_BOX
+}
+
+// Action message corresponds to the trigger of an Event (similar to DetectionResult)
+type Action struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// labels are the labels of the objects detected in the event, mapped to their BoundingBox
+	Labels map[string]*BoundingBox `protobuf:"bytes,1,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	// img is the jpg image
+	Img []byte `protobuf:"bytes,2,opt,name=img,proto3" json:"img,omitempty"`
+	// annotated_img is the img annotated with bounding boxes
+	AnnotatedImg []byte `protobuf:"bytes,3,opt,name=annotated_img,json=annotatedImg,proto3" json:"annotated_img,omitempty"`
+}
+
+func (x *Action) Reset() {
+	*x = Action{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_interfaces_proto_msgTypes[6]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Action) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Action) ProtoMessage() {}
+
+func (x *Action) ProtoReflect() protoreflect.Message {
+	mi := &file_interfaces_proto_msgTypes[6]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Action.ProtoReflect.Descriptor instead.
+func (*Action) Descriptor() ([]byte, []int) {
+	return file_interfaces_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *Action) GetLabels() map[string]*BoundingBox {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
+}
+
+func (x *Action) GetImg() []byte {
+	if x != nil {
+		return x.Img
+	}
+	return nil
+}
+
+func (x *Action) GetAnnotatedImg() []byte {
+	if x != nil {
+		return x.AnnotatedImg
+	}
+	return nil
+}
+
+// BoundingBox message is the representation of the bounding box output by the object detection component as well as its
+// confidence
+type BoundingBox struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	TopLeftX     float32 `protobuf:"fixed32,1,opt,name=top_left_x,json=topLeftX,proto3" json:"top_left_x,omitempty"`
+	TopLeftY     float32 `protobuf:"fixed32,2,opt,name=top_left_y,json=topLeftY,proto3" json:"top_left_y,omitempty"`
+	BottomRightX float32 `protobuf:"fixed32,3,opt,name=bottom_right_x,json=bottomRightX,proto3" json:"bottom_right_x,omitempty"`
+	BottomRightY float32 `protobuf:"fixed32,4,opt,name=bottom_right_y,json=bottomRightY,proto3" json:"bottom_right_y,omitempty"`
+	Confidence   float32 `protobuf:"fixed32,5,opt,name=confidence,proto3" json:"confidence,omitempty"`
+}
+
+func (x *BoundingBox) Reset() {
+	*x = BoundingBox{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_interfaces_proto_msgTypes[7]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *BoundingBox) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BoundingBox) ProtoMessage() {}
+
+func (x *BoundingBox) ProtoReflect() protoreflect.Message {
+	mi := &file_interfaces_proto_msgTypes[7]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BoundingBox.ProtoReflect.Descriptor instead.
+func (*BoundingBox) Descriptor() ([]byte, []int) {
+	return file_interfaces_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *BoundingBox) GetTopLeftX() float32 {
+	if x != nil {
+		return x.TopLeftX
+	}
+	return 0
+}
+
+func (x *BoundingBox) GetTopLeftY() float32 {
+	if x != nil {
+		return x.TopLeftY
+	}
+	return 0
+}
+
+func (x *BoundingBox) GetBottomRightX() float32 {
+	if x != nil {
+		return x.BottomRightX
+	}
+	return 0
+}
+
+func (x *BoundingBox) GetBottomRightY() float32 {
+	if x != nil {
+		return x.BottomRightY
+	}
+	return 0
+}
+
+func (x *BoundingBox) GetConfidence() float32 {
+	if x != nil {
+		return x.Confidence
+	}
+	return 0
+}
+
 var File_interfaces_proto protoreflect.FileDescriptor
 
 var file_interfaces_proto_rawDesc = []byte{
 	0x0a, 0x10, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x66, 0x61, 0x63, 0x65, 0x73, 0x2e, 0x70, 0x72, 0x6f,
-	0x74, 0x6f, 0x22, 0x59, 0x0a, 0x05, 0x49, 0x6d, 0x61, 0x67, 0x65, 0x12, 0x14, 0x0a, 0x05, 0x69,
-	0x6d, 0x61, 0x67, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x05, 0x69, 0x6d, 0x61, 0x67,
-	0x65, 0x12, 0x12, 0x0a, 0x04, 0x72, 0x6f, 0x77, 0x73, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52,
-	0x04, 0x72, 0x6f, 0x77, 0x73, 0x12, 0x12, 0x0a, 0x04, 0x63, 0x6f, 0x6c, 0x73, 0x18, 0x03, 0x20,
-	0x01, 0x28, 0x05, 0x52, 0x04, 0x63, 0x6f, 0x6c, 0x73, 0x12, 0x12, 0x0a, 0x04, 0x74, 0x79, 0x70,
-	0x65, 0x18, 0x04, 0x20, 0x01, 0x28, 0x05, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x22, 0x29, 0x0a,
-	0x0d, 0x49, 0x6d, 0x61, 0x67, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x18,
-	0x0a, 0x07, 0x73, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x52,
-	0x07, 0x73, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x32, 0x35, 0x0a, 0x08, 0x55, 0x70, 0x6c, 0x6f,
-	0x61, 0x64, 0x65, 0x72, 0x12, 0x29, 0x0a, 0x0b, 0x55, 0x70, 0x6c, 0x6f, 0x61, 0x64, 0x49, 0x6d,
-	0x61, 0x67, 0x65, 0x12, 0x06, 0x2e, 0x49, 0x6d, 0x61, 0x67, 0x65, 0x1a, 0x0e, 0x2e, 0x49, 0x6d,
-	0x61, 0x67, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x28, 0x01, 0x62,
-	0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x74, 0x6f, 0x1a, 0x1b, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f,
+	0x62, 0x75, 0x66, 0x2f, 0x65, 0x6d, 0x70, 0x74, 0x79, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22,
+	0x59, 0x0a, 0x05, 0x49, 0x6d, 0x61, 0x67, 0x65, 0x12, 0x14, 0x0a, 0x05, 0x69, 0x6d, 0x61, 0x67,
+	0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x05, 0x69, 0x6d, 0x61, 0x67, 0x65, 0x12, 0x12,
+	0x0a, 0x04, 0x72, 0x6f, 0x77, 0x73, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x04, 0x72, 0x6f,
+	0x77, 0x73, 0x12, 0x12, 0x0a, 0x04, 0x63, 0x6f, 0x6c, 0x73, 0x18, 0x03, 0x20, 0x01, 0x28, 0x05,
+	0x52, 0x04, 0x63, 0x6f, 0x6c, 0x73, 0x12, 0x12, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x18, 0x04,
+	0x20, 0x01, 0x28, 0x05, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x22, 0x29, 0x0a, 0x0d, 0x49, 0x6d,
+	0x61, 0x67, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x73,
+	0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x07, 0x73, 0x75,
+	0x63, 0x63, 0x65, 0x73, 0x73, 0x22, 0x95, 0x01, 0x0a, 0x12, 0x53, 0x65, 0x74, 0x41, 0x63, 0x74,
+	0x69, 0x6f, 0x6e, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x3a, 0x0a, 0x07,
+	0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x20, 0x2e,
+	0x53, 0x65, 0x74, 0x41, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
+	0x73, 0x65, 0x2e, 0x41, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x52,
+	0x07, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x1a, 0x43, 0x0a, 0x0c, 0x41, 0x63, 0x74, 0x69,
+	0x6f, 0x6e, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x1d, 0x0a, 0x05, 0x76, 0x61,
+	0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x07, 0x2e, 0x41, 0x63, 0x74, 0x69,
+	0x6f, 0x6e, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x22, 0x28, 0x0a,
+	0x06, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x73, 0x12, 0x1e, 0x0a, 0x06, 0x65, 0x76, 0x65, 0x6e, 0x74,
+	0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x06, 0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x52,
+	0x06, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x73, 0x22, 0xf4, 0x02, 0x0a, 0x05, 0x45, 0x76, 0x65, 0x6e,
+	0x74, 0x12, 0x37, 0x0a, 0x0b, 0x6c, 0x61, 0x62, 0x65, 0x6c, 0x5f, 0x75, 0x6e, 0x69, 0x6f, 0x6e,
+	0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x16, 0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x2e, 0x4c,
+	0x61, 0x62, 0x65, 0x6c, 0x55, 0x6e, 0x69, 0x6f, 0x6e, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x52, 0x0a,
+	0x6c, 0x61, 0x62, 0x65, 0x6c, 0x55, 0x6e, 0x69, 0x6f, 0x6e, 0x12, 0x41, 0x0a, 0x10, 0x64, 0x69,
+	0x73, 0x74, 0x61, 0x6e, 0x63, 0x65, 0x5f, 0x6d, 0x65, 0x61, 0x73, 0x75, 0x72, 0x65, 0x18, 0x02,
+	0x20, 0x01, 0x28, 0x0e, 0x32, 0x16, 0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x2e, 0x44, 0x69, 0x73,
+	0x74, 0x61, 0x6e, 0x63, 0x65, 0x4d, 0x65, 0x61, 0x73, 0x75, 0x72, 0x65, 0x52, 0x0f, 0x64, 0x69,
+	0x73, 0x74, 0x61, 0x6e, 0x63, 0x65, 0x4d, 0x65, 0x61, 0x73, 0x75, 0x72, 0x65, 0x12, 0x14, 0x0a,
+	0x05, 0x66, 0x6c, 0x61, 0x67, 0x73, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x05, 0x66, 0x6c,
+	0x61, 0x67, 0x73, 0x1a, 0x4f, 0x0a, 0x0f, 0x4c, 0x61, 0x62, 0x65, 0x6c, 0x55, 0x6e, 0x69, 0x6f,
+	0x6e, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x26, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75,
+	0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x10, 0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x43,
+	0x6f, 0x6e, 0x64, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65,
+	0x3a, 0x02, 0x38, 0x01, 0x22, 0x57, 0x0a, 0x05, 0x46, 0x6c, 0x61, 0x67, 0x73, 0x12, 0x0c, 0x0a,
+	0x08, 0x4d, 0x45, 0x54, 0x41, 0x44, 0x41, 0x54, 0x41, 0x10, 0x00, 0x12, 0x09, 0x0a, 0x05, 0x42,
+	0x4f, 0x58, 0x45, 0x53, 0x10, 0x01, 0x12, 0x09, 0x0a, 0x05, 0x49, 0x4d, 0x41, 0x47, 0x45, 0x10,
+	0x02, 0x12, 0x0d, 0x0a, 0x09, 0x41, 0x4e, 0x4e, 0x4f, 0x54, 0x41, 0x54, 0x45, 0x44, 0x10, 0x04,
+	0x12, 0x0e, 0x0a, 0x0a, 0x43, 0x4f, 0x4e, 0x46, 0x49, 0x44, 0x45, 0x4e, 0x43, 0x45, 0x10, 0x16,
+	0x12, 0x0b, 0x0a, 0x07, 0x50, 0x45, 0x52, 0x53, 0x49, 0x53, 0x54, 0x10, 0x32, 0x22, 0x2f, 0x0a,
+	0x0f, 0x44, 0x69, 0x73, 0x74, 0x61, 0x6e, 0x63, 0x65, 0x4d, 0x65, 0x61, 0x73, 0x75, 0x72, 0x65,
+	0x12, 0x0d, 0x0a, 0x09, 0x45, 0x55, 0x43, 0x4c, 0x49, 0x44, 0x45, 0x41, 0x4e, 0x10, 0x00, 0x12,
+	0x0d, 0x0a, 0x09, 0x4d, 0x41, 0x4e, 0x48, 0x41, 0x54, 0x54, 0x41, 0x4e, 0x10, 0x01, 0x22, 0xf9,
+	0x01, 0x0a, 0x0f, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x43, 0x6f, 0x6e, 0x64, 0x69, 0x74, 0x69, 0x6f,
+	0x6e, 0x73, 0x12, 0x25, 0x0a, 0x0e, 0x63, 0x6f, 0x6e, 0x66, 0x5f, 0x74, 0x68, 0x72, 0x65, 0x73,
+	0x68, 0x6f, 0x6c, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x02, 0x52, 0x0d, 0x63, 0x6f, 0x6e, 0x66,
+	0x54, 0x68, 0x72, 0x65, 0x73, 0x68, 0x6f, 0x6c, 0x64, 0x12, 0x1a, 0x0a, 0x08, 0x71, 0x75, 0x61,
+	0x6e, 0x74, 0x69, 0x74, 0x79, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x08, 0x71, 0x75, 0x61,
+	0x6e, 0x74, 0x69, 0x74, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x62, 0x6f, 0x75, 0x6e, 0x64, 0x18, 0x03,
+	0x20, 0x01, 0x28, 0x0d, 0x52, 0x05, 0x62, 0x6f, 0x75, 0x6e, 0x64, 0x12, 0x38, 0x0a, 0x09, 0x70,
+	0x72, 0x6f, 0x78, 0x69, 0x6d, 0x69, 0x74, 0x79, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x1a,
+	0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x43, 0x6f, 0x6e, 0x64, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x73,
+	0x2e, 0x50, 0x72, 0x6f, 0x78, 0x69, 0x6d, 0x69, 0x74, 0x79, 0x52, 0x09, 0x70, 0x72, 0x6f, 0x78,
+	0x69, 0x6d, 0x69, 0x74, 0x79, 0x22, 0x31, 0x0a, 0x0d, 0x51, 0x75, 0x61, 0x6e, 0x74, 0x69, 0x74,
+	0x79, 0x42, 0x6f, 0x75, 0x6e, 0x64, 0x12, 0x08, 0x0a, 0x04, 0x4c, 0x45, 0x53, 0x53, 0x10, 0x00,
+	0x12, 0x0b, 0x0a, 0x07, 0x47, 0x52, 0x45, 0x41, 0x54, 0x45, 0x52, 0x10, 0x01, 0x12, 0x09, 0x0a,
+	0x05, 0x45, 0x51, 0x55, 0x41, 0x4c, 0x10, 0x02, 0x22, 0x20, 0x0a, 0x09, 0x50, 0x72, 0x6f, 0x78,
+	0x69, 0x6d, 0x69, 0x74, 0x79, 0x12, 0x07, 0x0a, 0x03, 0x42, 0x4f, 0x58, 0x10, 0x00, 0x12, 0x0a,
+	0x0a, 0x06, 0x43, 0x45, 0x4e, 0x54, 0x45, 0x52, 0x10, 0x01, 0x22, 0xb5, 0x01, 0x0a, 0x06, 0x41,
+	0x63, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x2b, 0x0a, 0x06, 0x6c, 0x61, 0x62, 0x65, 0x6c, 0x73, 0x18,
+	0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x13, 0x2e, 0x41, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x2e, 0x4c,
+	0x61, 0x62, 0x65, 0x6c, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x52, 0x06, 0x6c, 0x61, 0x62, 0x65,
+	0x6c, 0x73, 0x12, 0x10, 0x0a, 0x03, 0x69, 0x6d, 0x67, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x52,
+	0x03, 0x69, 0x6d, 0x67, 0x12, 0x23, 0x0a, 0x0d, 0x61, 0x6e, 0x6e, 0x6f, 0x74, 0x61, 0x74, 0x65,
+	0x64, 0x5f, 0x69, 0x6d, 0x67, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x0c, 0x61, 0x6e, 0x6e,
+	0x6f, 0x74, 0x61, 0x74, 0x65, 0x64, 0x49, 0x6d, 0x67, 0x1a, 0x47, 0x0a, 0x0b, 0x4c, 0x61, 0x62,
+	0x65, 0x6c, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x22, 0x0a, 0x05, 0x76, 0x61,
+	0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0c, 0x2e, 0x42, 0x6f, 0x75, 0x6e,
+	0x64, 0x69, 0x6e, 0x67, 0x42, 0x6f, 0x78, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02,
+	0x38, 0x01, 0x22, 0xb5, 0x01, 0x0a, 0x0b, 0x42, 0x6f, 0x75, 0x6e, 0x64, 0x69, 0x6e, 0x67, 0x42,
+	0x6f, 0x78, 0x12, 0x1c, 0x0a, 0x0a, 0x74, 0x6f, 0x70, 0x5f, 0x6c, 0x65, 0x66, 0x74, 0x5f, 0x78,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x02, 0x52, 0x08, 0x74, 0x6f, 0x70, 0x4c, 0x65, 0x66, 0x74, 0x58,
+	0x12, 0x1c, 0x0a, 0x0a, 0x74, 0x6f, 0x70, 0x5f, 0x6c, 0x65, 0x66, 0x74, 0x5f, 0x79, 0x18, 0x02,
+	0x20, 0x01, 0x28, 0x02, 0x52, 0x08, 0x74, 0x6f, 0x70, 0x4c, 0x65, 0x66, 0x74, 0x59, 0x12, 0x24,
+	0x0a, 0x0e, 0x62, 0x6f, 0x74, 0x74, 0x6f, 0x6d, 0x5f, 0x72, 0x69, 0x67, 0x68, 0x74, 0x5f, 0x78,
+	0x18, 0x03, 0x20, 0x01, 0x28, 0x02, 0x52, 0x0c, 0x62, 0x6f, 0x74, 0x74, 0x6f, 0x6d, 0x52, 0x69,
+	0x67, 0x68, 0x74, 0x58, 0x12, 0x24, 0x0a, 0x0e, 0x62, 0x6f, 0x74, 0x74, 0x6f, 0x6d, 0x5f, 0x72,
+	0x69, 0x67, 0x68, 0x74, 0x5f, 0x79, 0x18, 0x04, 0x20, 0x01, 0x28, 0x02, 0x52, 0x0c, 0x62, 0x6f,
+	0x74, 0x74, 0x6f, 0x6d, 0x52, 0x69, 0x67, 0x68, 0x74, 0x59, 0x12, 0x1e, 0x0a, 0x0a, 0x63, 0x6f,
+	0x6e, 0x66, 0x69, 0x64, 0x65, 0x6e, 0x63, 0x65, 0x18, 0x05, 0x20, 0x01, 0x28, 0x02, 0x52, 0x0a,
+	0x63, 0x6f, 0x6e, 0x66, 0x69, 0x64, 0x65, 0x6e, 0x63, 0x65, 0x32, 0x35, 0x0a, 0x08, 0x55, 0x70,
+	0x6c, 0x6f, 0x61, 0x64, 0x65, 0x72, 0x12, 0x29, 0x0a, 0x0b, 0x55, 0x70, 0x6c, 0x6f, 0x61, 0x64,
+	0x49, 0x6d, 0x61, 0x67, 0x65, 0x12, 0x06, 0x2e, 0x49, 0x6d, 0x61, 0x67, 0x65, 0x1a, 0x0e, 0x2e,
+	0x49, 0x6d, 0x61, 0x67, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x28,
+	0x01, 0x32, 0xa6, 0x01, 0x0a, 0x0e, 0x41, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x4f, 0x6e, 0x44, 0x65,
+	0x74, 0x65, 0x63, 0x74, 0x12, 0x2c, 0x0a, 0x0a, 0x53, 0x65, 0x74, 0x41, 0x63, 0x74, 0x69, 0x6f,
+	0x6e, 0x73, 0x12, 0x07, 0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x73, 0x1a, 0x13, 0x2e, 0x53, 0x65,
+	0x74, 0x41, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
+	0x22, 0x00, 0x12, 0x33, 0x0a, 0x0e, 0x41, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x4f, 0x6e, 0x44, 0x65,
+	0x74, 0x65, 0x63, 0x74, 0x12, 0x07, 0x2e, 0x41, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x1a, 0x16, 0x2e,
+	0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e,
+	0x45, 0x6d, 0x70, 0x74, 0x79, 0x22, 0x00, 0x12, 0x31, 0x0a, 0x0b, 0x45, 0x76, 0x65, 0x6e, 0x74,
+	0x53, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x12, 0x06, 0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x1a, 0x16,
+	0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66,
+	0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x22, 0x00, 0x28, 0x01, 0x42, 0x0e, 0x5a, 0x0c, 0x2e, 0x3b,
+	0x69, 0x6e, 0x74, 0x65, 0x72, 0x66, 0x61, 0x63, 0x65, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74,
+	0x6f, 0x33,
 }
 
 var (
@@ -178,19 +874,49 @@ func file_interfaces_proto_rawDescGZIP() []byte {
 	return file_interfaces_proto_rawDescData
 }
 
-var file_interfaces_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_interfaces_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
+var file_interfaces_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_interfaces_proto_goTypes = []interface{}{
-	(*Image)(nil),         // 0: Image
-	(*ImageResponse)(nil), // 1: ImageResponse
+	(Event_Flags)(0),                   // 0: Event.Flags
+	(Event_DistanceMeasure)(0),         // 1: Event.DistanceMeasure
+	(EventConditions_QuantityBound)(0), // 2: EventConditions.QuantityBound
+	(EventConditions_Proximity)(0),     // 3: EventConditions.Proximity
+	(*Image)(nil),                      // 4: Image
+	(*ImageResponse)(nil),              // 5: ImageResponse
+	(*SetActionsResponse)(nil),         // 6: SetActionsResponse
+	(*Events)(nil),                     // 7: Events
+	(*Event)(nil),                      // 8: Event
+	(*EventConditions)(nil),            // 9: EventConditions
+	(*Action)(nil),                     // 10: Action
+	(*BoundingBox)(nil),                // 11: BoundingBox
+	nil,                                // 12: SetActionsResponse.ActionsEntry
+	nil,                                // 13: Event.LabelUnionEntry
+	nil,                                // 14: Action.LabelsEntry
+	(*empty.Empty)(nil),                // 15: google.protobuf.Empty
 }
 var file_interfaces_proto_depIdxs = []int32{
-	0, // 0: Uploader.UploadImage:input_type -> Image
-	1, // 1: Uploader.UploadImage:output_type -> ImageResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	12, // 0: SetActionsResponse.actions:type_name -> SetActionsResponse.ActionsEntry
+	8,  // 1: Events.events:type_name -> Event
+	13, // 2: Event.label_union:type_name -> Event.LabelUnionEntry
+	1,  // 3: Event.distance_measure:type_name -> Event.DistanceMeasure
+	3,  // 4: EventConditions.proximity:type_name -> EventConditions.Proximity
+	14, // 5: Action.labels:type_name -> Action.LabelsEntry
+	10, // 6: SetActionsResponse.ActionsEntry.value:type_name -> Action
+	9,  // 7: Event.LabelUnionEntry.value:type_name -> EventConditions
+	11, // 8: Action.LabelsEntry.value:type_name -> BoundingBox
+	4,  // 9: Uploader.UploadImage:input_type -> Image
+	7,  // 10: ActionOnDetect.SetActions:input_type -> Events
+	10, // 11: ActionOnDetect.ActionOnDetect:input_type -> Action
+	8,  // 12: ActionOnDetect.EventStream:input_type -> Event
+	5,  // 13: Uploader.UploadImage:output_type -> ImageResponse
+	6,  // 14: ActionOnDetect.SetActions:output_type -> SetActionsResponse
+	15, // 15: ActionOnDetect.ActionOnDetect:output_type -> google.protobuf.Empty
+	15, // 16: ActionOnDetect.EventStream:output_type -> google.protobuf.Empty
+	13, // [13:17] is the sub-list for method output_type
+	9,  // [9:13] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_interfaces_proto_init() }
@@ -223,19 +949,92 @@ func file_interfaces_proto_init() {
 				return nil
 			}
 		}
+		file_interfaces_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SetActionsResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_interfaces_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Events); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_interfaces_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Event); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_interfaces_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*EventConditions); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_interfaces_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Action); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_interfaces_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*BoundingBox); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_interfaces_proto_rawDesc,
-			NumEnums:      0,
-			NumMessages:   2,
+			NumEnums:      4,
+			NumMessages:   11,
 			NumExtensions: 0,
-			NumServices:   1,
+			NumServices:   2,
 		},
 		GoTypes:           file_interfaces_proto_goTypes,
 		DependencyIndexes: file_interfaces_proto_depIdxs,
+		EnumInfos:         file_interfaces_proto_enumTypes,
 		MessageInfos:      file_interfaces_proto_msgTypes,
 	}.Build()
 	File_interfaces_proto = out.File
@@ -360,6 +1159,185 @@ var _Uploader_serviceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "UploadImage",
 			Handler:       _Uploader_UploadImage_Handler,
+			ClientStreams: true,
+		},
+	},
+	Metadata: "interfaces.proto",
+}
+
+// ActionOnDetectClient is the client API for ActionOnDetect service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
+type ActionOnDetectClient interface {
+	SetActions(ctx context.Context, in *Events, opts ...grpc.CallOption) (*SetActionsResponse, error)
+	ActionOnDetect(ctx context.Context, in *Action, opts ...grpc.CallOption) (*empty.Empty, error)
+	EventStream(ctx context.Context, opts ...grpc.CallOption) (ActionOnDetect_EventStreamClient, error)
+}
+
+type actionOnDetectClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewActionOnDetectClient(cc grpc.ClientConnInterface) ActionOnDetectClient {
+	return &actionOnDetectClient{cc}
+}
+
+func (c *actionOnDetectClient) SetActions(ctx context.Context, in *Events, opts ...grpc.CallOption) (*SetActionsResponse, error) {
+	out := new(SetActionsResponse)
+	err := c.cc.Invoke(ctx, "/ActionOnDetect/SetActions", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *actionOnDetectClient) ActionOnDetect(ctx context.Context, in *Action, opts ...grpc.CallOption) (*empty.Empty, error) {
+	out := new(empty.Empty)
+	err := c.cc.Invoke(ctx, "/ActionOnDetect/ActionOnDetect", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *actionOnDetectClient) EventStream(ctx context.Context, opts ...grpc.CallOption) (ActionOnDetect_EventStreamClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_ActionOnDetect_serviceDesc.Streams[0], "/ActionOnDetect/EventStream", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &actionOnDetectEventStreamClient{stream}
+	return x, nil
+}
+
+type ActionOnDetect_EventStreamClient interface {
+	Send(*Event) error
+	CloseAndRecv() (*empty.Empty, error)
+	grpc.ClientStream
+}
+
+type actionOnDetectEventStreamClient struct {
+	grpc.ClientStream
+}
+
+func (x *actionOnDetectEventStreamClient) Send(m *Event) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *actionOnDetectEventStreamClient) CloseAndRecv() (*empty.Empty, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(empty.Empty)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// ActionOnDetectServer is the server API for ActionOnDetect service.
+type ActionOnDetectServer interface {
+	SetActions(context.Context, *Events) (*SetActionsResponse, error)
+	ActionOnDetect(context.Context, *Action) (*empty.Empty, error)
+	EventStream(ActionOnDetect_EventStreamServer) error
+}
+
+// UnimplementedActionOnDetectServer can be embedded to have forward compatible implementations.
+type UnimplementedActionOnDetectServer struct {
+}
+
+func (*UnimplementedActionOnDetectServer) SetActions(context.Context, *Events) (*SetActionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetActions not implemented")
+}
+func (*UnimplementedActionOnDetectServer) ActionOnDetect(context.Context, *Action) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ActionOnDetect not implemented")
+}
+func (*UnimplementedActionOnDetectServer) EventStream(ActionOnDetect_EventStreamServer) error {
+	return status.Errorf(codes.Unimplemented, "method EventStream not implemented")
+}
+
+func RegisterActionOnDetectServer(s *grpc.Server, srv ActionOnDetectServer) {
+	s.RegisterService(&_ActionOnDetect_serviceDesc, srv)
+}
+
+func _ActionOnDetect_SetActions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Events)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ActionOnDetectServer).SetActions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ActionOnDetect/SetActions",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ActionOnDetectServer).SetActions(ctx, req.(*Events))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ActionOnDetect_ActionOnDetect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Action)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ActionOnDetectServer).ActionOnDetect(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ActionOnDetect/ActionOnDetect",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ActionOnDetectServer).ActionOnDetect(ctx, req.(*Action))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ActionOnDetect_EventStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(ActionOnDetectServer).EventStream(&actionOnDetectEventStreamServer{stream})
+}
+
+type ActionOnDetect_EventStreamServer interface {
+	SendAndClose(*empty.Empty) error
+	Recv() (*Event, error)
+	grpc.ServerStream
+}
+
+type actionOnDetectEventStreamServer struct {
+	grpc.ServerStream
+}
+
+func (x *actionOnDetectEventStreamServer) SendAndClose(m *empty.Empty) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *actionOnDetectEventStreamServer) Recv() (*Event, error) {
+	m := new(Event)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+var _ActionOnDetect_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "ActionOnDetect",
+	HandlerType: (*ActionOnDetectServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "SetActions",
+			Handler:    _ActionOnDetect_SetActions_Handler,
+		},
+		{
+			MethodName: "ActionOnDetect",
+			Handler:    _ActionOnDetect_ActionOnDetect_Handler,
+		},
+	},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "EventStream",
+			Handler:       _ActionOnDetect_EventStream_Handler,
 			ClientStreams: true,
 		},
 	},
