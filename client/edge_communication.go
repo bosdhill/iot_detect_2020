@@ -46,7 +46,6 @@ func imgToUploadReq(img gocv.Mat) *pb.Image {
 
 // TODO batch image frames when uploading
 // FIXME message size limit capped at 4 MB -- fails with larger images
-// FIXME shouldn't timeout with streaming rpc
 func (e *edgeComm) UploadImage(c chan gocv.Mat) {
 	log.Printf("UploadImage")
 	// TODO timeout should be twice FPS * number of Frames per video

@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"flag"
+	"github.com/golang/protobuf/ptypes/empty"
 	"log"
-	"time"
+	"net"
+	"github.com/mitchellh/hashstructure"
 
 	pb "github.com/bosdhill/iot_detect_2020/interfaces"
-	"gocv.io/x/gocv"
 	"google.golang.org/grpc"
 )
 
@@ -18,54 +19,77 @@ var (
 )
 
 type edgeComm struct {
-	client pb.UploaderClient
+	server pb.ActionOnDetectServer
+	lis    net.Listener
 }
 
-func NewEdgeComm(addr string) (*edgeComm, error) {
-	log.Println("NewEdgeComm")
-	var opts []grpc.DialOption
-	opts = append(opts, grpc.WithBlock(), grpc.WithInsecure())
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	//defer cancel()
-	conn, err := grpc.DialContext(ctx, addr, opts...)
+// TODO this should be an event driven pattern, such as in
+//  https://stephenafamo.com/blog/implementing-an-event-driven-system-in-go/
+// SetEvents is a method implemented by the application that determines what labels the application cares about
+func (comm *edgeComm) SetEvents(ctx context.Context, labels *pb.Labels) (*pb.Events, error) {
+	events := &pb.Events{}
+
+	// Example of application setting an Event with EventConditions specified for triggering an Action
+	if labels.Labels["person"] && labels.Labels["car"] {
+		event := &pb.Event{
+			LabelEvents: map[string]*pb.EventConditions{
+				"person": {
+					ConfThreshold: 0.30,
+					Quantity:      1,
+					QuantityBound: uint32(pb.EventConditions_GREATER | pb.EventConditions_EQUAL),
+					Proximity:     pb.EventConditions_PROXIMITY_UNSPECIFIED,
+				},
+				"car": {
+					ConfThreshold: 0.30,
+					Quantity:      1,
+					QuantityBound: uint32(pb.EventConditions_GREATER | pb.EventConditions_EQUAL),
+					Proximity:     pb.EventConditions_PROXIMITY_UNSPECIFIED,
+				},
+			},
+			Labels: []string{"person", "car"},
+			DistanceMeasure: pb.Event_DISTANCE_MEASURE_UNSPECIFIED,
+			Flags:           uint32(pb.Event_METADATA),
+		}
+		uid, err := hashstructure.Hash(event, nil)
+		if err != nil {
+			log.Println("SetEvents: uid hash failed")
+			return nil, err
+		}
+		event.Uid = uid
+		events.Events = append(events.Events, event)
+	}
+
+	return events, nil
+}
+
+func (comm *edgeComm) ActionOnDetect(context.Context, *pb.Action) (*empty.Empty, error) {
+	panic("implement me")
+}
+
+func (comm *edgeComm) EventStream(pb.ActionOnDetect_EventStreamServer) error {
+	panic("implement me")
+}
+
+func NewEdgeCommunication(addr string) *edgeComm {
+	log.Println("NewEdgeCommunication")
+	flag.Parse()
+	lis, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Fatalf("Error while dialing. Err: %v", err)
 	}
-	//defer conn.Close()
-	client := pb.NewUploaderClient(conn)
-	return &edgeComm{client}, nil
+	edgeComm := &edgeComm{lis: lis}
+	return edgeComm
 }
 
-func imgToUploadReq(img gocv.Mat) *pb.Image {
-	bImg := img.ToBytes()
-	rows := int32(img.Rows())
-	cols := int32(img.Cols())
-	mType := img.Type()
-	return &pb.Image{Image: bImg, Rows: rows, Cols: cols, Type: int32(mType)}
-}
 
-// TODO batch image frames when uploading
-// FIXME message size limit capped at 4 MB -- fails with larger images
-// FIXME shouldn't timeout with streaming rpc
-func (e *edgeComm) UploadImage(c chan gocv.Mat) {
-	log.Printf("UploadImage")
-	// TODO timeout should be twice FPS * number of Frames per video
-	//ctx, _ := context.WithTimeout(context.Background(), 0)
-	ctx, _ := context.WithCancel(context.Background())
-	//defer cancel()
-	stream, err := e.client.UploadImage(ctx)
+func (comm *edgeComm) ServeEdge() error {
+	log.Println("ServeEdge")
+	var opts []grpc.ServerOption
+	grpcServer := grpc.NewServer(opts...)
+	pb.RegisterActionOnDetectServer(grpcServer, comm)
+	err := grpcServer.Serve(comm.lis)
 	if err != nil {
-		log.Fatalf("%v.UploadImage(_) = _, %v: ", e.client, err)
+		return err
 	}
-	for img := range c {
-		req := imgToUploadReq(img)
-		if err := stream.Send(req); err != nil {
-			log.Fatalf("%v.Send(%v) = %v", stream, req, err)
-		}
-	}
-	reply, err := stream.CloseAndRecv()
-	if err != nil {
-		log.Fatalf("%v.CloseAndRecv() got error %v, want %v", stream, err, nil)
-	}
-	log.Printf("ImageResponse: %v", reply.String())
+	return nil
 }

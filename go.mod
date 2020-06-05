@@ -3,9 +3,12 @@ module github.com/bosdhill/iot_detect_2020
 go 1.14
 
 require (
+	github.com/beevik/prefixtree v0.0.0-20190221160703-0e2fef796dd6
 	github.com/golang/protobuf v1.4.0
 	github.com/hashicorp/go-memdb v1.2.1
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
+	github.com/mitchellh/hashstructure v1.0.0
+	github.com/stretchr/testify v1.6.0
 	gocv.io/x/gocv v0.23.0
 	golang.org/x/lint v0.0.0-20190313153728-d0100b6bd8b3 // indirect
 	golang.org/x/tools v0.0.0-20190524140312-2c0ae7006135 // indirect

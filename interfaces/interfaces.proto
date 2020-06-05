@@ -23,69 +23,75 @@ message ImageResponse {
 }
 
 service ActionOnDetect {
-    rpc SetActions(Events) returns (SetActionsResponse) {}
+    rpc SetEvents(Labels) returns (Events) {}
     rpc ActionOnDetect(Action) returns (google.protobuf.Empty) {}
     rpc EventStream(stream Event) returns (google.protobuf.Empty) {}
 }
 
-message SetActionsResponse {
-    // note that:
-    //  An event is:
-    //      - a collection of conditions required for a detection, which results in an Action to be triggered
-    //      - used to define the granularity of metadata and data required for ingestion by the callback on the application
-    map<string, Action> actions = 1;
+message Labels {
+    map<string, bool> labels = 1;
 }
 
 // Events is just a wrapper around a list of Event messages
 message Events {
-   repeated Event events = 1;
+    //Key = label
+  repeated Event events = 1;
 }
 
 // Event message defines the conditions required for an Action to be triggered as well as the granularity of data to be
 // wrapped in an Action.
 message Event {
+    // hash event uid
+    uint64 uid = 1;
+
+    // labels present in event
+    repeated string labels = 2;
 
     // label_union is the set of labels used in determining an Event, with the key as the label. For an Event to trigger
     // an Action, all labels in label_union must be present in the frame, and each label's EventConditions must be
     // satisfied.
-    map<string, EventConditions> label_union = 1;
+    map<string, EventConditions> label_events = 3;
 
     // distance_measure is the distance measure to be used when determining proximity between objects
-    DistanceMeasure distance_measure = 2;
+    DistanceMeasure distance_measure = 4;
 
     // flags determine the granularity of data returned in an Action
-    uint32 flags = 3;
+    uint32 flags = 5;
 
     // Flags enum provides for the bitwise field flags
     enum Flags {
+        // Dummy flag
+        FLAGS_UNSPECIFIED = 0;
 
         // Return only metadata
-        METADATA = 0x00;
+        METADATA = 1;
 
         // Return bounding boxes
-        BOXES = 0x01;
+        BOXES = 2;
 
         // Return jpg image
-        IMAGE = 0x02;
+        IMAGE = 4;
 
         // Return annotated jpg image image
-        ANNOTATED = 0x04;
+        ANNOTATED = 8;
 
         // Return confidence
-        CONFIDENCE = 0x16;
+        CONFIDENCE = 16;
 
         // Store this result (event object detection result) on the edge
-        PERSIST = 0x32;
+        PERSIST = 32;
     }
 
     // DistanceMeasure enum defines different distance measures that can be used while measuring object proximity
     enum DistanceMeasure {
+        // Dummy distance measure
+        DISTANCE_MEASURE_UNSPECIFIED = 0;
 
         // euclidean distance measure used in proximity detection
-        EUCLIDEAN = 0;
+        EUCLIDEAN = 1;
 
         // manhattan distance measure used in proximity detection
-        MANHATTAN = 1;
+        MANHATTAN = 2;
     }
 }
 
@@ -99,27 +105,37 @@ message EventConditions {
     // quantity of objects with this label
     int32 quantity = 2;
 
-    // bound on quantity required for this label
-    uint32 bound = 3;
+    // bound on quantity required for this label (bitwise flag)
+    uint32 quantity_bound = 3;
 
     // proximity method used for this label to other labels in label_union
     Proximity proximity = 4;
 
     // QuantityBound enum defines the different bounds on the number of labels
     enum QuantityBound {
-        LESS = 0x00;
-        GREATER = 0x01;
-        EQUAL = 0x02;
+        // Dummy flag
+        QUANTITY_BOUND_UNSPECIFIED = 0;
+
+        // quantity of objects with label less than threshold
+        LESS = 1;
+
+        // quantity of objects with label greater than threshold
+        GREATER = 2;
+
+        // quantity of objects with label equal to threshold
+        EQUAL = 4;
     }
 
     // Proximity enum defines which proximity method to use
     enum Proximity {
+        // Dummy value
+        PROXIMITY_UNSPECIFIED = 0;
 
         // Apply distance measure to bounding box perimeters
-        BOX = 0;
+        BOX = 1;
 
         // Apply distance measure to centers of bounding boxes
-        CENTER = 1;
+        CENTER = 2;
     }
 }
 
