@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"gocv.io/x/gocv"
@@ -13,33 +12,7 @@ import (
 	"time"
 )
 
-const N = 5
-const size = numClasses + N
-const w = 12
-const h = 12
-const blockwd float32 = 13
-const numBoxes = h*w*N
-const thresh = 0.2
-const nms_threshold = 0.4
 
-var (
-	proto = "model/tiny_yolo_deploy.prototxt"
-	model = "model/tiny_yolo.caffemodel"
-	classNames = [numClasses]string{"person", "bicycle", "car", "motorcycle", "airplane", "bus", "train",
-		"truck", "boat", "traffic light", "fire hydrant", "stop sign",
-		"parking meter", "bench", "bird", "cat", "dog", "horse", "sheep", "cow",
-		"elephant", "bear", "zebra", "giraffe", "backpack", "umbrella",
-		"handbag", "tie", "suitcase", "frisbee", "skis", "snowboard",
-		"sports ball", "kite", "baseball bat", "baseball glove", "skateboard",
-		"surfboard", "tennis racket", "bottle", "wine glass", "cup", "fork",
-		"knife", "spoon", "bowl", "banana", "apple", "sandwich", "orange",
-		"broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair",
-		"couch", "potted plant", "bed", "dining table", "toilet", "tv",
-		"laptop", "mouse", "remote", "keyboard", "cell phone", "microwave",
-		"oven", "toaster", "sink", "refrigerator", "book", "clock", "vase",
-		"scissors", "teddy bear", "hair drier", "toothbrush"}
-	anchors = [2*N]float32{0.738768, 0.874946, 2.42204, 2.65704, 4.30971, 7.04493, 10.246, 4.59428, 12.6868, 11.8741}
-)
 
 // TODO different color for each class -- can be used when augmenting images
 //var colors = [20]color.RGBA{
@@ -397,10 +370,10 @@ func (od *objectDetect) caffeWorker(imgChan chan *gocv.Mat, resChan chan Detecti
 		//if err := img.Close(); err != nil {
 		//	log.Fatalf("caffeWorker: Could not close img mat with err = %s", err)
 		//}
-		log.Println("profile count:", gocv.MatProfile.Count())
-		var b bytes.Buffer
-		gocv.MatProfile.WriteTo(&b, 1)
-		log.Println("Mat frames", b.String())
+		//log.Println("profile count:", gocv.MatProfile.Count())
+		//var b bytes.Buffer
+		//gocv.MatProfile.WriteTo(&b, 1)
+		//log.Println("Mat frames", b.String())
 	}
 	close(resChan)
 }
