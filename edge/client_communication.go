@@ -19,13 +19,16 @@ var (
 	keyFile    = flag.String("key_file", "", "The TLS key file")
 	jsonDBFile = flag.String("json_db_file", "", "A json file containing a list of features")
 	port       = flag.Int("port", 10000, "The server port")
-	piAddr 	   = flag.String("pi_addr", "192.168.1.12", "Raspberry Pi IP address")
+	piAddr     = flag.String("pi_addr", "192.168.1.12", "Raspberry Pi IP address")
 )
 
-type clientComm struct {
+// ClientComm is a wrapper around the uploader server which is used to serve
+// client image frame upload requests. It also contains references to a
+// DataStore, ObjectDetect, and EdgeContext.
+type ClientComm struct {
 	server pb.UploaderServer
-	ds     *dataStore
-	od     *objectDetect
+	ds     *DataStore
+	od     *ObjectDetect
 	lis    net.Listener
 	eCtx   *EdgeContext
 	cancel context.CancelFunc
@@ -45,8 +48,11 @@ func uploadReqToImg(req *pb.Image) *gocv.Mat {
 	return &mat
 }
 
-// TODO find a way to annotate image frames after object detection
-func (comm *clientComm) UploadImage(stream pb.Uploader_UploadImageServer) error {
+// UploadImage serves image frame requests from the client. The image frame is
+// then passed to the image detection pipeline, where the frame is then inserted
+// into the db.
+// TODO: find a way to annotate image frames after object detection.
+func (comm *ClientComm) UploadImage(stream pb.Uploader_UploadImageServer) error {
 	log.Println("UploadImage")
 	count := 0
 	resCh := make(chan DetectionResult)
@@ -70,18 +76,22 @@ func (comm *clientComm) UploadImage(stream pb.Uploader_UploadImageServer) error 
 	}
 }
 
-func NewClientCommunication(eCtx *EdgeContext, addr string, ds *dataStore, od *objectDetect) (*clientComm, error) {
+// NewClientCommunication returns a new client communication, which wraps around
+// a gRPC server to serve the client's image frame upload requests.
+func NewClientCommunication(eCtx *EdgeContext, addr string, ds *DataStore, od *ObjectDetect) (*ClientComm, error) {
 	log.Println("NewClientCommunication")
 	flag.Parse()
 	lis, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, err
 	}
-	cComm := &clientComm{ds: ds, od: od, lis: lis, eCtx: eCtx}
+	cComm := &ClientComm{ds: ds, od: od, lis: lis, eCtx: eCtx}
 	return cComm, nil
 }
 
-func (comm *clientComm) ServeClient() error {
+// ServeClient creates a new server and registers it to serve the client's
+// image frame upload requests.
+func (comm *ClientComm) ServeClient() error {
 	log.Println("ServeClient")
 	var opts []grpc.ServerOption
 	grpcServer := grpc.NewServer(opts...)

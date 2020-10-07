@@ -1,20 +1,21 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"runtime/pprof"
 	"sync"
-	"context"
-	_ "net/http/pprof"
 	//"github.com/bosdhill/iot_detect_2020/sdl"
 )
+
 var (
 	cpuprofile     = flag.String("cpuprofile", "", "write cpu profile to file")
 	edgeServerAddr = flag.String("edge_server_addr", "192.168.1.121:10000", "The edge server address in the format of host:port")
-	appServerAddr = flag.String("app_server_addr", "192.168.1.72:12034", "The app server address in the format of host:port")
+	appServerAddr  = flag.String("app_server_addr", "192.168.1.72:12034", "The app server address in the format of host:port")
 )
 
 func main() {
@@ -39,7 +40,7 @@ func main() {
 		panic(err)
 	}
 
-	aComm, err := NewAppCommunication(eCtx, *appServerAddr)
+	aComm, err := NewActionOnDetect(eCtx, *appServerAddr)
 	if err != nil {
 		panic(err)
 	}

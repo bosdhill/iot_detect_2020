@@ -6,19 +6,32 @@ import (
 	"gocv.io/x/gocv"
 )
 
+// EdgeContext is used to terminate go routines
 type EdgeContext struct {
-	ctx context.Context
+	ctx    context.Context
 	cancel context.CancelFunc
 }
 
+// DetectionResult represents the result yielded by the object detection model
 type DetectionResult struct {
-	Empty         bool
+
+	// Whether or not the result has no objects
+	Empty bool
+
+	// The time of detection
 	DetectionTime int64
-	Labels        map[string]bool
-	Img           gocv.Mat
-	LabelBoxes    map[string]([]*BoundingBox)
+
+	// A bitmap of detected labels
+	Labels map[string]bool
+
+	// The matrix representation of the image frame
+	Img gocv.Mat
+
+	// A map from label to its bounding box
+	LabelBoxes map[string]([]*BoundingBox)
 }
 
+// BoundingBox represents the dimensions of the detected object's bounding box
 type BoundingBox struct {
 	TopLeftX     int
 	TopLeftY     int
@@ -33,7 +46,8 @@ func (dr DetectionResult) String() string {
 	for label, boxSl := range dr.LabelBoxes {
 		ret += label + "\n"
 		for _, b := range boxSl {
-			ret += fmt.Sprintf(format, label, b.TopLeftX, b.TopLeftY, b.BottomRightX, b.BottomRightY, b.Confidence)
+			ret += fmt.Sprintf(format, label, b.TopLeftX, b.TopLeftY,
+				b.BottomRightX, b.BottomRightY, b.Confidence)
 		}
 		ret += "\n"
 	}
