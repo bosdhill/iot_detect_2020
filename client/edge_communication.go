@@ -17,11 +17,13 @@ var (
 	serverHostOverride = flag.String("server_host_override", "x.test.youtube.com", "The server name used to verify the hostname returned by the TLS handshake")
 )
 
-type edgeComm struct {
+// EdgeComm contains an Edge stub
+type EdgeComm struct {
 	client pb.UploaderClient
 }
 
-func NewEdgeComm(addr string) (*edgeComm, error) {
+// NewEdgeComm returns a new edge communication component
+func NewEdgeComm(addr string) (*EdgeComm, error) {
 	log.Println("NewEdgeComm")
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithBlock(), grpc.WithInsecure())
@@ -33,7 +35,7 @@ func NewEdgeComm(addr string) (*edgeComm, error) {
 	}
 	//defer conn.Close()
 	client := pb.NewUploaderClient(conn)
-	return &edgeComm{client}, nil
+	return &EdgeComm{client}, nil
 }
 
 func imgToUploadReq(img gocv.Mat) *pb.Image {
@@ -44,9 +46,10 @@ func imgToUploadReq(img gocv.Mat) *pb.Image {
 	return &pb.Image{Image: bImg, Rows: rows, Cols: cols, Type: int32(mType)}
 }
 
+// UploadImage streams image frames to the Edge
 // TODO batch image frames when uploading
 // FIXME message size limit capped at 4 MB -- fails with larger images
-func (e *edgeComm) UploadImage(c chan gocv.Mat) {
+func (e *EdgeComm) UploadImage(c chan gocv.Mat) {
 	log.Printf("UploadImage")
 	// TODO timeout should be twice FPS * number of Frames per video
 	//ctx, _ := context.WithTimeout(context.Background(), 0)

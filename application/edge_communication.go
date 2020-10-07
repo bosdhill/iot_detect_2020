@@ -4,9 +4,9 @@ import (
 	"context"
 	"flag"
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/mitchellh/hashstructure"
 	"log"
 	"net"
-	"github.com/mitchellh/hashstructure"
 
 	pb "github.com/bosdhill/iot_detect_2020/interfaces"
 	"google.golang.org/grpc"
@@ -18,15 +18,17 @@ var (
 	serverHostOverride = flag.String("server_host_override", "x.test.youtube.com", "The server name used to verify the hostname returned by the TLS handshake")
 )
 
-type edgeComm struct {
+// EdgeComm is used to wrap the server for serving actions issued by the Edge
+type EdgeComm struct {
 	server pb.ActionOnDetectServer
 	lis    net.Listener
 }
 
+// SetEvents is called by the Edge to set actions for certain events?
 // TODO this should be an event driven pattern, such as in
 //  https://stephenafamo.com/blog/implementing-an-event-driven-system-in-go/
 // SetEvents is a method implemented by the application that determines what labels the application cares about
-func (comm *edgeComm) SetEvents(ctx context.Context, labels *pb.Labels) (*pb.Events, error) {
+func (comm *EdgeComm) SetEvents(ctx context.Context, labels *pb.Labels) (*pb.Events, error) {
 	events := &pb.Events{}
 
 	// Example of application setting an Event with EventConditions specified for triggering an Action
@@ -46,7 +48,7 @@ func (comm *edgeComm) SetEvents(ctx context.Context, labels *pb.Labels) (*pb.Eve
 					Proximity:     pb.EventConditions_PROXIMITY_UNSPECIFIED,
 				},
 			},
-			Labels: []string{"person", "car"},
+			Labels:          []string{"person", "car"},
 			DistanceMeasure: pb.Event_DISTANCE_MEASURE_UNSPECIFIED,
 			Flags:           uint32(pb.Event_METADATA),
 		}
@@ -62,27 +64,30 @@ func (comm *edgeComm) SetEvents(ctx context.Context, labels *pb.Labels) (*pb.Eve
 	return events, nil
 }
 
-func (comm *edgeComm) ActionOnDetect(context.Context, *pb.Action) (*empty.Empty, error) {
+// ActionOnDetect TODO
+func (comm *EdgeComm) ActionOnDetect(context.Context, *pb.Action) (*empty.Empty, error) {
 	panic("implement me")
 }
 
-func (comm *edgeComm) EventStream(pb.ActionOnDetect_EventStreamServer) error {
+// EventStream TODO
+func (comm *EdgeComm) EventStream(pb.ActionOnDetect_EventStreamServer) error {
 	panic("implement me")
 }
 
-func NewEdgeCommunication(addr string) *edgeComm {
+// NewEdgeCommunication returns a new edge communication component
+func NewEdgeCommunication(addr string) *EdgeComm {
 	log.Println("NewEdgeCommunication")
 	flag.Parse()
 	lis, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Fatalf("Error while dialing. Err: %v", err)
 	}
-	edgeComm := &edgeComm{lis: lis}
-	return edgeComm
+	EdgeComm := &EdgeComm{lis: lis}
+	return EdgeComm
 }
 
-
-func (comm *edgeComm) ServeEdge() error {
+// ServeEdge serves action events requests from the Edge
+func (comm *EdgeComm) ServeEdge() error {
 	log.Println("ServeEdge")
 	var opts []grpc.ServerOption
 	grpcServer := grpc.NewServer(opts...)
