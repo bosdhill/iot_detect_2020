@@ -13,7 +13,7 @@ import (
 var dbTable = "detection"
 
 type dataStore struct {
-	db *sql.DB
+	db   *sql.DB
 	eCtx *EdgeContext
 }
 
