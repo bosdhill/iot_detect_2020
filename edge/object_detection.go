@@ -62,7 +62,7 @@ func regionLayer(predictions *gocv.Mat, transposePredictions bool, imgHeight, im
 	var boxes []Box
 	for i := 0; i < numBoxes; i++ {
 		index := i * size
-		var n = i % n
+		var N = i % n
 		var row = float32((i / n) / h)
 		var col = float32((i / n) % w)
 
@@ -70,8 +70,8 @@ func regionLayer(predictions *gocv.Mat, transposePredictions bool, imgHeight, im
 
 		box.x = (col + logisticActivate(data[index+0])) / blockwd
 		box.y = (row + logisticActivate(data[index+1])) / blockwd
-		box.w = float32(math.Exp(float64(data[index+2]))) * anchors[2*n] / blockwd
-		box.h = float32(math.Exp(float64(data[index+3]))) * anchors[2*n+1] / blockwd
+		box.w = float32(math.Exp(float64(data[index+2]))) * anchors[2*N] / blockwd
+		box.h = float32(math.Exp(float64(data[index+3]))) * anchors[2*N+1] / blockwd
 
 		box.confidence = logisticActivate(data[index+4])
 
