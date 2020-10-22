@@ -17,11 +17,13 @@ var (
 	serverHostOverride = flag.String("server_host_override", "x.test.youtube.com", "The server name used to verify the hostname returned by the TLS handshake")
 )
 
-type edgeComm struct {
+// EdgeComm contains an Edge stub
+type EdgeComm struct {
 	client pb.UploaderClient
 }
 
-func NewEdgeComm(addr string) (*edgeComm, error) {
+// NewEdgeComm returns a new edge communication component
+func NewEdgeComm(addr string) (*EdgeComm, error) {
 	log.Println("NewEdgeComm")
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithBlock(), grpc.WithInsecure())
@@ -33,7 +35,7 @@ func NewEdgeComm(addr string) (*edgeComm, error) {
 	}
 	//defer conn.Close()
 	client := pb.NewUploaderClient(conn)
-	return &edgeComm{client}, nil
+	return &EdgeComm{client}, nil
 }
 
 func imgToUploadReq(img gocv.Mat) *pb.Image {
@@ -41,13 +43,14 @@ func imgToUploadReq(img gocv.Mat) *pb.Image {
 	rows := int32(img.Rows())
 	cols := int32(img.Cols())
 	mType := img.Type()
+	log.Println("dimensions:", rows, cols)
 	return &pb.Image{Image: bImg, Rows: rows, Cols: cols, Type: int32(mType)}
 }
 
+// UploadImage streams image frames to the Edge
 // TODO batch image frames when uploading
 // FIXME message size limit capped at 4 MB -- fails with larger images
-// FIXME shouldn't timeout with streaming rpc
-func (e *edgeComm) UploadImage(c chan gocv.Mat) {
+func (e *EdgeComm) UploadImage(c chan gocv.Mat) {
 	log.Printf("UploadImage")
 	// TODO timeout should be twice FPS * number of Frames per video
 	//ctx, _ := context.WithTimeout(context.Background(), 0)
@@ -55,12 +58,12 @@ func (e *edgeComm) UploadImage(c chan gocv.Mat) {
 	//defer cancel()
 	stream, err := e.client.UploadImage(ctx)
 	if err != nil {
-		log.Fatalf("%v.UploadImage(_) = _, %v: ", e.client, err)
+		log.Fatalf("UploadImage: could not upload image with error = %v", err)
 	}
 	for img := range c {
 		req := imgToUploadReq(img)
 		if err := stream.Send(req); err != nil {
-			log.Fatalf("%v.Send(%v) = %v", stream, req, err)
+			log.Fatalf("UploadImage: Send: could not send to stream with error = %v and dimensions = %v, %v", err, req.GetCols(), req.GetRows())
 		}
 		// prevent memory leak
 		if err := img.Close(); err != nil {
@@ -69,7 +72,7 @@ func (e *edgeComm) UploadImage(c chan gocv.Mat) {
 	}
 	reply, err := stream.CloseAndRecv()
 	if err != nil {
-		log.Fatalf("%v.CloseAndRecv() got error %v, want %v", stream, err, nil)
+		log.Fatalf("UploadImage: could not CloseAndRecv() got error %v, want %v", err, nil)
 	}
 	log.Printf("ImageResponse: %v", reply.String())
 }

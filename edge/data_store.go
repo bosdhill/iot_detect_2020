@@ -12,13 +12,14 @@ import (
 
 var dbTable = "detection"
 
-type dataStore struct {
-	db *sql.DB
+// DataStore stores the sqllite DB reference
+type DataStore struct {
+	db   *sql.DB
 	eCtx *EdgeContext
 }
 
-// Data store can handle writing out the annotated image frames, or it can be handled by client
-func (ds *dataStore) WriteOutImg() {
+// WriteOutImg handles writing out the annotated image frames
+func (ds *DataStore) WriteOutImg() {
 	//for label, box := range res.LabelBoxes {
 	//	gocv.Rectangle(&Img, image.Rect(box.topleft.X, box.topleft.Y, box.bottomright.X, box.bottomright.Y), color.RGBA{230, 25, 75, 0}, 1)
 	//	gocv.PutText(&Img, box.label, image.Point{box.topleft.X, box.topleft.Y - 5}, gocv.FontHersheySimplex, 0.5, color.RGBA{230, 25, 75, 0}, 1)
@@ -26,9 +27,10 @@ func (ds *dataStore) WriteOutImg() {
 	//gocv.IMWrite("detect.jpg", Img)
 }
 
+// Get gets a frame from the data store.
 // TODO Should have a case when there is an Empty Get
 // TODO test Get with a gRPC application interface (next step)
-func (ds *dataStore) Get() error {
+func (ds *DataStore) Get() error {
 	log.Println("Get")
 	rows, err := ds.db.Query("SELECT * FROM labels WHERE person = FALSE AND bus = TRUE")
 	if err != nil {
@@ -56,7 +58,9 @@ func (ds *dataStore) Get() error {
 	return nil
 }
 
-func (ds *dataStore) InsertWorker(drCh chan DetectionResult) {
+// InsertWorker grabs detection results from the channel and inserts them into
+// the tables
+func (ds *DataStore) InsertWorker(drCh chan DetectionResult) {
 	log.Println("InsertWorker")
 	for dr := range drCh {
 		ds.InsertImageTable(&dr)
@@ -66,7 +70,8 @@ func (ds *dataStore) InsertWorker(drCh chan DetectionResult) {
 	ds.Get()
 }
 
-func (ds *dataStore) InsertImageTable(dr *DetectionResult) {
+// InsertImageTable inserts detection results into the image table.
+func (ds *DataStore) InsertImageTable(dr *DetectionResult) {
 	txn, err := ds.db.Begin()
 	log.Println(dr)
 	if err != nil {
@@ -99,7 +104,8 @@ func (ds *dataStore) InsertImageTable(dr *DetectionResult) {
 	}
 }
 
-func (ds *dataStore) InsertBoundingBoxTable(dr *DetectionResult) {
+// InsertBoundingBoxTable inserts detection results into the bounding box table.
+func (ds *DataStore) InsertBoundingBoxTable(dr *DetectionResult) {
 	txn, err := ds.db.Begin()
 	if err != nil {
 		log.Fatalf("InsertWorker: could not db.begin with err = %s", err)
@@ -135,7 +141,8 @@ func (ds *dataStore) InsertBoundingBoxTable(dr *DetectionResult) {
 	}
 }
 
-func (ds *dataStore) InsertLabelsTable(dr *DetectionResult) {
+// InsertLabelsTable inserts detection results into the labels table
+func (ds *DataStore) InsertLabelsTable(dr *DetectionResult) {
 	txn, err := ds.db.Begin()
 	if err != nil {
 		log.Fatalf("InsertWorker: could not db.begin with err = %s", err)
@@ -171,14 +178,17 @@ func (ds *dataStore) InsertLabelsTable(dr *DetectionResult) {
 	}
 }
 
+// NewDataStore creates a new data store component with a frame db with the
+// images, bounding_box, and labels tables. These tables are used to store the
+// detection results.
 // TODO update schema for labels, and make it number of labels instead of existence of labels
-func NewDataStore(eCtx *EdgeContext) (*dataStore, error) {
+func NewDataStore(eCtx *EdgeContext) (*DataStore, error) {
 	log.Println("NewDataStore")
 	os.Remove("./object_detection.db")
 	db, err := sql.Open("sqlite3", "./object_detection.db")
 
 	// TODO make labels table dynamic so we can swap out models with different label sets
-	createImageTable := `        
+	createImageTable := `
 	CREATE TABLE IF NOT EXISTS images (
 	  detection_time integer,
 	  image blob,
@@ -189,90 +199,90 @@ func NewDataStore(eCtx *EdgeContext) (*dataStore, error) {
 	  detection_time integer,
 	  label string,
 	  dimensions blob,
-	  Confidence float, 
+	  Confidence float,
 	  FOREIGN KEY(detection_time) REFERENCES image(detection_time)
 	);
 	CREATE TABLE IF NOT EXISTS labels (
 	 detection_time integer,
-	"person" boolean DEFAULT false, 
-	"bicycle" boolean DEFAULT false, 
-	"car" boolean DEFAULT false, 
-	"motorcycle" boolean DEFAULT false, 
-	"airplane" boolean DEFAULT false, 
-	"bus" boolean DEFAULT false, 
-	"train" boolean DEFAULT false, 
-	"truck" boolean DEFAULT false, 
-	"boat" boolean DEFAULT false, 
-	"traffic light" boolean DEFAULT false, 
-	"fire hydrant" boolean DEFAULT false, 
-	"stop sign" boolean DEFAULT false, 
-	"parking meter" boolean DEFAULT false, 
-	"bench" boolean DEFAULT false, 
-	"bird" boolean DEFAULT false, 
-	"cat" boolean DEFAULT false, 
-	"dog" boolean DEFAULT false, 
-	"horse" boolean DEFAULT false, 
-	"sheep" boolean DEFAULT false, 
-	"cow" boolean DEFAULT false, 
-	"elephant" boolean DEFAULT false, 
-	"bear" boolean DEFAULT false, 
-	"zebra" boolean DEFAULT false, 
-	"giraffe" boolean DEFAULT false, 
-	"backpack" boolean DEFAULT false, 
-	"umbrella" boolean DEFAULT false, 
-	"handbag" boolean DEFAULT false, 
-	"tie" boolean DEFAULT false, 
-	"suitcase" boolean DEFAULT false, 
-	"frisbee" boolean DEFAULT false, 
-	"skis" boolean DEFAULT false, 
-	"snowboard" boolean DEFAULT false, 
-	"sports ball" boolean DEFAULT false, 
-	"kite" boolean DEFAULT false, 
-	"baseball bat" boolean DEFAULT false, 
-	"baseball glove" boolean DEFAULT false, 
-	"skateboard" boolean DEFAULT false, 
-	"surfboard" boolean DEFAULT false, 
-	"tennis racket" boolean DEFAULT false, 
-	"bottle" boolean DEFAULT false, 
-	"wine glass" boolean DEFAULT false, 
-	"cup" boolean DEFAULT false, 
-	"fork" boolean DEFAULT false, 
-	"knife" boolean DEFAULT false, 
-	"spoon" boolean DEFAULT false, 
-	"bowl" boolean DEFAULT false, 
-	"banana" boolean DEFAULT false, 
-	"apple" boolean DEFAULT false, 
-	"sandwich" boolean DEFAULT false, 
-	"orange" boolean DEFAULT false, 
-	"broccoli" boolean DEFAULT false, 
-	"carrot" boolean DEFAULT false, 
-	"hot dog" boolean DEFAULT false, 
-	"pizza" boolean DEFAULT false, 
-	"donut" boolean DEFAULT false, 
-	"cake" boolean DEFAULT false, 
-	"chair" boolean DEFAULT false, 
-	"couch" boolean DEFAULT false, 
-	"potted plant" boolean DEFAULT false, 
-	"bed" boolean DEFAULT false, 
-	"dining table" boolean DEFAULT false, 
-	"toilet" boolean DEFAULT false, 
-	"tv" boolean DEFAULT false, 
-	"laptop" boolean DEFAULT false, 
-	"mouse" boolean DEFAULT false, 
-	"remote" boolean DEFAULT false, 
-	"keyboard" boolean DEFAULT false, 
-	"cell phone" boolean DEFAULT false, 
-	"microwave" boolean DEFAULT false, 
-	"oven" boolean DEFAULT false, 
-	"toaster" boolean DEFAULT false, 
-	"sink" boolean DEFAULT false, 
-	"refrigerator" boolean DEFAULT false, 
-	"book" boolean DEFAULT false, 
-	"clock" boolean DEFAULT false, 
-	"vase" boolean DEFAULT false, 
-	"scissors" boolean DEFAULT false, 
-	"teddy bear" boolean DEFAULT false, 
-	"hair drier" boolean DEFAULT false, 
+	"person" boolean DEFAULT false,
+	"bicycle" boolean DEFAULT false,
+	"car" boolean DEFAULT false,
+	"motorcycle" boolean DEFAULT false,
+	"airplane" boolean DEFAULT false,
+	"bus" boolean DEFAULT false,
+	"train" boolean DEFAULT false,
+	"truck" boolean DEFAULT false,
+	"boat" boolean DEFAULT false,
+	"traffic light" boolean DEFAULT false,
+	"fire hydrant" boolean DEFAULT false,
+	"stop sign" boolean DEFAULT false,
+	"parking meter" boolean DEFAULT false,
+	"bench" boolean DEFAULT false,
+	"bird" boolean DEFAULT false,
+	"cat" boolean DEFAULT false,
+	"dog" boolean DEFAULT false,
+	"horse" boolean DEFAULT false,
+	"sheep" boolean DEFAULT false,
+	"cow" boolean DEFAULT false,
+	"elephant" boolean DEFAULT false,
+	"bear" boolean DEFAULT false,
+	"zebra" boolean DEFAULT false,
+	"giraffe" boolean DEFAULT false,
+	"backpack" boolean DEFAULT false,
+	"umbrella" boolean DEFAULT false,
+	"handbag" boolean DEFAULT false,
+	"tie" boolean DEFAULT false,
+	"suitcase" boolean DEFAULT false,
+	"frisbee" boolean DEFAULT false,
+	"skis" boolean DEFAULT false,
+	"snowboard" boolean DEFAULT false,
+	"sports ball" boolean DEFAULT false,
+	"kite" boolean DEFAULT false,
+	"baseball bat" boolean DEFAULT false,
+	"baseball glove" boolean DEFAULT false,
+	"skateboard" boolean DEFAULT false,
+	"surfboard" boolean DEFAULT false,
+	"tennis racket" boolean DEFAULT false,
+	"bottle" boolean DEFAULT false,
+	"wine glass" boolean DEFAULT false,
+	"cup" boolean DEFAULT false,
+	"fork" boolean DEFAULT false,
+	"knife" boolean DEFAULT false,
+	"spoon" boolean DEFAULT false,
+	"bowl" boolean DEFAULT false,
+	"banana" boolean DEFAULT false,
+	"apple" boolean DEFAULT false,
+	"sandwich" boolean DEFAULT false,
+	"orange" boolean DEFAULT false,
+	"broccoli" boolean DEFAULT false,
+	"carrot" boolean DEFAULT false,
+	"hot dog" boolean DEFAULT false,
+	"pizza" boolean DEFAULT false,
+	"donut" boolean DEFAULT false,
+	"cake" boolean DEFAULT false,
+	"chair" boolean DEFAULT false,
+	"couch" boolean DEFAULT false,
+	"potted plant" boolean DEFAULT false,
+	"bed" boolean DEFAULT false,
+	"dining table" boolean DEFAULT false,
+	"toilet" boolean DEFAULT false,
+	"tv" boolean DEFAULT false,
+	"laptop" boolean DEFAULT false,
+	"mouse" boolean DEFAULT false,
+	"remote" boolean DEFAULT false,
+	"keyboard" boolean DEFAULT false,
+	"cell phone" boolean DEFAULT false,
+	"microwave" boolean DEFAULT false,
+	"oven" boolean DEFAULT false,
+	"toaster" boolean DEFAULT false,
+	"sink" boolean DEFAULT false,
+	"refrigerator" boolean DEFAULT false,
+	"book" boolean DEFAULT false,
+	"clock" boolean DEFAULT false,
+	"vase" boolean DEFAULT false,
+	"scissors" boolean DEFAULT false,
+	"teddy bear" boolean DEFAULT false,
+	"hair drier" boolean DEFAULT false,
 	"toothbrush" boolean DEFAULT false,
 	FOREIGN KEY(detection_time) REFERENCES image(detection_time)
 	);
@@ -285,5 +295,5 @@ func NewDataStore(eCtx *EdgeContext) (*dataStore, error) {
 	}
 	log.Println("Succesfully created tables")
 
-	return &dataStore{db: db, eCtx: eCtx}, nil
+	return &DataStore{db: db, eCtx: eCtx}, nil
 }
