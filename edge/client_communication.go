@@ -10,16 +10,6 @@ import (
 	pb "github.com/bosdhill/iot_detect_2020/interfaces"
 	"gocv.io/x/gocv"
 	"google.golang.org/grpc"
-	//sdl "github.com/bosdhill/iot_detect_2020/sdl"
-)
-
-var (
-	tls        = flag.Bool("tls", false, "Connection uses TLS if true, else plain TCP")
-	certFile   = flag.String("cert_file", "", "The TLS cert file")
-	keyFile    = flag.String("key_file", "", "The TLS key file")
-	jsonDBFile = flag.String("json_db_file", "", "A json file containing a list of features")
-	port       = flag.Int("port", 10000, "The server port")
-	piAddr     = flag.String("pi_addr", "192.168.1.12", "Raspberry Pi IP address")
 )
 
 // ClientComm is a wrapper around the uploader server which is used to serve
@@ -62,7 +52,8 @@ func (comm *ClientComm) UploadImage(stream pb.Uploader_UploadImageServer) error 
 	for {
 		req, err := stream.Recv()
 		count++
-		//log.Println("received image from stream", count)
+		log.Println("received image from stream", count)
+		log.Println("received rows, cols = ", req.Rows, req.Cols)
 		if err == io.EOF {
 			log.Println("EOF")
 			close(iCh)
@@ -72,7 +63,9 @@ func (comm *ClientComm) UploadImage(stream pb.Uploader_UploadImageServer) error 
 			log.Println("err=", err)
 			return err
 		}
-		iCh <- uploadReqToImg(req)
+		mat := uploadReqToImg(req)
+		log.Println("mat dimensions rows, cols =", mat.Rows(), mat.Cols())
+		iCh <- mat
 	}
 }
 

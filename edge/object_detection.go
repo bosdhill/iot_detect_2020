@@ -336,7 +336,7 @@ func (od *ObjectDetect) caffeWorker(imgChan chan *gocv.Mat, resChan chan Detecti
 		probMat := prob.Reshape(1, 1)
 
 		labels, labelBoxes := regionLayer(&probMat, true, float32(img.Rows()), float32(img.Cols()))
-		//time.Sleep(time.Millisecond*30)
+
 		e := time.Since(t)
 		log.Println("detect time", e)
 		sec += e
@@ -356,23 +356,6 @@ func (od *ObjectDetect) caffeWorker(imgChan chan *gocv.Mat, resChan chan Detecti
 		prob.Close()
 		img.Close()
 		runtime.GC()
-		// close mat to avoid memory leak
-		//if err := blob.Close(); err != nil {
-		//	log.Fatalf("caffeWorker: Could not close blob mat with err = %s", err)
-		//}
-		//if err := probMat.Close(); err != nil {
-		//	log.Fatalf("caffeWorker: Could not close probMat mat with err = %s", err)
-		//}
-		//if err := prob.Close(); err != nil {
-		//	log.Fatalf("caffeWorker: Could not close prob mat with err = %s", err)
-		//}
-		//if err := img.Close(); err != nil {
-		//	log.Fatalf("caffeWorker: Could not close img mat with err = %s", err)
-		//}
-		//log.Println("profile count:", gocv.MatProfile.Count())
-		//var b bytes.Buffer
-		//gocv.MatProfile.WriteTo(&b, 1)
-		//log.Println("Mat frames", b.String())
 	}
 	close(resChan)
 }

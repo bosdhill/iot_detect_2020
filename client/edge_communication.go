@@ -43,6 +43,7 @@ func imgToUploadReq(img gocv.Mat) *pb.Image {
 	rows := int32(img.Rows())
 	cols := int32(img.Cols())
 	mType := img.Type()
+	log.Println("dimensions:", rows, cols)
 	return &pb.Image{Image: bImg, Rows: rows, Cols: cols, Type: int32(mType)}
 }
 
@@ -57,12 +58,12 @@ func (e *EdgeComm) UploadImage(c chan gocv.Mat) {
 	//defer cancel()
 	stream, err := e.client.UploadImage(ctx)
 	if err != nil {
-		log.Fatalf("%v.UploadImage(_) = _, %v: ", e.client, err)
+		log.Fatalf("UploadImage: could not upload image with error = %v", err)
 	}
 	for img := range c {
 		req := imgToUploadReq(img)
 		if err := stream.Send(req); err != nil {
-			log.Fatalf("%v.Send(%v) = %v", stream, req, err)
+			log.Fatalf("UploadImage: Send: could not send to stream with error = %v and dimensions = %v, %v", err, req.GetCols(), req.GetRows())
 		}
 		// prevent memory leak
 		if err := img.Close(); err != nil {
@@ -71,7 +72,7 @@ func (e *EdgeComm) UploadImage(c chan gocv.Mat) {
 	}
 	reply, err := stream.CloseAndRecv()
 	if err != nil {
-		log.Fatalf("%v.CloseAndRecv() got error %v, want %v", stream, err, nil)
+		log.Fatalf("UploadImage: could not CloseAndRecv() got error %v, want %v", err, nil)
 	}
 	log.Printf("ImageResponse: %v", reply.String())
 }
