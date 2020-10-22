@@ -52,8 +52,6 @@ func (comm *ClientComm) UploadImage(stream pb.Uploader_UploadImageServer) error 
 	for {
 		req, err := stream.Recv()
 		count++
-		log.Println("received image from stream", count)
-		log.Println("received rows, cols = ", req.Rows, req.Cols)
 		if err == io.EOF {
 			log.Println("EOF")
 			close(iCh)
