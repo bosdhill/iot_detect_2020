@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"gocv.io/x/gocv"
@@ -18,13 +17,13 @@ const size = numClasses + N
 const w = 12
 const h = 12
 const blockwd float32 = 13
-const numBoxes = h*w*N
+const numBoxes = h * w * N
 const thresh = 0.2
 const nms_threshold = 0.4
 
 var (
-	proto = "model/tiny_yolo_deploy.prototxt"
-	model = "model/tiny_yolo.caffemodel"
+	proto      = "model/tiny_yolo_deploy.prototxt"
+	model      = "model/tiny_yolo.caffemodel"
 	classNames = [numClasses]string{"person", "bicycle", "car", "motorcycle", "airplane", "bus", "train",
 		"truck", "boat", "traffic light", "fire hydrant", "stop sign",
 		"parking meter", "bench", "bird", "cat", "dog", "horse", "sheep", "cow",
@@ -38,7 +37,7 @@ var (
 		"laptop", "mouse", "remote", "keyboard", "cell phone", "microwave",
 		"oven", "toaster", "sink", "refrigerator", "book", "clock", "vase",
 		"scissors", "teddy bear", "hair drier", "toothbrush"}
-	anchors = [2*N]float32{0.738768, 0.874946, 2.42204, 2.65704, 4.30971, 7.04493, 10.246, 4.59428, 12.6868, 11.8741}
+	anchors = [2 * N]float32{0.738768, 0.874946, 2.42204, 2.65704, 4.30971, 7.04493, 10.246, 4.59428, 12.6868, 11.8741}
 )
 
 // TODO different color for each class -- can be used when augmenting images
@@ -66,18 +65,18 @@ var (
 //}
 
 type Box struct {
-	x float32
-	y float32
-	w float32
-	h float32
-	classProbs [numClasses]float32
-	confidence float32
+	x               float32
+	y               float32
+	w               float32
+	h               float32
+	classProbs      [numClasses]float32
+	confidence      float32
 	currentClassIdx int
 }
 
 func regionLayer(predictions *gocv.Mat, transposePredictions bool, img_height, img_width float32) (map[string]bool, map[string]([]*BoundingBox)) {
 
-	var data [w*h*5*(numClasses+5)]float32
+	var data [w * h * 5 * (numClasses + 5)]float32
 	var label string
 
 	if transposePredictions {
@@ -87,27 +86,25 @@ func regionLayer(predictions *gocv.Mat, transposePredictions bool, img_height, i
 		data = matToArray(predictions)
 	}
 
-
 	var boxes []Box
 	for i := 0; i < numBoxes; i++ {
 		index := i * size
 		var n = i % N
-		var row = float32((i/N) / h)
-		var col = float32((i/N) % w)
+		var row = float32((i / N) / h)
+		var col = float32((i / N) % w)
 
 		box := Box{}
 
-		box.x = (col + logisticActivate(data[index + 0])) / blockwd
-		box.y = (row + logisticActivate(data[index + 1])) / blockwd
-		box.w = float32(math.Exp(float64(data[index + 2]))) * anchors[2*n] / blockwd
-		box.h = float32(math.Exp(float64(data[index + 3]))) * anchors[2*n+1] / blockwd
+		box.x = (col + logisticActivate(data[index+0])) / blockwd
+		box.y = (row + logisticActivate(data[index+1])) / blockwd
+		box.w = float32(math.Exp(float64(data[index+2]))) * anchors[2*n] / blockwd
+		box.h = float32(math.Exp(float64(data[index+3]))) * anchors[2*n+1] / blockwd
 
-		box.confidence = logisticActivate(data[index + 4])
+		box.confidence = logisticActivate(data[index+4])
 
 		if box.confidence < thresh {
 			continue
 		}
-
 
 		box.classProbs = softmax(data[index+5 : index+5+numClasses])
 		for j := 0; j < numClasses; j++ {
@@ -119,7 +116,6 @@ func regionLayer(predictions *gocv.Mat, transposePredictions bool, img_height, i
 
 		boxes = append(boxes, box)
 	}
-
 
 	// Non-Maximum-Suppression
 	for k := 0; k < numClasses; k++ {
@@ -134,7 +130,7 @@ func regionLayer(predictions *gocv.Mat, transposePredictions bool, img_height, i
 				continue
 			}
 
-			for j := i+1; j < len(boxes); j++ {
+			for j := i + 1; j < len(boxes); j++ {
 				if box_iou(boxes[i], boxes[j]) > nms_threshold {
 					boxes[j].classProbs[k] = 0
 				}
@@ -157,17 +153,24 @@ func regionLayer(predictions *gocv.Mat, transposePredictions bool, img_height, i
 		top := (boxes[i].y - boxes[i].h/2.) * img_height
 		bottom := (boxes[i].y + boxes[i].h/2.) * img_height
 
-		if left < 0 { left = 0 }
-		if right > img_width { right = img_width }
-		if top < 0 { top = 0 }
-		if bottom > img_height { bottom = img_height }
-
+		if left < 0 {
+			left = 0
+		}
+		if right > img_width {
+			right = img_width
+		}
+		if top < 0 {
+			top = 0
+		}
+		if bottom > img_height {
+			bottom = img_height
+		}
 
 		if left > right || top > bottom {
 			continue
 		}
 
-		if int(right - left) == 0 || int(bottom - top) == 0 {
+		if int(right-left) == 0 || int(bottom-top) == 0 {
 			continue
 		}
 		label = classNames[max_i]
@@ -189,9 +192,9 @@ func regionLayer(predictions *gocv.Mat, transposePredictions bool, img_height, i
 	return labels, detections
 }
 
-func matToArray(m *gocv.Mat) [w*h*5*(numClasses+5)]float32 {
+func matToArray(m *gocv.Mat) [w * h * 5 * (numClasses + 5)]float32 {
 
-	result := [w*h*5*(numClasses+5)]float32{}
+	result := [w * h * 5 * (numClasses + 5)]float32{}
 	i := 0
 	for r := 0; r < m.Rows(); r++ {
 		for c := 0; c < m.Cols(); c++ {
@@ -203,10 +206,9 @@ func matToArray(m *gocv.Mat) [w*h*5*(numClasses+5)]float32 {
 	return result
 }
 
+func transpose(gocvMat *gocv.Mat) [w * h * 5 * (numClasses + 5)]float32 {
 
-func transpose(gocvMat *gocv.Mat) [w*h*5*(numClasses+5)]float32 {
-
-	result := [w*h*5*(numClasses+5)]float32{}
+	result := [w * h * 5 * (numClasses + 5)]float32{}
 	i := 0
 	for c := 0; c < gocvMat.Cols(); c++ {
 		for r := 0; r < gocvMat.Rows(); r++ {
@@ -218,11 +220,9 @@ func transpose(gocvMat *gocv.Mat) [w*h*5*(numClasses+5)]float32 {
 	return result
 }
 
-
 /*
  * Sorting intermediate results
  */
-
 
 type IndexSortList []Box
 
@@ -230,19 +230,18 @@ func (i IndexSortList) Len() int {
 	return len(i)
 }
 
-func (i IndexSortList) Swap(j,k int)  {
+func (i IndexSortList) Swap(j, k int) {
 	i[j], i[k] = i[k], i[j]
 }
 
-func (i IndexSortList) Less(j,k int) bool  {
+func (i IndexSortList) Less(j, k int) bool {
 	classIdx := i[j].currentClassIdx
-	return i[j].classProbs[classIdx] - i[k].classProbs[classIdx] < 0
+	return i[j].classProbs[classIdx]-i[k].classProbs[classIdx] < 0
 }
 
 func logisticActivate(x float32) float32 {
-	return 1.0/(1.0 + float32(math.Exp(float64(-x))))
+	return 1.0 / (1.0 + float32(math.Exp(float64(-x))))
 }
-
 
 func softmax(x []float32) [numClasses]float32 {
 	var sum float32 = 0.0
@@ -251,27 +250,26 @@ func softmax(x []float32) [numClasses]float32 {
 
 	var output [numClasses]float32
 
-	for i:=0; i<numClasses; i++ {
+	for i := 0; i < numClasses; i++ {
 		if x[i] > largest {
 			largest = x[i]
 		}
 	}
 
-	for i:=0; i<numClasses; i++ {
+	for i := 0; i < numClasses; i++ {
 		e = float32(math.Exp(float64(x[i] - largest)))
 		sum += e
 		output[i] = e
 	}
 
 	if sum > 1 {
-		for i:=0; i<numClasses; i++ {
+		for i := 0; i < numClasses; i++ {
 			output[i] /= sum
 		}
 	}
 
 	return output
 }
-
 
 func overlap(x1, w1, x2, w2 float32) float32 {
 	l1 := x1 - w1/2
@@ -285,27 +283,25 @@ func overlap(x1, w1, x2, w2 float32) float32 {
 	return float32(right - left)
 }
 
-
 func box_intersection(a, b Box) float32 {
-	w := overlap(a.x, a.w, b.x, b.w);
-	h := overlap(a.y, a.h, b.y, b.h);
+	w := overlap(a.x, a.w, b.x, b.w)
+	h := overlap(a.y, a.h, b.y, b.h)
 	if w < 0 || h < 0 {
 		return 0
 	}
 
-	area := w*h
+	area := w * h
 	return area
 }
 
-func box_union(a,b Box) float32 {
+func box_union(a, b Box) float32 {
 	i := box_intersection(a, b)
 	u := a.w*a.h + b.w*b.h - i
 	return u
 }
 
-
 func box_iou(a, b Box) float32 {
-	return box_intersection(a,b) / box_union(a,b)
+	return box_intersection(a, b) / box_union(a, b)
 }
 
 func max_index(a []float32) int {
@@ -317,7 +313,7 @@ func max_index(a []float32) int {
 	max_val := math.Inf(-1)
 	min_val := math.Inf(1)
 
-	for i, val := range (a) {
+	for i, val := range a {
 		if float64(val) > max_val {
 			max_i = i
 			max_val = float64(val)
@@ -335,11 +331,11 @@ func max_index(a []float32) int {
 }
 
 type objectDetect struct {
-	net *gocv.Net
+	net  *gocv.Net
 	eCtx *EdgeContext
 }
 
-func NewObjectDetection(eCtx *EdgeContext) (*objectDetect, error){
+func NewObjectDetection(eCtx *EdgeContext) (*objectDetect, error) {
 	log.Println("NewObjectDetection")
 	caffeNet := gocv.ReadNetFromCaffe(proto, model)
 	if caffeNet.Empty() {
@@ -353,7 +349,7 @@ func (od *objectDetect) caffeWorker(imgChan chan *gocv.Mat, resChan chan Detecti
 	sec := time.Duration(0)
 	count := 0
 	for img := range imgChan {
-		if img.Empty(){
+		if img.Empty() {
 			log.Println("Img is Empty")
 			continue
 		}
@@ -361,7 +357,7 @@ func (od *objectDetect) caffeWorker(imgChan chan *gocv.Mat, resChan chan Detecti
 		blob := gocv.BlobFromImage(*img, 1.0/255.0, image.Pt(416, 416), gocv.NewScalar(0, 0, 0, 0), true, false)
 		od.net.SetInput(blob, "data")
 		prob := od.net.Forward("conv9")
-		probMat := prob.Reshape(1,1)
+		probMat := prob.Reshape(1, 1)
 
 		labels, labelBoxes := regionLayer(&probMat, true, float32(img.Rows()), float32(img.Cols()))
 		//time.Sleep(time.Millisecond*30)
@@ -369,9 +365,9 @@ func (od *objectDetect) caffeWorker(imgChan chan *gocv.Mat, resChan chan Detecti
 		log.Println("detect time", e)
 		sec += e
 		count++
-		log.Println("last AVG", sec / time.Duration(count))
+		log.Println("last AVG", sec/time.Duration(count))
 
-		resChan <- DetectionResult {
+		resChan <- DetectionResult{
 			Empty:         len(labels) == 0,
 			DetectionTime: time.Now().UnixNano(),
 			Labels:        labels,
@@ -397,10 +393,10 @@ func (od *objectDetect) caffeWorker(imgChan chan *gocv.Mat, resChan chan Detecti
 		//if err := img.Close(); err != nil {
 		//	log.Fatalf("caffeWorker: Could not close img mat with err = %s", err)
 		//}
-		log.Println("profile count:", gocv.MatProfile.Count())
-		var b bytes.Buffer
-		gocv.MatProfile.WriteTo(&b, 1)
-		log.Println("Mat frames", b.String())
+		// log.Println("profile count:", gocv.MatProfile.Count())
+		// var b bytes.Buffer
+		// gocv.MatProfile.WriteTo(&b, 1)
+		// log.Println("Mat frames", b.String())
 	}
 	close(resChan)
 }
