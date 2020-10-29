@@ -2,15 +2,16 @@ syntax = "proto3";
 import "google/protobuf/empty.proto";
 option go_package = ".;interfaces";
 
-// Interface exported by the server on the Edge
+// Uploader service serves image frame uploads from the client.
 service Uploader {
-    // A server-to-client streaming RPC.
+    // A client-to-server streaming RPC.
     //
-    // Streams images from the data source in the client to the server
+    // Streams image frames from the data source in the client to the server
     // in the edge.
     rpc UploadImage(stream Image) returns (ImageResponse) {}
 }
 
+// Image is a gocv.Mat representation of an image frame
 message Image {
     bytes image = 1;
     int32 rows = 2;
@@ -18,14 +19,27 @@ message Image {
     int32 type = 4;
 }
 
+// ImageResponse is a message that has a boolean that tells whether upload was
+// successful
 message ImageResponse {
     bool success = 1;
 }
 
+// ActionOnDetect service provides the application an interface for querying
+// the Edge for detection results, and creating custom events that are detected
+// (or triggered) on the Edge and then handled as an action by the application
 service ActionOnDetect {
-    rpc SetEvents(Labels) returns (Events) {}
-    rpc ActionOnDetect(Action) returns (google.protobuf.Empty) {}
-    rpc EventStream(stream Event) returns (google.protobuf.Empty) {}
+    // RegisterEvents is an rpc implemented by the application server that allows
+    // the application to create custom events to be detected by the Edge
+    rpc RegisterEvents(Labels) returns (Events) {}
+
+    // SendAction sends the triggered action from the Edge to the Client
+    rpc SendAction(Action) returns (google.protobuf.Empty) {}
+
+    // StreamActions streams Actions from the Edge to the Client
+    rpc StreamActions(stream Action) returns (google.protobuf.Empty) {}
+
+    // TODO need to handle batching actions
 }
 
 message Labels {
@@ -161,19 +175,3 @@ message BoundingBox {
     float confidence = 5;
 }
 
-//service Downloader {
-//    rpc Get(Query) returns (Response) {}
-//    rpc StreamImage(Flags) returns (stream Response) {}
-//}
-//
-//message Flags {
-//
-//}
-//
-//message Query {
-//
-//}
-//
-//message Response {
-//
-//}

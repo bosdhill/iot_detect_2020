@@ -24,11 +24,11 @@ type EdgeComm struct {
 	lis    net.Listener
 }
 
-// SetEvents is called by the Edge to set actions for certain events?
+// RegisterEvents is called by the Edge to set actions for certain events?
 // TODO this should be an event driven pattern, such as in
 //  https://stephenafamo.com/blog/implementing-an-event-driven-system-in-go/
 // SetEvents is a method implemented by the application that determines what labels the application cares about
-func (comm *EdgeComm) SetEvents(ctx context.Context, labels *pb.Labels) (*pb.Events, error) {
+func (comm *EdgeComm) RegisterEvents(ctx context.Context, labels *pb.Labels) (*pb.Events, error) {
 	events := &pb.Events{}
 
 	// Example of application setting an Event with EventConditions specified for triggering an Action
@@ -54,7 +54,7 @@ func (comm *EdgeComm) SetEvents(ctx context.Context, labels *pb.Labels) (*pb.Eve
 		}
 		uid, err := hashstructure.Hash(event, nil)
 		if err != nil {
-			log.Println("SetEvents: uid hash failed")
+			log.Println("RegisterEvents: uid hash failed")
 			return nil, err
 		}
 		event.Uid = uid
@@ -64,13 +64,13 @@ func (comm *EdgeComm) SetEvents(ctx context.Context, labels *pb.Labels) (*pb.Eve
 	return events, nil
 }
 
-// ActionOnDetect TODO
-func (comm *EdgeComm) ActionOnDetect(context.Context, *pb.Action) (*empty.Empty, error) {
+// SendAction TODO
+func (comm *EdgeComm) SendAction(context.Context, *pb.Action) (*empty.Empty, error) {
 	panic("implement me")
 }
 
-// EventStream TODO
-func (comm *EdgeComm) EventStream(pb.ActionOnDetect_EventStreamServer) error {
+// StreamActions TODO
+func (comm *EdgeComm) StreamActions(pb.ActionOnDetect_StreamActionsServer) error {
 	panic("implement me")
 }
 

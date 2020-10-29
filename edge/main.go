@@ -15,7 +15,7 @@ import (
 var (
 	cpuprofile    = flag.String("cpuprofile", "", "write cpu profile to file")
 	serverAddr    = flag.String("server_addr", "192.168.1.121:10000", "The edge server address in the format of host:port")
-	appServerAddr = flag.String("app_server_addr", "", "The app server address in the format of host:port")
+	appServerAddr = flag.String("app_server_addr", "localhost:4200", "The app server address in the format of host:port")
 )
 
 func main() {
@@ -40,18 +40,16 @@ func main() {
 		panic(err)
 	}
 
-	if *appServerAddr != "" {
-		aComm, err := NewActionOnDetect(eCtx, *appServerAddr)
-		if err != nil {
-			panic(err)
-		}
-		_, err = aComm.RegisterEvents(classNamesMap)
-		if err != nil {
-			panic(err)
-		}
+	aod, err := NewActionOnDetect(eCtx, *appServerAddr)
+	if err != nil {
+		panic(err)
+	}
+	_, err = aod.RegisterEvents(classNamesMap)
+	if err != nil {
+		panic(err)
 	}
 
-	od, err := NewObjectDetection(eCtx)
+	od, err := NewObjectDetection(eCtx, aod)
 	if err != nil {
 		panic(err)
 	}

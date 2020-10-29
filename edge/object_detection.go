@@ -308,19 +308,20 @@ func maxIndex(a []float32) int {
 type ObjectDetect struct {
 	net  *gocv.Net
 	eCtx *EdgeContext
+	aod  *ActionOnDetect
 }
 
 // NewObjectDetection returns a new object detection component
-func NewObjectDetection(eCtx *EdgeContext) (*ObjectDetect, error) {
+func NewObjectDetection(eCtx *EdgeContext, aod *ActionOnDetect) (*ObjectDetect, error) {
 	log.Println("NewObjectDetection")
 	caffeNet := gocv.ReadNetFromCaffe(proto, model)
 	if caffeNet.Empty() {
 		return nil, fmt.Errorf("cannot read network model from: %v %v", proto, model)
 	}
-	return &ObjectDetect{net: &caffeNet, eCtx: eCtx}, nil
+	return &ObjectDetect{net: &caffeNet, eCtx: eCtx, aod: aod}, nil
 }
 
-func (od *ObjectDetect) caffeWorker(imgChan chan *gocv.Mat, resChan chan DetectionResult) {
+func (od *ObjectDetect) caffeWorker(imgChan chan *gocv.Mat, drChan chan DetectionResult) {
 	log.Println("caffeWorker")
 	sec := time.Duration(0)
 	count := 0
@@ -343,13 +344,15 @@ func (od *ObjectDetect) caffeWorker(imgChan chan *gocv.Mat, resChan chan Detecti
 		count++
 		log.Println("last AVG", sec/time.Duration(count))
 
-		resChan <- DetectionResult{
+		dr := DetectionResult{
 			Empty:         len(labels) == 0,
 			DetectionTime: time.Now().UnixNano(),
 			Labels:        labels,
 			Img:           img.Clone(),
 			LabelBoxes:    labelBoxes,
 		}
+		drChan <- dr
+		od.aod.CheckEvents(&dr)
 
 		blob.Close()
 		probMat.Close()
@@ -357,5 +360,5 @@ func (od *ObjectDetect) caffeWorker(imgChan chan *gocv.Mat, resChan chan Detecti
 		img.Close()
 		runtime.GC()
 	}
-	close(resChan)
+	close(drChan)
 }

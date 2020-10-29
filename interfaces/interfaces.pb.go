@@ -262,6 +262,7 @@ func (EventConditions_Proximity) EnumDescriptor() ([]byte, []int) {
 	return file_interfaces_proto_rawDescGZIP(), []int{5, 1}
 }
 
+// Image is a gocv.Mat representation of an image frame
 type Image struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -333,6 +334,8 @@ func (x *Image) GetType() int32 {
 	return 0
 }
 
+// ImageResponse is a message that has a boolean that tells whether upload was
+// successful
 type ImageResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -889,19 +892,19 @@ var file_interfaces_proto_rawDesc = []byte{
 	0x66, 0x69, 0x64, 0x65, 0x6e, 0x63, 0x65, 0x32, 0x35, 0x0a, 0x08, 0x55, 0x70, 0x6c, 0x6f, 0x61,
 	0x64, 0x65, 0x72, 0x12, 0x29, 0x0a, 0x0b, 0x55, 0x70, 0x6c, 0x6f, 0x61, 0x64, 0x49, 0x6d, 0x61,
 	0x67, 0x65, 0x12, 0x06, 0x2e, 0x49, 0x6d, 0x61, 0x67, 0x65, 0x1a, 0x0e, 0x2e, 0x49, 0x6d, 0x61,
-	0x67, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x28, 0x01, 0x32, 0x99,
+	0x67, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x28, 0x01, 0x32, 0x9d,
 	0x01, 0x0a, 0x0e, 0x41, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x4f, 0x6e, 0x44, 0x65, 0x74, 0x65, 0x63,
-	0x74, 0x12, 0x1f, 0x0a, 0x09, 0x53, 0x65, 0x74, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x73, 0x12, 0x07,
-	0x2e, 0x4c, 0x61, 0x62, 0x65, 0x6c, 0x73, 0x1a, 0x07, 0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x73,
-	0x22, 0x00, 0x12, 0x33, 0x0a, 0x0e, 0x41, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x4f, 0x6e, 0x44, 0x65,
-	0x74, 0x65, 0x63, 0x74, 0x12, 0x07, 0x2e, 0x41, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x1a, 0x16, 0x2e,
-	0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e,
-	0x45, 0x6d, 0x70, 0x74, 0x79, 0x22, 0x00, 0x12, 0x31, 0x0a, 0x0b, 0x45, 0x76, 0x65, 0x6e, 0x74,
-	0x53, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x12, 0x06, 0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x1a, 0x16,
+	0x74, 0x12, 0x24, 0x0a, 0x0e, 0x52, 0x65, 0x67, 0x69, 0x73, 0x74, 0x65, 0x72, 0x45, 0x76, 0x65,
+	0x6e, 0x74, 0x73, 0x12, 0x07, 0x2e, 0x4c, 0x61, 0x62, 0x65, 0x6c, 0x73, 0x1a, 0x07, 0x2e, 0x45,
+	0x76, 0x65, 0x6e, 0x74, 0x73, 0x22, 0x00, 0x12, 0x2f, 0x0a, 0x0a, 0x53, 0x65, 0x6e, 0x64, 0x41,
+	0x63, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x07, 0x2e, 0x41, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x1a, 0x16,
 	0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66,
-	0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x22, 0x00, 0x28, 0x01, 0x42, 0x0e, 0x5a, 0x0c, 0x2e, 0x3b,
-	0x69, 0x6e, 0x74, 0x65, 0x72, 0x66, 0x61, 0x63, 0x65, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74,
-	0x6f, 0x33,
+	0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x22, 0x00, 0x12, 0x34, 0x0a, 0x0d, 0x53, 0x74, 0x72, 0x65,
+	0x61, 0x6d, 0x41, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x12, 0x07, 0x2e, 0x41, 0x63, 0x74, 0x69,
+	0x6f, 0x6e, 0x1a, 0x16, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74,
+	0x6f, 0x62, 0x75, 0x66, 0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x22, 0x00, 0x28, 0x01, 0x42, 0x0e,
+	0x5a, 0x0c, 0x2e, 0x3b, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x66, 0x61, 0x63, 0x65, 0x73, 0x62, 0x06,
+	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -946,13 +949,13 @@ var file_interfaces_proto_depIdxs = []int32{
 	9,  // 6: Event.LabelEventsEntry.value:type_name -> EventConditions
 	11, // 7: Action.LabelsEntry.value:type_name -> BoundingBox
 	4,  // 8: Uploader.UploadImage:input_type -> Image
-	6,  // 9: ActionOnDetect.SetEvents:input_type -> Labels
-	10, // 10: ActionOnDetect.ActionOnDetect:input_type -> Action
-	8,  // 11: ActionOnDetect.EventStream:input_type -> Event
+	6,  // 9: ActionOnDetect.RegisterEvents:input_type -> Labels
+	10, // 10: ActionOnDetect.SendAction:input_type -> Action
+	10, // 11: ActionOnDetect.StreamActions:input_type -> Action
 	5,  // 12: Uploader.UploadImage:output_type -> ImageResponse
-	7,  // 13: ActionOnDetect.SetEvents:output_type -> Events
-	15, // 14: ActionOnDetect.ActionOnDetect:output_type -> google.protobuf.Empty
-	15, // 15: ActionOnDetect.EventStream:output_type -> google.protobuf.Empty
+	7,  // 13: ActionOnDetect.RegisterEvents:output_type -> Events
+	15, // 14: ActionOnDetect.SendAction:output_type -> google.protobuf.Empty
+	15, // 15: ActionOnDetect.StreamActions:output_type -> google.protobuf.Empty
 	12, // [12:16] is the sub-list for method output_type
 	8,  // [8:12] is the sub-list for method input_type
 	8,  // [8:8] is the sub-list for extension type_name
@@ -1096,9 +1099,9 @@ const _ = grpc.SupportPackageIsVersion6
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type UploaderClient interface {
-	// A server-to-client streaming RPC.
+	// A client-to-server streaming RPC.
 	//
-	// Streams images from the data source in the client to the server
+	// Streams image frames from the data source in the client to the server
 	// in the edge.
 	UploadImage(ctx context.Context, opts ...grpc.CallOption) (Uploader_UploadImageClient, error)
 }
@@ -1147,9 +1150,9 @@ func (x *uploaderUploadImageClient) CloseAndRecv() (*ImageResponse, error) {
 
 // UploaderServer is the server API for Uploader service.
 type UploaderServer interface {
-	// A server-to-client streaming RPC.
+	// A client-to-server streaming RPC.
 	//
-	// Streams images from the data source in the client to the server
+	// Streams image frames from the data source in the client to the server
 	// in the edge.
 	UploadImage(Uploader_UploadImageServer) error
 }
@@ -1210,9 +1213,13 @@ var _Uploader_serviceDesc = grpc.ServiceDesc{
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type ActionOnDetectClient interface {
-	SetEvents(ctx context.Context, in *Labels, opts ...grpc.CallOption) (*Events, error)
-	ActionOnDetect(ctx context.Context, in *Action, opts ...grpc.CallOption) (*empty.Empty, error)
-	EventStream(ctx context.Context, opts ...grpc.CallOption) (ActionOnDetect_EventStreamClient, error)
+	// RegisterEvents is an rpc implemented by the application server that allows
+	// the application to create custom events to be detected by the Edge
+	RegisterEvents(ctx context.Context, in *Labels, opts ...grpc.CallOption) (*Events, error)
+	// SendAction sends the triggered action from the Edge to the Client
+	SendAction(ctx context.Context, in *Action, opts ...grpc.CallOption) (*empty.Empty, error)
+	// StreamActions streams Actions from the Edge to the Client
+	StreamActions(ctx context.Context, opts ...grpc.CallOption) (ActionOnDetect_StreamActionsClient, error)
 }
 
 type actionOnDetectClient struct {
@@ -1223,48 +1230,48 @@ func NewActionOnDetectClient(cc grpc.ClientConnInterface) ActionOnDetectClient {
 	return &actionOnDetectClient{cc}
 }
 
-func (c *actionOnDetectClient) SetEvents(ctx context.Context, in *Labels, opts ...grpc.CallOption) (*Events, error) {
+func (c *actionOnDetectClient) RegisterEvents(ctx context.Context, in *Labels, opts ...grpc.CallOption) (*Events, error) {
 	out := new(Events)
-	err := c.cc.Invoke(ctx, "/ActionOnDetect/SetEvents", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ActionOnDetect/RegisterEvents", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *actionOnDetectClient) ActionOnDetect(ctx context.Context, in *Action, opts ...grpc.CallOption) (*empty.Empty, error) {
+func (c *actionOnDetectClient) SendAction(ctx context.Context, in *Action, opts ...grpc.CallOption) (*empty.Empty, error) {
 	out := new(empty.Empty)
-	err := c.cc.Invoke(ctx, "/ActionOnDetect/ActionOnDetect", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ActionOnDetect/SendAction", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *actionOnDetectClient) EventStream(ctx context.Context, opts ...grpc.CallOption) (ActionOnDetect_EventStreamClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_ActionOnDetect_serviceDesc.Streams[0], "/ActionOnDetect/EventStream", opts...)
+func (c *actionOnDetectClient) StreamActions(ctx context.Context, opts ...grpc.CallOption) (ActionOnDetect_StreamActionsClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_ActionOnDetect_serviceDesc.Streams[0], "/ActionOnDetect/StreamActions", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &actionOnDetectEventStreamClient{stream}
+	x := &actionOnDetectStreamActionsClient{stream}
 	return x, nil
 }
 
-type ActionOnDetect_EventStreamClient interface {
-	Send(*Event) error
+type ActionOnDetect_StreamActionsClient interface {
+	Send(*Action) error
 	CloseAndRecv() (*empty.Empty, error)
 	grpc.ClientStream
 }
 
-type actionOnDetectEventStreamClient struct {
+type actionOnDetectStreamActionsClient struct {
 	grpc.ClientStream
 }
 
-func (x *actionOnDetectEventStreamClient) Send(m *Event) error {
+func (x *actionOnDetectStreamActionsClient) Send(m *Action) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *actionOnDetectEventStreamClient) CloseAndRecv() (*empty.Empty, error) {
+func (x *actionOnDetectStreamActionsClient) CloseAndRecv() (*empty.Empty, error) {
 	if err := x.ClientStream.CloseSend(); err != nil {
 		return nil, err
 	}
@@ -1277,85 +1284,89 @@ func (x *actionOnDetectEventStreamClient) CloseAndRecv() (*empty.Empty, error) {
 
 // ActionOnDetectServer is the server API for ActionOnDetect service.
 type ActionOnDetectServer interface {
-	SetEvents(context.Context, *Labels) (*Events, error)
-	ActionOnDetect(context.Context, *Action) (*empty.Empty, error)
-	EventStream(ActionOnDetect_EventStreamServer) error
+	// RegisterEvents is an rpc implemented by the application server that allows
+	// the application to create custom events to be detected by the Edge
+	RegisterEvents(context.Context, *Labels) (*Events, error)
+	// SendAction sends the triggered action from the Edge to the Client
+	SendAction(context.Context, *Action) (*empty.Empty, error)
+	// StreamActions streams Actions from the Edge to the Client
+	StreamActions(ActionOnDetect_StreamActionsServer) error
 }
 
 // UnimplementedActionOnDetectServer can be embedded to have forward compatible implementations.
 type UnimplementedActionOnDetectServer struct {
 }
 
-func (*UnimplementedActionOnDetectServer) SetEvents(context.Context, *Labels) (*Events, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetEvents not implemented")
+func (*UnimplementedActionOnDetectServer) RegisterEvents(context.Context, *Labels) (*Events, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RegisterEvents not implemented")
 }
-func (*UnimplementedActionOnDetectServer) ActionOnDetect(context.Context, *Action) (*empty.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ActionOnDetect not implemented")
+func (*UnimplementedActionOnDetectServer) SendAction(context.Context, *Action) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendAction not implemented")
 }
-func (*UnimplementedActionOnDetectServer) EventStream(ActionOnDetect_EventStreamServer) error {
-	return status.Errorf(codes.Unimplemented, "method EventStream not implemented")
+func (*UnimplementedActionOnDetectServer) StreamActions(ActionOnDetect_StreamActionsServer) error {
+	return status.Errorf(codes.Unimplemented, "method StreamActions not implemented")
 }
 
 func RegisterActionOnDetectServer(s *grpc.Server, srv ActionOnDetectServer) {
 	s.RegisterService(&_ActionOnDetect_serviceDesc, srv)
 }
 
-func _ActionOnDetect_SetEvents_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ActionOnDetect_RegisterEvents_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Labels)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ActionOnDetectServer).SetEvents(ctx, in)
+		return srv.(ActionOnDetectServer).RegisterEvents(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/ActionOnDetect/SetEvents",
+		FullMethod: "/ActionOnDetect/RegisterEvents",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ActionOnDetectServer).SetEvents(ctx, req.(*Labels))
+		return srv.(ActionOnDetectServer).RegisterEvents(ctx, req.(*Labels))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ActionOnDetect_ActionOnDetect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ActionOnDetect_SendAction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Action)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ActionOnDetectServer).ActionOnDetect(ctx, in)
+		return srv.(ActionOnDetectServer).SendAction(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/ActionOnDetect/ActionOnDetect",
+		FullMethod: "/ActionOnDetect/SendAction",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ActionOnDetectServer).ActionOnDetect(ctx, req.(*Action))
+		return srv.(ActionOnDetectServer).SendAction(ctx, req.(*Action))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ActionOnDetect_EventStream_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(ActionOnDetectServer).EventStream(&actionOnDetectEventStreamServer{stream})
+func _ActionOnDetect_StreamActions_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(ActionOnDetectServer).StreamActions(&actionOnDetectStreamActionsServer{stream})
 }
 
-type ActionOnDetect_EventStreamServer interface {
+type ActionOnDetect_StreamActionsServer interface {
 	SendAndClose(*empty.Empty) error
-	Recv() (*Event, error)
+	Recv() (*Action, error)
 	grpc.ServerStream
 }
 
-type actionOnDetectEventStreamServer struct {
+type actionOnDetectStreamActionsServer struct {
 	grpc.ServerStream
 }
 
-func (x *actionOnDetectEventStreamServer) SendAndClose(m *empty.Empty) error {
+func (x *actionOnDetectStreamActionsServer) SendAndClose(m *empty.Empty) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *actionOnDetectEventStreamServer) Recv() (*Event, error) {
-	m := new(Event)
+func (x *actionOnDetectStreamActionsServer) Recv() (*Action, error) {
+	m := new(Action)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -1367,18 +1378,18 @@ var _ActionOnDetect_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*ActionOnDetectServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "SetEvents",
-			Handler:    _ActionOnDetect_SetEvents_Handler,
+			MethodName: "RegisterEvents",
+			Handler:    _ActionOnDetect_RegisterEvents_Handler,
 		},
 		{
-			MethodName: "ActionOnDetect",
-			Handler:    _ActionOnDetect_ActionOnDetect_Handler,
+			MethodName: "SendAction",
+			Handler:    _ActionOnDetect_SendAction_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "EventStream",
-			Handler:       _ActionOnDetect_EventStream_Handler,
+			StreamName:    "StreamActions",
+			Handler:       _ActionOnDetect_StreamActions_Handler,
 			ClientStreams: true,
 		},
 	},

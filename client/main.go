@@ -6,7 +6,7 @@ import (
 	"log"
 )
 
-var serverAddr = flag.String("server_addr", "192.168.1.121:10000", "The server address in the format of host:port")
+var edgeServerAddr = flag.String("edge_server_addr", "192.168.1.121:10000", "The server address in the format of host:port")
 
 const dataSourcePath string = "data/traffic-mini.mp4"
 
@@ -17,7 +17,7 @@ func main() {
 		log.Fatal(err)
 		return
 	}
-	ec, err := NewEdgeComm(*serverAddr)
+	ec, err := NewEdgeComm(*edgeServerAddr)
 	if err != nil {
 		log.Fatal(err)
 		return
