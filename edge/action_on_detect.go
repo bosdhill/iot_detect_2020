@@ -27,11 +27,11 @@ func NewActionOnDetect(eCtx *EdgeContext, addr string) (*AppComm, error) {
 	return &AppComm{client: client, eCtx: eCtx}, nil
 }
 
-// SetEvents is used to register events
+// RegisterEvents is used to register events
 // TODO change SetEvents to RegisterEvents (we're following a service pattern,
 // NOT a distributed object pattern)
-func (comm *AppComm) SetEvents(labels map[string]bool) (*settrie.SetTrie, error) {
-	events, err := comm.client.SetEvents(comm.eCtx.ctx, &pb.Labels{Labels: labels})
+func (comm *AppComm) RegisterEvents(labels map[string]bool) (*settrie.SetTrie, error) {
+	events, err := comm.client.RegisterEvents(comm.eCtx.ctx, &pb.Labels{Labels: labels})
 	if err != nil {
 		return nil, err
 	}
@@ -43,3 +43,13 @@ func (comm *AppComm) SetEvents(labels map[string]bool) (*settrie.SetTrie, error)
 	trie.Output()
 	return trie, nil
 }
+
+// func CheckEvent()
+
+// func (comm *AppComm) SendAction(Action) {
+
+// }
+
+// func (comm *AppComm) StreamActions(Action) {
+
+// }
