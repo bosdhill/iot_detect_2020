@@ -11,6 +11,11 @@ import (
 	"time"
 )
 
+var (
+	proto      = "model/tiny_yolo_deploy.prototxt"
+	model      = "model/tiny_yolo.caffemodel"
+)
+
 // TODO different color for each class -- can be used when augmenting images
 //var colors = [20]color.RGBA{
 //	color.RGBA{230, 25, 75, 0},

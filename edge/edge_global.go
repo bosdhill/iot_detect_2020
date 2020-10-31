@@ -11,8 +11,6 @@ const thresh = 0.2
 const nmsThreshold = 0.4
 
 var (
-	proto      = "model/tiny_yolo_deploy.prototxt"
-	model      = "model/tiny_yolo.caffemodel"
 	classNames = [numClasses]string{"person", "bicycle", "car", "motorcycle", "airplane", "bus", "train",
 		"truck", "boat", "traffic light", "fire hydrant", "stop sign",
 		"parking meter", "bench", "bird", "cat", "dog", "horse", "sheep", "cow",
