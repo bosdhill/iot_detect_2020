@@ -56,7 +56,8 @@ func (aod *ActionOnDetect) CheckEvents(dr *DetectionResult) {
 		labels = append(labels, k)
 	}
 	// needs list of strings for labels
-	_, err := aod.trie.Find(labels)
+	events, err := aod.trie.Find(labels)
+	log.Println("found", events)
 
 	if err != nil {
 		panic(err)

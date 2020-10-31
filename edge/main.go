@@ -20,21 +20,25 @@ var (
 
 func main() {
 	flag.Parse()
+
 	if *cpuprofile != "" {
 		f, err := os.Create(*cpuprofile)
 		if err != nil {
 			log.Fatal(err)
 		}
+
 		pprof.StartCPUProfile(f)
+
 		go func() {
 			log.Println(http.ListenAndServe("localhost:6060", nil))
 		}()
+
 		defer pprof.StopCPUProfile()
 	}
-	log.Println("in main")
-	var wg sync.WaitGroup
+
 	ctx, cancel := context.WithCancel(context.Background())
 	eCtx := &EdgeContext{ctx: ctx, cancel: cancel}
+
 	ds, err := NewDataStore(eCtx)
 	if err != nil {
 		panic(err)
@@ -44,6 +48,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
 	_, err = aod.RegisterEvents(classNamesMap)
 	if err != nil {
 		panic(err)
@@ -59,6 +64,7 @@ func main() {
 		panic(err)
 	}
 
+	var wg sync.WaitGroup
 	wg.Add(2)
 	go func() {
 		err := cComm.ServeClient()

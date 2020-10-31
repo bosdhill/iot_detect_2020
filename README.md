@@ -15,13 +15,13 @@ export PATH=/usr/local/go/bin:$PATH:$GOPATH/bin
 EOF
 source ~/.bashrc
 ```
-2. add 
+2. add
 ```
 export GOBIN=/home/pi/go/bin
 export GO111MODULE="on"
 ```
 to your .bashrc
-3. cd to`iot_detect_2020` and install [gocv](https://gocv.io/getting-started/linux/) 
+3. cd to`iot_detect_2020` and install [gocv](https://gocv.io/getting-started/linux/)
 4. cd to `iot_detect_2020` and run
 ```
 go build ./...
@@ -30,6 +30,8 @@ go build ./...
 
 # Mac set up
 ```
+brew install opencv4
+brew install pkgconfig
 go get -u -d gocv.io/x/gocv # may need to symlink /usr/local/lib/pkgconfig/opencv4.pc
 go get google.golang.org/grpc
 go get -u github.com/golang/protobuf/protoc-gen-go
@@ -38,13 +40,21 @@ protoc -I interfaces/ interfaces/interfaces.proto --go_out=plugins=grpc:interfac
 go build ./...
 ```
 
+gocv issues:
+```
+may need to symlink /usr/local/lib/pkgconfig/opencv4.pc
+
+and add this to your ~/.bash_profile:
+export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig/opencv4.pc:$PATH"
+```
+
 ```
 which protoc
 which protoc-gen-go
 
 export GOPATH=$HOME/golang
 export GOBIN=$GOPATH/bin
-export GO111MODULE="on" 
+export GO111MODULE="on"
 export PATH=$PATH:$GOROOT:$GOPATH:$GOBIN
 ```
 
@@ -63,7 +73,7 @@ go build
 ```
 
 
-## Preqrequisites 
+## Preqrequisites
 - Need to install sqlite3 on raspberry pi
 # coco speedup
 AVG detect time for mp4 = 94.796409ms
@@ -75,3 +85,15 @@ AVG python detect time for mp4 = 10899154700380465ms
 `./edge --cpuprofile=edge.prof`
 `go tool pprof http://localhost:6060/debug/pprof/heap` + `top` and `web` or
 `go tool pprof -png http://localhost:6060/debug/pprof/heap > out.png`
+
+
+# Notes on gocv and opencv
+
+Ensure you uninstall prior your prior opencv versions, as this will cause symlinking issues
+with the package config files of opencv4:
+```
+brew uninstall opencv@2
+brew install opencv
+brew doctor
+```
+and ensure your gocv module version matches up with your opencv version.
