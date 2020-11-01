@@ -39,6 +39,7 @@ func (aod *ActionOnDetect) RegisterEvents(labels map[string]bool) (*settrie.SetT
 	aod.trie = settrie.New()
 	// store events in prefix trie for later subset search and comparison
 	for _, event := range aod.events.GetEvents() {
+		log.Println("getlabels", event.GetLabels())
 		aod.trie.Add(event.GetLabels(), event)
 	}
 	aod.trie.Output()
@@ -51,35 +52,31 @@ func (aod *ActionOnDetect) RegisterEvents(labels map[string]bool) (*settrie.SetT
 func (aod *ActionOnDetect) CheckEvents(dr *DetectionResult) {
 	// TODO probably slow -- just store []string of labels separately
 	labels := make([]string, 0, len(dr.Labels))
-
 	for k := range dr.Labels {
 		labels = append(labels, k)
 	}
+	log.Println("labels", labels)
 	// needs list of strings for labels
-	events, err := aod.trie.Find(labels)
+	events, _ := aod.trie.Find(labels)
 	log.Println("found", events)
 
-	if err != nil {
-		panic(err)
-	}
-
 	// return dummy action
-	action := pb.Action{
-		Labels: map[string]*pb.BoundingBox{
-			"": {
-				TopLeftX:     0.0,
-				TopLeftY:     0.0,
-				BottomRightX: 0.0,
-				BottomRightY: 0.0,
-				Confidence:   0.0,
-			},
-		},
-		Img:          nil,
-		AnnotatedImg: nil,
-	}
+	//action := pb.Action{
+	//	Labels: map[string]*pb.BoundingBox{
+	//		"": {
+	//			TopLeftX:     0.0,
+	//			TopLeftY:     0.0,
+	//			BottomRightX: 0.0,
+	//			BottomRightY: 0.0,
+	//			Confidence:   0.0,
+	//		},
+	//	},
+	//	Img:          nil,
+	//	AnnotatedImg: nil,
+	//}
 
 	// create action for each event
-	aod.client.SendAction(aod.eCtx.ctx, &action)
+	//aod.client.SendAction(aod.eCtx.ctx, &action)
 }
 
 // func (aod *Appaod) SendAction(Action) {

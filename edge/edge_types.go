@@ -22,7 +22,7 @@ type DetectionResult struct {
 	DetectionTime int64
 
 	// A bitmap of detected labels
-	Labels map[string]bool
+	Labels map[string]int
 
 	// The matrix representation of the image frame
 	Img gocv.Mat

@@ -1,3 +1,20 @@
+# Edge
+- in interfaces.proto, change:
+```proto
+message Labels {
+    map<string, bool> labels = 1;
+}
+
+```
+to 
+```proto
+message Labels {
+    map<string, google.protobuf.Empty> labels = 1;
+}
+
+```
+and change `classNamesMap` to type `map[string]struct{}`. Refer to https://stackoverflow.com/a/10486196/10741562
+
 # Client
 - The upload should be a client streaming rpc -- the return value doesn't matter to the client
 - Look into Intel https://software.intel.com/en-us/articles/intel-movidius-neural-compute-stick that can interface with https://github.com/dymat/GOLOv2

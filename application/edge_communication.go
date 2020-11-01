@@ -32,7 +32,8 @@ func (comm *EdgeComm) RegisterEvents(ctx context.Context, labels *pb.Labels) (*p
 	events := &pb.Events{}
 
 	// Example of application setting an Event with EventConditions specified for triggering an Action
-	if labels.Labels["person"] && labels.Labels["car"] {
+	// TODO need to handle person or bus, not just person and bus
+	if labels.Labels["person"] && labels.Labels["bus"] {
 		event := &pb.Event{
 			LabelEvents: map[string]*pb.EventConditions{
 				"person": {
@@ -41,14 +42,14 @@ func (comm *EdgeComm) RegisterEvents(ctx context.Context, labels *pb.Labels) (*p
 					QuantityBound: uint32(pb.EventConditions_GREATER | pb.EventConditions_EQUAL),
 					Proximity:     pb.EventConditions_PROXIMITY_UNSPECIFIED,
 				},
-				"car": {
+				"bus": {
 					ConfThreshold: 0.30,
 					Quantity:      1,
 					QuantityBound: uint32(pb.EventConditions_GREATER | pb.EventConditions_EQUAL),
 					Proximity:     pb.EventConditions_PROXIMITY_UNSPECIFIED,
 				},
 			},
-			Labels:          []string{"person", "car"},
+			Labels:          []string{"person", "bus"},
 			DistanceMeasure: pb.Event_DISTANCE_MEASURE_UNSPECIFIED,
 			Flags:           uint32(pb.Event_METADATA),
 		}

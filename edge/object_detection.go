@@ -52,7 +52,7 @@ type Box struct {
 	currentClassIdx int
 }
 
-func regionLayer(predictions *gocv.Mat, transposePredictions bool, imgHeight, imgWidth float32) (map[string]bool, map[string]([]*BoundingBox)) {
+func regionLayer(predictions *gocv.Mat, transposePredictions bool, imgHeight, imgWidth float32) (map[string]int, map[string]([]*BoundingBox)) {
 
 	var data [w * h * 5 * (numClasses + 5)]float32
 	var label string
@@ -117,7 +117,7 @@ func regionLayer(predictions *gocv.Mat, transposePredictions bool, imgHeight, im
 	}
 
 	detections := make(map[string]([]*BoundingBox))
-	labels := make(map[string]bool)
+	labels := make(map[string]int)
 
 	for i := 0; i < len(boxes); i++ {
 		maxI := maxIndex(boxes[i].classProbs[:])
@@ -161,10 +161,7 @@ func regionLayer(predictions *gocv.Mat, transposePredictions bool, imgHeight, im
 			Confidence:   boxes[i].classProbs[maxI],
 		}
 		detections[label] = append(detections[label], &bbBox)
-
-		if !labels[label] {
-			labels[label] = true
-		}
+		labels[label] += 1
 	}
 
 	return labels, detections
@@ -338,7 +335,11 @@ func (od *ObjectDetect) caffeWorker(imgChan chan *gocv.Mat, drChan chan Detectio
 		t := time.Now()
 		blob := gocv.BlobFromImage(*img, 1.0/255.0, image.Pt(416, 416), gocv.NewScalar(0, 0, 0, 0), true, false)
 		od.net.SetInput(blob, "data")
-		prob := od.net.Forward("conv9")
+
+		// In gocv v0.25.0, the name of the last output layer is lost, so its replaced with the name of top to retrieve
+		// the output blob.
+		// Ref: https://stackoverflow.com/a/45653638/10741562
+		prob := od.net.Forward("result")
 		probMat := prob.Reshape(1, 1)
 
 		labels, labelBoxes := regionLayer(&probMat, true, float32(img.Rows()), float32(img.Cols()))
