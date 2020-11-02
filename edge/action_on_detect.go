@@ -1,19 +1,18 @@
 package main
 
 import (
-	"log"
-
-	"github.com/bosdhill/iot_detect_2020/edge/settrie"
+	"github.com/bosdhill/iot_detect_2020/edge/event_set"
 	pb "github.com/bosdhill/iot_detect_2020/interfaces"
 	"google.golang.org/grpc"
+	"log"
 )
 
 // ActionOnDetect isused to serve the application's requests
 type ActionOnDetect struct {
-	client pb.ActionOnDetectClient
-	eCtx   *EdgeContext
-	events *pb.Events
-	trie   *settrie.SetTrie
+	client    pb.ActionOnDetectClient
+	eCtx      *EdgeContext
+	events    *pb.Events
+	event_set *event_set.EventSet
 }
 
 // NewActionOnDetect starts up a grpc server and
@@ -30,20 +29,14 @@ func NewActionOnDetect(eCtx *EdgeContext, addr string) (*ActionOnDetect, error) 
 }
 
 // RegisterEvents is used to register events
-func (aod *ActionOnDetect) RegisterEvents(labels map[string]bool) (*settrie.SetTrie, error) {
+func (aod *ActionOnDetect) RegisterEvents(labels map[string]bool) (*event_set.EventSet, error) {
 	var err error
 	aod.events, err = aod.client.RegisterEvents(aod.eCtx.ctx, &pb.Labels{Labels: labels})
 	if err != nil {
 		return nil, err
 	}
-	aod.trie = settrie.New()
-	// store events in prefix trie for later subset search and comparison
-	for _, event := range aod.events.GetEvents() {
-		log.Println("getlabels", event.GetLabels())
-		aod.trie.Add(event.GetLabels(), event)
-	}
-	aod.trie.Output()
-	return aod.trie, nil
+	aod.event_set = event_set.New(aod.events)
+	return aod.event_set, nil
 }
 
 // CheckEvents checks whether the detection result sastifies any event set by
@@ -51,13 +44,8 @@ func (aod *ActionOnDetect) RegisterEvents(labels map[string]bool) (*settrie.SetT
 // application
 func (aod *ActionOnDetect) CheckEvents(dr *DetectionResult) {
 	// TODO probably slow -- just store []string of labels separately
-	labels := make([]string, 0, len(dr.Labels))
-	for k := range dr.Labels {
-		labels = append(labels, k)
-	}
-	log.Println("labels", labels)
 	// needs list of strings for labels
-	events, _ := aod.trie.Find(labels)
+	events := aod.event_set.Find(dr.Labels)
 	log.Println("found", events)
 
 	// return dummy action
