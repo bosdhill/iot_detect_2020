@@ -1,24 +1,27 @@
 package event_set
 
-import pb "github.com/bosdhill/iot_detect_2020/interfaces"
+import (
+	"fmt"
+	pb "github.com/bosdhill/iot_detect_2020/interfaces"
+)
 
 type EventSet []eventLabelPair
 
 type eventLabelPair struct {
 	labels []string
-	event *pb.Event
+	event  *pb.Event
 }
 
 // New returns a slice of eventLabelPairs
 func New(events *pb.Events) *EventSet {
-	eSet := make(EventSet, len(events.GetEvents()))
+	eSet := make(EventSet, 0)
 	for _, event := range events.GetEvents() {
 		eSet = append(eSet, eventLabelPair{event.GetLabels(), event})
 	}
 	return &eSet
 }
 
-func contains(detectedLabels map[string]int , labels []string) bool {
+func contains(detectedLabels map[string]int, labels []string) bool {
 	for _, label := range labels {
 		_, ok := detectedLabels[label]
 		if !ok {
@@ -36,4 +39,12 @@ func (eSet *EventSet) Find(detectedLabels map[string]int) *pb.Event {
 		}
 	}
 	return nil
+}
+
+func (eSet *EventSet) String() string {
+	ret := "\n"
+	for _, e := range *eSet {
+		ret += fmt.Sprintf("e.labels: %v\ne.event: [%v],\n", e.labels, e.event)
+	}
+	return ret
 }
