@@ -6,6 +6,7 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/mitchellh/hashstructure"
 	"log"
+	"math"
 	"net"
 
 	pb "github.com/bosdhill/iot_detect_2020/interfaces"
@@ -65,9 +66,11 @@ func (comm *EdgeComm) RegisterEvents(ctx context.Context, labels *pb.Labels) (*p
 	return events, nil
 }
 
-// SendAction TODO
-func (comm *EdgeComm) SendAction(context.Context, *pb.Action) (*empty.Empty, error) {
-	panic("implement me")
+// SendAction receives the action sent by the Edge
+func (comm *EdgeComm) SendAction(ctx context.Context, action *pb.Action) (*empty.Empty, error) {
+	log.Println("SendAction")
+	log.Printf("Received: %v, %v\n", action.GetDetectionResult().Labels, action.GetDetectionResult().GetLabelBoxes())
+	return &empty.Empty{}, nil
 }
 
 // StreamActions TODO
@@ -91,6 +94,7 @@ func NewEdgeCommunication(addr string) *EdgeComm {
 func (comm *EdgeComm) ServeEdge() error {
 	log.Println("ServeEdge")
 	var opts []grpc.ServerOption
+	opts = append(opts, grpc.MaxRecvMsgSize(math.MaxInt32), grpc.MaxSendMsgSize(math.MaxInt32))
 	grpcServer := grpc.NewServer(opts...)
 	pb.RegisterActionOnDetectServer(grpcServer, comm)
 	err := grpcServer.Serve(comm.lis)

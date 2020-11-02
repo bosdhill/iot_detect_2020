@@ -12,6 +12,8 @@ type EdgeContext struct {
 	cancel context.CancelFunc
 }
 
+type LabelMap map[string]int32
+
 // DetectionResult represents the result yielded by the object detection model
 type DetectionResult struct {
 
@@ -22,7 +24,7 @@ type DetectionResult struct {
 	DetectionTime int64
 
 	// A bitmap of detected labels
-	Labels map[string]int
+	Labels LabelMap
 
 	// The matrix representation of the image frame
 	Img gocv.Mat

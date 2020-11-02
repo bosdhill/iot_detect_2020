@@ -1,6 +1,7 @@
 syntax = "proto3";
 import "google/protobuf/empty.proto";
 option go_package = ".;interfaces";
+package google.protobuf;
 
 // Uploader service serves image frame uploads from the client.
 service Uploader {
@@ -155,23 +156,41 @@ message EventConditions {
 
 // Action message corresponds to the trigger of an Event (similar to DetectionResult)
 message Action {
-    // labels are the labels of the objects detected in the event, mapped to their BoundingBox
-    map<string, BoundingBox> labels = 1;
-
-    // img is the jpg image
-    bytes img = 2;
+    DetectionResult detection_result = 1;
 
     // annotated_img is the img annotated with bounding boxes
-    bytes annotated_img = 3;
+    bytes annotated_img = 2;
+}
+
+// DetectionResult represents the result of the object detection model
+message DetectionResult {
+    // Whether or not the result has no objects
+	bool empty = 1;
+
+	// The time of detection
+	int64 detection_time = 2;
+
+	// A bitmap of detected labels
+	map<string, int32> labels = 3;
+
+	// The matrix representation of the image frame
+	bytes img = 4;
+
+	// A map from label to its bounding box
+	map<string, BoundingBoxes> label_boxes = 5;
+}
+
+message BoundingBoxes {
+    repeated BoundingBox label_boxes = 1;
 }
 
 // BoundingBox message is the representation of the bounding box output by the object detection component as well as its
 // confidence
 message BoundingBox {
-    float top_left_x = 1;
-    float top_left_y = 2;
-    float bottom_right_x = 3;
-    float bottom_right_y = 4;
+    int32 top_left_x = 1;
+    int32 top_left_y = 2;
+    int32 bottom_right_x = 3;
+    int32 bottom_right_y = 4;
     float confidence = 5;
 }
 

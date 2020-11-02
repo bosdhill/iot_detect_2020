@@ -7,7 +7,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"os"
-	"runtime"
+	pb "github.com/bosdhill/iot_detect_2020/interfaces"
 )
 
 var dbTable = "detection"
@@ -60,7 +60,7 @@ func (ds *DataStore) Get() error {
 
 // InsertWorker grabs detection results from the channel and inserts them into
 // the tables
-func (ds *DataStore) InsertWorker(drCh chan DetectionResult) {
+func (ds *DataStore) InsertWorker(drCh chan pb.DetectionResult) {
 	log.Println("InsertWorker")
 	for dr := range drCh {
 		ds.InsertImageTable(&dr)
@@ -71,9 +71,9 @@ func (ds *DataStore) InsertWorker(drCh chan DetectionResult) {
 }
 
 // InsertImageTable inserts detection results into the image table.
-func (ds *DataStore) InsertImageTable(dr *DetectionResult) {
+func (ds *DataStore) InsertImageTable(dr *pb.DetectionResult) {
+	log.Println("InsertImageTable")
 	txn, err := ds.db.Begin()
-	log.Println(dr)
 	if err != nil {
 		log.Fatalf("InsertWorker: could not db.begin with err = %s", err)
 	}
@@ -83,15 +83,15 @@ func (ds *DataStore) InsertImageTable(dr *DetectionResult) {
 		stmt = nil
 		txn = nil
 		// to prevent memory leak
-		if err := dr.Img.Close(); err != nil {
-			log.Fatalf("InsertWorker: could not close image with err = %s", err)
-		}
-		runtime.GC()
+		//if err := dr.Img.Close(); err != nil {
+		//	log.Fatalf("InsertWorker: could not close image with err = %s", err)
+		//}
+		//runtime.GC()
 	}()
 	if err != nil {
 		log.Fatalf("InsertWorker: could not prepare insert into images table with err = %s", err)
 	}
-	_, err = stmt.Exec(dr.DetectionTime, dr.Img.ToBytes(), dr.Empty)
+	_, err = stmt.Exec(dr.DetectionTime, dr.Img, dr.Empty)
 	if err != nil {
 		log.Fatalf("InsertWorker: could not exec insert into images table with err = %s", err)
 	}
@@ -105,7 +105,8 @@ func (ds *DataStore) InsertImageTable(dr *DetectionResult) {
 }
 
 // InsertBoundingBoxTable inserts detection results into the bounding box table.
-func (ds *DataStore) InsertBoundingBoxTable(dr *DetectionResult) {
+func (ds *DataStore) InsertBoundingBoxTable(dr *pb.DetectionResult) {
+	log.Println("InsertBoundingBoxTable")
 	txn, err := ds.db.Begin()
 	if err != nil {
 		log.Fatalf("InsertWorker: could not db.begin with err = %s", err)
@@ -120,7 +121,7 @@ func (ds *DataStore) InsertBoundingBoxTable(dr *DetectionResult) {
 	}
 	// Insert into bounding_box table
 	for label, bboxSl := range dr.LabelBoxes {
-		for _, bbox := range bboxSl {
+		for _, bbox := range bboxSl.LabelBoxes {
 			b, err := json.Marshal(bbox)
 			if err != nil {
 				log.Fatalf("InsertWorker: could not marshal bbox with err = %s", err)
@@ -142,7 +143,8 @@ func (ds *DataStore) InsertBoundingBoxTable(dr *DetectionResult) {
 }
 
 // InsertLabelsTable inserts detection results into the labels table
-func (ds *DataStore) InsertLabelsTable(dr *DetectionResult) {
+func (ds *DataStore) InsertLabelsTable(dr *pb.DetectionResult) {
+	log.Println("InsertLabelsTable")
 	txn, err := ds.db.Begin()
 	if err != nil {
 		log.Fatalf("InsertWorker: could not db.begin with err = %s", err)
@@ -170,8 +172,8 @@ func (ds *DataStore) InsertLabelsTable(dr *DetectionResult) {
 		log.Fatalf("InsertWorker: could not commit txn for bounding_box and images with err = %s", err)
 	}
 	// Update each column of that newly added row
-	for label, exists := range dr.Labels {
-		_, err := ds.db.Exec(fmt.Sprintf("UPDATE labels SET %s = %v WHERE detection_time = %d", label, exists, dr.DetectionTime))
+	for label, numDetected := range dr.Labels {
+		_, err := ds.db.Exec(fmt.Sprintf("UPDATE labels SET %s = %v WHERE detection_time = %d", label, numDetected, dr.DetectionTime))
 		if err != nil {
 			log.Fatalf("InsertWorker: could not prepare update into labels err = %s", err)
 		}
@@ -186,6 +188,9 @@ func NewDataStore(eCtx *EdgeContext) (*DataStore, error) {
 	log.Println("NewDataStore")
 	os.Remove("./object_detection.db")
 	db, err := sql.Open("sqlite3", "./object_detection.db")
+	if err != nil {
+		log.Printf("%q: %v\n", err, db)
+	}
 
 	// TODO make labels table dynamic so we can swap out models with different label sets
 	createImageTable := `
@@ -204,86 +209,86 @@ func NewDataStore(eCtx *EdgeContext) (*DataStore, error) {
 	);
 	CREATE TABLE IF NOT EXISTS labels (
 	 detection_time integer,
-	"person" boolean DEFAULT false,
-	"bicycle" boolean DEFAULT false,
-	"car" boolean DEFAULT false,
-	"motorcycle" boolean DEFAULT false,
-	"airplane" boolean DEFAULT false,
-	"bus" boolean DEFAULT false,
-	"train" boolean DEFAULT false,
-	"truck" boolean DEFAULT false,
-	"boat" boolean DEFAULT false,
-	"traffic light" boolean DEFAULT false,
-	"fire hydrant" boolean DEFAULT false,
-	"stop sign" boolean DEFAULT false,
-	"parking meter" boolean DEFAULT false,
-	"bench" boolean DEFAULT false,
-	"bird" boolean DEFAULT false,
-	"cat" boolean DEFAULT false,
-	"dog" boolean DEFAULT false,
-	"horse" boolean DEFAULT false,
-	"sheep" boolean DEFAULT false,
-	"cow" boolean DEFAULT false,
-	"elephant" boolean DEFAULT false,
-	"bear" boolean DEFAULT false,
-	"zebra" boolean DEFAULT false,
-	"giraffe" boolean DEFAULT false,
-	"backpack" boolean DEFAULT false,
-	"umbrella" boolean DEFAULT false,
-	"handbag" boolean DEFAULT false,
-	"tie" boolean DEFAULT false,
-	"suitcase" boolean DEFAULT false,
-	"frisbee" boolean DEFAULT false,
-	"skis" boolean DEFAULT false,
-	"snowboard" boolean DEFAULT false,
-	"sports ball" boolean DEFAULT false,
-	"kite" boolean DEFAULT false,
-	"baseball bat" boolean DEFAULT false,
-	"baseball glove" boolean DEFAULT false,
-	"skateboard" boolean DEFAULT false,
-	"surfboard" boolean DEFAULT false,
-	"tennis racket" boolean DEFAULT false,
-	"bottle" boolean DEFAULT false,
-	"wine glass" boolean DEFAULT false,
-	"cup" boolean DEFAULT false,
-	"fork" boolean DEFAULT false,
-	"knife" boolean DEFAULT false,
-	"spoon" boolean DEFAULT false,
-	"bowl" boolean DEFAULT false,
-	"banana" boolean DEFAULT false,
-	"apple" boolean DEFAULT false,
-	"sandwich" boolean DEFAULT false,
-	"orange" boolean DEFAULT false,
-	"broccoli" boolean DEFAULT false,
-	"carrot" boolean DEFAULT false,
-	"hot dog" boolean DEFAULT false,
-	"pizza" boolean DEFAULT false,
-	"donut" boolean DEFAULT false,
-	"cake" boolean DEFAULT false,
-	"chair" boolean DEFAULT false,
-	"couch" boolean DEFAULT false,
-	"potted plant" boolean DEFAULT false,
-	"bed" boolean DEFAULT false,
-	"dining table" boolean DEFAULT false,
-	"toilet" boolean DEFAULT false,
-	"tv" boolean DEFAULT false,
-	"laptop" boolean DEFAULT false,
-	"mouse" boolean DEFAULT false,
-	"remote" boolean DEFAULT false,
-	"keyboard" boolean DEFAULT false,
-	"cell phone" boolean DEFAULT false,
-	"microwave" boolean DEFAULT false,
-	"oven" boolean DEFAULT false,
-	"toaster" boolean DEFAULT false,
-	"sink" boolean DEFAULT false,
-	"refrigerator" boolean DEFAULT false,
-	"book" boolean DEFAULT false,
-	"clock" boolean DEFAULT false,
-	"vase" boolean DEFAULT false,
-	"scissors" boolean DEFAULT false,
-	"teddy bear" boolean DEFAULT false,
-	"hair drier" boolean DEFAULT false,
-	"toothbrush" boolean DEFAULT false,
+	"person" int DEFAULT 0,
+	"bicycle" int DEFAULT 0,
+	"car" int DEFAULT 0,
+	"motorcycle" int DEFAULT 0,
+	"airplane" int DEFAULT 0,
+	"bus" int DEFAULT 0,
+	"train" int DEFAULT 0,
+	"truck" int DEFAULT 0,
+	"boat" int DEFAULT 0,
+	"traffic light" int DEFAULT 0,
+	"fire hydrant" int DEFAULT 0,
+	"stop sign" int DEFAULT 0,
+	"parking meter" int DEFAULT 0,
+	"bench" int DEFAULT 0,
+	"bird" int DEFAULT 0,
+	"cat" int DEFAULT 0,
+	"dog" int DEFAULT 0,
+	"horse" int DEFAULT 0,
+	"sheep" int DEFAULT 0,
+	"cow" int DEFAULT 0,
+	"elephant" int DEFAULT 0,
+	"bear" int DEFAULT 0,
+	"zebra" int DEFAULT 0,
+	"giraffe" int DEFAULT 0,
+	"backpack" int DEFAULT 0,
+	"umbrella" int DEFAULT 0,
+	"handbag" int DEFAULT 0,
+	"tie" int DEFAULT 0,
+	"suitcase" int DEFAULT 0,
+	"frisbee" int DEFAULT 0,
+	"skis" int DEFAULT 0,
+	"snowboard" int DEFAULT 0,
+	"sports ball" int DEFAULT 0,
+	"kite" int DEFAULT 0,
+	"baseball bat" int DEFAULT 0,
+	"baseball glove" int DEFAULT 0,
+	"skateboard" int DEFAULT 0,
+	"surfboard" int DEFAULT 0,
+	"tennis racket" int DEFAULT 0,
+	"bottle" int DEFAULT 0,
+	"wine glass" int DEFAULT 0,
+	"cup" int DEFAULT 0,
+	"fork" int DEFAULT 0,
+	"knife" int DEFAULT 0,
+	"spoon" int DEFAULT 0,
+	"bowl" int DEFAULT 0,
+	"banana" int DEFAULT 0,
+	"apple" int DEFAULT 0,
+	"sandwich" int DEFAULT 0,
+	"orange" int DEFAULT 0,
+	"broccoli" int DEFAULT 0,
+	"carrot" int DEFAULT 0,
+	"hot dog" int DEFAULT 0,
+	"pizza" int DEFAULT 0,
+	"donut" int DEFAULT 0,
+	"cake" int DEFAULT 0,
+	"chair" int DEFAULT 0,
+	"couch" int DEFAULT 0,
+	"potted plant" int DEFAULT 0,
+	"bed" int DEFAULT 0,
+	"dining table" int DEFAULT 0,
+	"toilet" int DEFAULT 0,
+	"tv" int DEFAULT 0,
+	"laptop" int DEFAULT 0,
+	"mouse" int DEFAULT 0,
+	"remote" int DEFAULT 0,
+	"keyboard" int DEFAULT 0,
+	"cell phone" int DEFAULT 0,
+	"microwave" int DEFAULT 0,
+	"oven" int DEFAULT 0,
+	"toaster" int DEFAULT 0,
+	"sink" int DEFAULT 0,
+	"refrigerator" int DEFAULT 0,
+	"book" int DEFAULT 0,
+	"clock" int DEFAULT 0,
+	"vase" int DEFAULT 0,
+	"scissors" int DEFAULT 0,
+	"teddy bear" int DEFAULT 0,
+	"hair drier" int DEFAULT 0,
+	"toothbrush" int DEFAULT 0,
 	FOREIGN KEY(detection_time) REFERENCES image(detection_time)
 	);
 	`
@@ -293,7 +298,7 @@ func NewDataStore(eCtx *EdgeContext) (*DataStore, error) {
 		log.Printf("%q: %s\n", err, createImageTable)
 		return nil, err
 	}
-	log.Println("Succesfully created tables")
+	log.Println("Successfully created tables")
 
 	return &DataStore{db: db, eCtx: eCtx}, nil
 }

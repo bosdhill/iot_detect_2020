@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"log"
+	"math"
 	"time"
 
 	pb "github.com/bosdhill/iot_detect_2020/interfaces"
@@ -26,7 +27,7 @@ type EdgeComm struct {
 func NewEdgeComm(addr string) (*EdgeComm, error) {
 	log.Println("NewEdgeComm")
 	var opts []grpc.DialOption
-	opts = append(opts, grpc.WithBlock(), grpc.WithInsecure())
+	opts = append(opts, grpc.WithBlock(), grpc.WithInsecure(), grpc.WithMaxMsgSize(math.MaxInt32))
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	//defer cancel()
 	conn, err := grpc.DialContext(ctx, addr, opts...)

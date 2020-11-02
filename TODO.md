@@ -1,4 +1,6 @@
 # Edge
+- Should probably include a name field in event since application creates the events
+- Should `ActionOnDetect` just be `ResultOnDetect` since its basically just returning the results anyways?
 - in interfaces.proto, change:
 ```proto
 message Labels {

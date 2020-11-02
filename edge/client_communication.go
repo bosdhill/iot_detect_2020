@@ -5,6 +5,7 @@ import (
 	"flag"
 	"io"
 	"log"
+	"math"
 	"net"
 
 	pb "github.com/bosdhill/iot_detect_2020/interfaces"
@@ -45,7 +46,7 @@ func uploadReqToImg(req *pb.Image) *gocv.Mat {
 func (comm *ClientComm) UploadImage(stream pb.Uploader_UploadImageServer) error {
 	log.Println("UploadImage")
 	count := 0
-	resCh := make(chan DetectionResult)
+	resCh := make(chan pb.DetectionResult)
 	iCh := make(chan *gocv.Mat)
 	go comm.od.caffeWorker(iCh, resCh)
 	go comm.ds.InsertWorker(resCh)
@@ -85,6 +86,7 @@ func NewClientCommunication(eCtx *EdgeContext, addr string, ds *DataStore, od *O
 func (comm *ClientComm) ServeClient() error {
 	log.Println("ServeClient")
 	var opts []grpc.ServerOption
+	opts = append(opts, grpc.MaxRecvMsgSize(math.MaxInt32), grpc.MaxSendMsgSize(math.MaxInt32))
 	grpcServer := grpc.NewServer(opts...)
 	pb.RegisterUploaderServer(grpcServer, comm)
 	err := grpcServer.Serve(comm.lis)

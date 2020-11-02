@@ -21,7 +21,7 @@ func New(events *pb.Events) *EventSet {
 	return &eSet
 }
 
-func contains(detectedLabels map[string]int, labels []string) bool {
+func contains(detectedLabels map[string]int32, labels []string) bool {
 	for _, label := range labels {
 		_, ok := detectedLabels[label]
 		if !ok {
@@ -32,7 +32,7 @@ func contains(detectedLabels map[string]int, labels []string) bool {
 }
 
 // Find returns the event if the labels in eventLabelPairs is a subset of detectedLabels
-func (eSet *EventSet) Find(detectedLabels map[string]int) *pb.Event {
+func (eSet *EventSet) Find(detectedLabels map[string]int32) *pb.Event {
 	for _, pair := range *eSet {
 		if contains(detectedLabels, pair.labels) {
 			return pair.event

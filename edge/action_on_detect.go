@@ -5,6 +5,7 @@ import (
 	pb "github.com/bosdhill/iot_detect_2020/interfaces"
 	"google.golang.org/grpc"
 	"log"
+	"math"
 )
 
 // ActionOnDetect isused to serve the application's requests
@@ -19,7 +20,7 @@ type ActionOnDetect struct {
 func NewActionOnDetect(eCtx *EdgeContext, addr string) (*ActionOnDetect, error) {
 	log.Println("NewActionOnDetect")
 	var opts []grpc.DialOption
-	opts = append(opts, grpc.WithBlock(), grpc.WithInsecure())
+	opts = append(opts, grpc.WithBlock(), grpc.WithInsecure(), grpc.WithMaxMsgSize(math.MaxInt32))
 	conn, err := grpc.DialContext(eCtx.ctx, addr, opts...)
 	if err != nil {
 		log.Fatalf("Error while dialing. Err: %v", err)
@@ -28,8 +29,9 @@ func NewActionOnDetect(eCtx *EdgeContext, addr string) (*ActionOnDetect, error) 
 	return &ActionOnDetect{client: client, eCtx: eCtx}, nil
 }
 
-// RegisterEvents is used to register events
+// RegisterEvents is used to register the application's events
 func (aod *ActionOnDetect) RegisterEvents(labels map[string]bool) (*event_set.EventSet, error) {
+	log.Println("RegisterEvents")
 	var err error
 	aod.events, err = aod.client.RegisterEvents(aod.eCtx.ctx, &pb.Labels{Labels: labels})
 	if err != nil {
@@ -39,32 +41,27 @@ func (aod *ActionOnDetect) RegisterEvents(labels map[string]bool) (*event_set.Ev
 	return aod.event_set, nil
 }
 
-// CheckEvents checks whether the detection result sastifies any event set by
+// CheckEvents checks whether the detection result satisfies any event conditions set by
 // the application. If it does, it creates an action and sends it to the
-// application
-func (aod *ActionOnDetect) CheckEvents(dr *DetectionResult) {
-	// TODO probably slow -- just store []string of labels separately
-	// needs list of strings for labels
-	events := aod.event_set.Find(dr.Labels)
-	log.Println("found", events)
+// application.
+func (aod *ActionOnDetect) CheckEvents(dr *pb.DetectionResult) {
+	log.Println("CheckEvents")
+	event := aod.event_set.Find(dr.Labels)
+	log.Println("found", event)
 
-	// return dummy action
-	//action := pb.Action{
-	//	Labels: map[string]*pb.BoundingBox{
-	//		"": {
-	//			TopLeftX:     0.0,
-	//			TopLeftY:     0.0,
-	//			BottomRightX: 0.0,
-	//			BottomRightY: 0.0,
-	//			Confidence:   0.0,
-	//		},
-	//	},
-	//	Img:          nil,
-	//	AnnotatedImg: nil,
-	//}
+	if event != nil {
+		action := pb.Action{
+			DetectionResult: dr,
+			AnnotatedImg: nil,
+		}
 
-	// create action for each event
-	//aod.client.SendAction(aod.eCtx.ctx, &action)
+		go func() {
+			_, err := aod.client.SendAction(aod.eCtx.ctx, &action )
+			if err != nil {
+				log.Printf("Error while sending action: %v", err)
+			}
+		}()
+	}
 }
 
 // func (aod *Appaod) SendAction(Action) {

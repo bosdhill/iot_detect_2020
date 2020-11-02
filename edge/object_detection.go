@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	pb "github.com/bosdhill/iot_detect_2020/interfaces"
 	"gocv.io/x/gocv"
 	"image"
 	"log"
@@ -12,8 +13,8 @@ import (
 )
 
 var (
-	proto      = "model/tiny_yolo_deploy.prototxt"
-	model      = "model/tiny_yolo.caffemodel"
+	proto = "model/tiny_yolo_deploy.prototxt"
+	model = "model/tiny_yolo.caffemodel"
 )
 
 // TODO different color for each class -- can be used when augmenting images
@@ -52,7 +53,7 @@ type Box struct {
 	currentClassIdx int
 }
 
-func regionLayer(predictions *gocv.Mat, transposePredictions bool, imgHeight, imgWidth float32) (map[string]int, map[string]([]*BoundingBox)) {
+func regionLayer(predictions *gocv.Mat, transposePredictions bool, imgHeight, imgWidth float32) (map[string]int32, map[string]*pb.BoundingBoxes) {
 
 	var data [w * h * 5 * (numClasses + 5)]float32
 	var label string
@@ -116,8 +117,8 @@ func regionLayer(predictions *gocv.Mat, transposePredictions bool, imgHeight, im
 		}
 	}
 
-	detections := make(map[string]([]*BoundingBox))
-	labels := make(map[string]int)
+	boxesMap := make(map[string]*pb.BoundingBoxes)
+	labels := make(map[string]int32)
 
 	for i := 0; i < len(boxes); i++ {
 		maxI := maxIndex(boxes[i].classProbs[:])
@@ -153,18 +154,24 @@ func regionLayer(predictions *gocv.Mat, transposePredictions bool, imgHeight, im
 		}
 		label = classNames[maxI]
 
-		bbBox := BoundingBox{
-			TopLeftX:     int(left),
-			TopLeftY:     int(top),
-			BottomRightX: int(right),
-			BottomRightY: int(bottom),
+		bbBox := pb.BoundingBox{
+			TopLeftX:     int32(left),
+			TopLeftY:     int32(top),
+			BottomRightX: int32(right),
+			BottomRightY: int32(bottom),
 			Confidence:   boxes[i].classProbs[maxI],
 		}
-		detections[label] = append(detections[label], &bbBox)
+
+		if boxesMap[label] == nil {
+			boxesMap[label] = &pb.BoundingBoxes{
+				LabelBoxes: []*pb.BoundingBox{},
+			}
+		}
+		boxesMap[label].LabelBoxes = append(boxesMap[label].LabelBoxes, &bbBox)
 		labels[label] += 1
 	}
 
-	return labels, detections
+	return labels, boxesMap
 }
 
 func matToArray(m *gocv.Mat) [w * h * 5 * (numClasses + 5)]float32 {
@@ -323,7 +330,7 @@ func NewObjectDetection(eCtx *EdgeContext, aod *ActionOnDetect) (*ObjectDetect, 
 	return &ObjectDetect{net: &caffeNet, eCtx: eCtx, aod: aod}, nil
 }
 
-func (od *ObjectDetect) caffeWorker(imgChan chan *gocv.Mat, drChan chan DetectionResult) {
+func (od *ObjectDetect) caffeWorker(imgChan chan *gocv.Mat, drChan chan pb.DetectionResult) {
 	log.Println("caffeWorker")
 	sec := time.Duration(0)
 	count := 0
@@ -350,11 +357,11 @@ func (od *ObjectDetect) caffeWorker(imgChan chan *gocv.Mat, drChan chan Detectio
 		count++
 		log.Println("last AVG", sec/time.Duration(count))
 
-		dr := DetectionResult{
+		dr := pb.DetectionResult{
 			Empty:         len(labels) == 0,
 			DetectionTime: time.Now().UnixNano(),
 			Labels:        labels,
-			Img:           img.Clone(),
+			Img:           img.ToBytes(),
 			LabelBoxes:    labelBoxes,
 		}
 		drChan <- dr
