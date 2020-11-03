@@ -1,6 +1,10 @@
 # iot_detect_2020
 
 
+## Preqrequisites
+- Need to install sqlite3 on raspberry pi and nvidia jetson
+- Need to have `edge/model/tiny_yolo.caffemodel`
+
 # Nvidia Jetson Nano setup
 Install go
 
@@ -115,8 +119,6 @@ go build
 ```
 
 
-## Preqrequisites
-- Need to install sqlite3 on raspberry pi
 # coco speedup
 AVG detect time for mp4 = 94.796409ms
 AVG python detect time for mp4 = 10899154700380465ms
