@@ -1,18 +1,9 @@
 # Edge
+- Encapsulate each component into a package and make their "global" variables exported constants and also rename their "New" methods
+- Checking for at least 1 label detected (person or bus). just count as you're checking containment and break when its one (contains vs contains_at_least_one)
 - Should probably include a name field in event since application creates the events
 - Should `ActionOnDetect` just be `ResultOnDetect` since its basically just returning the results anyways?
-- in interfaces.proto, change:
-```proto
-message Labels {
-    map<string, bool> labels = 1;
-}
 
-```
-to 
-```proto
-message Labels {
-    map<string, google.protobuf.Empty> labels = 1;
-}
 
 ```
 and change `classNamesMap` to type `map[string]struct{}`. Refer to https://stackoverflow.com/a/10486196/10741562
