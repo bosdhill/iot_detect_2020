@@ -10,10 +10,10 @@ import (
 
 // ActionOnDetect isused to serve the application's requests
 type ActionOnDetect struct {
-	client    pb.ActionOnDetectClient
-	eCtx      *EdgeContext
-	events    *pb.Events
-	event_set *event_set.EventSet
+	client   pb.ActionOnDetectClient
+	eCtx     *EdgeContext
+	events   *pb.Events
+	eventSet *event_set.EventSet
 }
 
 // NewActionOnDetect starts up a grpc server and
@@ -37,8 +37,8 @@ func (aod *ActionOnDetect) RegisterEvents(labels map[string]bool) (*event_set.Ev
 	if err != nil {
 		return nil, err
 	}
-	aod.event_set = event_set.New(aod.events)
-	return aod.event_set, nil
+	aod.eventSet = event_set.New(aod.events)
+	return aod.eventSet, nil
 }
 
 // CheckEvents checks whether the detection result satisfies any event conditions set by
@@ -46,17 +46,17 @@ func (aod *ActionOnDetect) RegisterEvents(labels map[string]bool) (*event_set.Ev
 // application.
 func (aod *ActionOnDetect) CheckEvents(dr *pb.DetectionResult) {
 	log.Println("CheckEvents")
-	event := aod.event_set.Find(dr.Labels)
+	event := aod.eventSet.Find(dr.Labels)
 	log.Println("found", event)
 
 	if event != nil {
 		action := pb.Action{
 			DetectionResult: dr,
-			AnnotatedImg: nil,
+			AnnotatedImg:    nil,
 		}
 
 		go func() {
-			_, err := aod.client.SendAction(aod.eCtx.ctx, &action )
+			_, err := aod.client.SendAction(aod.eCtx.ctx, &action)
 			if err != nil {
 				log.Printf("Error while sending action: %v", err)
 			}
