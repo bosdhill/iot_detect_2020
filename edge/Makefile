@@ -2,6 +2,6 @@ edge:
 	go build
 run:
 	make edge
-	edge --server-addr "localhost:4201" --app-server-addr "localhost:4200"
+	edge --server-addr $(EDGE_SERVER) --app-server-addr $(APP_SERVER)
 clean:
 	rm edge
