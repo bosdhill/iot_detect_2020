@@ -321,11 +321,16 @@ type ObjectDetect struct {
 }
 
 // NewObjectDetection returns a new object detection component
-func NewObjectDetection(eCtx *EdgeContext, aod *ActionOnDetect) (*ObjectDetect, error) {
+func NewObjectDetection(eCtx *EdgeContext, aod *ActionOnDetect, withCuda bool) (*ObjectDetect, error) {
 	log.Println("NewObjectDetection")
 	caffeNet := gocv.ReadNetFromCaffe(proto, model)
 	if caffeNet.Empty() {
 		return nil, fmt.Errorf("cannot read network model from: %v %v", proto, model)
+	}
+	// Set net backend type as CUDA if running on the Jetson Nano
+	if withCuda {
+		caffeNet.SetPreferableBackend(gocv.NetBackendType(gocv.NetBackendCUDA))
+		caffeNet.SetPreferableTarget(gocv.NetTargetType(gocv.NetTargetCUDA))
 	}
 	return &ObjectDetect{net: &caffeNet, eCtx: eCtx, aod: aod}, nil
 }
