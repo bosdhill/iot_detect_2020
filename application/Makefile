@@ -2,6 +2,6 @@ application:
 	go build
 run:
 	make application
-	application --server_addr $(APP_SERVER)
+	application --server-addr "localhost:4200"
 clean:
 	rm application
