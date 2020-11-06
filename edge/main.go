@@ -138,7 +138,7 @@ func main() {
 		panic(err)
 	}
 
-	od, err := NewObjectDetection(eCtx, aod, *withCuda)
+	od, err := NewObjectDetection(eCtx, aod)
 	if err != nil {
 		panic(err)
 	}
