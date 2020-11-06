@@ -174,7 +174,7 @@ message DetectionResult {
 	map<string, int32> labels = 3;
 
 	// The matrix representation of the image frame
-	bytes img = 4;
+	Image img = 4;
 
 	// A map from label to its bounding box
 	map<string, BoundingBoxes> label_boxes = 5;

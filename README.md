@@ -132,6 +132,18 @@ go tool pprof http://localhost:6060/debug/pprof/heap + top and web or
 go tool pprof -png http://localhost:6060/debug/pprof/heap > out.png
 ```
 
+## Gocv profiling
+Since gocv.Mat is allocated with C code, the Go garbage collector does not handle its clean up. Every Mat needs to be closed. 
+In order to detect these gocv.Mat memory leaks, build with:
+```sh
+go build -tags matprofile
+```
+and run with
+```sh
+./edge --matprofile true
+```
+More [here](https://gocv.io/blog/2018-11-28-opencv-4-support-and-custom-profiling/)
+
 
 # Notes on gocv and opencv
 

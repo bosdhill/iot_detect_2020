@@ -1,7 +1,8 @@
+EDGE_RUN_FLAGS=--server-addr $(EDGE_SERVER) --app-server-addr $(APP_SERVER) --with-cuda=$(W_CUDA) --matprofile=$(EDGE_MAT_PROFILE)
 edge:
-	go build
+	go build $(EDGE_BUILD_FLAGS)
 run:
 	make edge
-	./edge --server-addr $(EDGE_SERVER) --app-server-addr $(APP_SERVER) --with-cuda $(W_CUDA)
+	./edge $(EDGE_RUN_FLAGS) 
 clean:
 	rm edge

@@ -25,11 +25,12 @@ type ClientComm struct {
 	cancel context.CancelFunc
 }
 
-func uploadReqToImg(req *pb.Image) *gocv.Mat {
-	height := int(req.Rows)
-	width := int(req.Cols)
-	mType := gocv.MatType(req.Type)
-	mat, err := gocv.NewMatFromBytes(height, width, mType, req.Image)
+// ImgToMat handles deserializing the Image to a gocv.Mat
+func ImgToMat(img *pb.Image) *gocv.Mat {
+	height := int(img.Rows)
+	width := int(img.Cols)
+	mType := gocv.MatType(img.Type)
+	mat, err := gocv.NewMatFromBytes(height, width, mType, img.Image)
 	if mType != gocv.MatTypeCV32F {
 		mat.ConvertTo(&mat, gocv.MatTypeCV32F)
 	}
@@ -47,24 +48,24 @@ func (comm *ClientComm) UploadImage(stream pb.Uploader_UploadImageServer) error 
 	log.Println("UploadImage")
 	count := 0
 	resCh := make(chan pb.DetectionResult)
-	iCh := make(chan *gocv.Mat)
-	go comm.od.caffeWorker(iCh, resCh)
+	imgCh := make(chan *gocv.Mat)
+	go comm.od.caffeWorker(imgCh, resCh)
 	go comm.ds.InsertWorker(resCh)
 	for {
-		req, err := stream.Recv()
+		img, err := stream.Recv()
 		count++
 		if err == io.EOF {
 			log.Println("EOF")
-			close(iCh)
+			close(imgCh)
 			return stream.SendAndClose(&pb.ImageResponse{Success: true})
 		}
 		if err != nil {
 			log.Println("err=", err)
 			return err
 		}
-		mat := uploadReqToImg(req)
+		mat := ImgToMat(img)
 		log.Println("mat dimensions rows, cols =", mat.Rows(), mat.Cols())
-		iCh <- mat
+		imgCh <- mat
 	}
 }
 

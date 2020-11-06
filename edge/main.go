@@ -17,6 +17,7 @@ var (
 	serverAddr    = flag.String("server-addr", "192.168.1.121:10000", "The edge server address in the format of host:port")
 	appServerAddr = flag.String("app-server-addr", "localhost:4200", "The app server address in the format of host:port")
 	withCuda      = flag.Bool("with-cuda", false, "Determines whether cuda is enabled or not")
+	matprofile    = flag.Bool("matprofile", false, "displays profile count of gocv.Mat")
 )
 
 var classNamesMap = map[string]bool{

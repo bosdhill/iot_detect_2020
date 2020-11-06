@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	pb "github.com/bosdhill/iot_detect_2020/interfaces"
 	"gocv.io/x/gocv"
@@ -335,7 +336,7 @@ func NewObjectDetection(eCtx *EdgeContext, aod *ActionOnDetect, withCuda bool) (
 	return &ObjectDetect{net: &caffeNet, eCtx: eCtx, aod: aod}, nil
 }
 
-func (od *ObjectDetect) caffeWorker(imgChan chan *gocv.Mat, drChan chan pb.DetectionResult) {
+func (od *ObjectDetect) caffeWorker(imgChan chan *gocv.Mat, resCh chan pb.DetectionResult) {
 	log.Println("caffeWorker")
 	sec := time.Duration(0)
 	count := 0
@@ -369,14 +370,31 @@ func (od *ObjectDetect) caffeWorker(imgChan chan *gocv.Mat, drChan chan pb.Detec
 			Img:           img.ToBytes(),
 			LabelBoxes:    labelBoxes,
 		}
-		drChan <- dr
+
+		if err := blob.Close(); err != nil {
+			log.Println("blob error ", err)
+		}
+		if err := probMat.Close(); err != nil {
+			log.Println("probMat error ", err)
+		}
+		if err := prob.Close(); err != nil {
+			log.Println("prob error ", err)
+		}
+		if err := img.Close(); err != nil {
+			log.Println("img error ", err)
+		}
+
+		resCh <- dr
 		od.aod.CheckEvents(&dr)
 
-		blob.Close()
-		probMat.Close()
-		prob.Close()
-		img.Close()
 		runtime.GC()
+
+		if *matprofile {
+			log.Println("profile count:", gocv.MatProfile.Count())
+			var b bytes.Buffer
+			gocv.MatProfile.WriteTo(&b, 1)
+			log.Println("Mat frames", b.String())
+		}
 	}
-	close(drChan)
+	close(resCh)
 }
