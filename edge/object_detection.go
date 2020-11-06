@@ -405,12 +405,12 @@ func (od *ObjectDetect) caffeWorker(imgChan chan *pb.Image, resCh chan pb.Detect
 		resCh <- dr
 		od.aod.CheckEvents(&dr)
 
-		if *matprofile {
-			log.Println("profile count:", gocv.MatProfile.Count())
-			var b bytes.Buffer
-			gocv.MatProfile.WriteTo(&b, 1)
-			log.Println("Mat frames", b.String())
-		}
+		//if *matprofile {
+		//	log.Println("profile count:", gocv.MatProfile.Count())
+		//	var b bytes.Buffer
+		//	gocv.MatProfile.WriteTo(&b, 1)
+		//	log.Println("Mat frames", b.String())
+		//}
 	}
 	od.net.Close()
 	close(resCh)
