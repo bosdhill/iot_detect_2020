@@ -91,7 +91,7 @@ func (ds *DataStore) InsertImageTable(dr *pb.DetectionResult) {
 	if err != nil {
 		log.Fatalf("InsertWorker: could not prepare insert into images table with err = %s", err)
 	}
-	_, err = stmt.Exec(dr.DetectionTime, dr.Img, dr.Empty)
+	_, err = stmt.Exec(dr.DetectionTime, dr.Img.Image, dr.Empty)
 	if err != nil {
 		log.Fatalf("InsertWorker: could not exec insert into images table with err = %s", err)
 	}

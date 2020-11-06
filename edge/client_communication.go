@@ -9,7 +9,6 @@ import (
 	"net"
 
 	pb "github.com/bosdhill/iot_detect_2020/interfaces"
-	"gocv.io/x/gocv"
 	"google.golang.org/grpc"
 )
 
@@ -25,21 +24,6 @@ type ClientComm struct {
 	cancel context.CancelFunc
 }
 
-// ImgToMat handles deserializing the Image to a gocv.Mat
-func ImgToMat(img *pb.Image) *gocv.Mat {
-	height := int(img.Rows)
-	width := int(img.Cols)
-	mType := gocv.MatType(img.Type)
-	mat, err := gocv.NewMatFromBytes(height, width, mType, img.Image)
-	if mType != gocv.MatTypeCV32F {
-		mat.ConvertTo(&mat, gocv.MatTypeCV32F)
-	}
-	if err != nil {
-		log.Fatal(err)
-	}
-	return &mat
-}
-
 // UploadImage serves image frame requests from the client. The image frame is
 // then passed to the image detection pipeline, where the frame is then inserted
 // into the db.
@@ -48,7 +32,7 @@ func (comm *ClientComm) UploadImage(stream pb.Uploader_UploadImageServer) error 
 	log.Println("UploadImage")
 	count := 0
 	resCh := make(chan pb.DetectionResult)
-	imgCh := make(chan *gocv.Mat)
+	imgCh := make(chan *pb.Image)
 	go comm.od.caffeWorker(imgCh, resCh)
 	go comm.ds.InsertWorker(resCh)
 	for {
@@ -63,9 +47,7 @@ func (comm *ClientComm) UploadImage(stream pb.Uploader_UploadImageServer) error 
 			log.Println("err=", err)
 			return err
 		}
-		mat := ImgToMat(img)
-		log.Println("mat dimensions rows, cols =", mat.Rows(), mat.Cols())
-		imgCh <- mat
+		imgCh <- img
 	}
 }
 

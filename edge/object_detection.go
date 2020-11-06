@@ -1,5 +1,6 @@
 package main
 
+import "C"
 import (
 	"bytes"
 	"fmt"
@@ -314,6 +315,21 @@ func maxIndex(a []float32) int {
 	return maxI
 }
 
+// imgToMat handles deserializing the pb.Image to a gocv.Mat
+func imgToMat(img *pb.Image) *gocv.Mat {
+	height := int(img.Rows)
+	width := int(img.Cols)
+	mType := gocv.MatType(img.Type)
+	mat, err := gocv.NewMatFromBytes(height, width, mType, img.Image)
+	if mType != gocv.MatTypeCV32F {
+		mat.ConvertTo(&mat, gocv.MatTypeCV32F)
+	}
+	if err != nil {
+		log.Fatal(err)
+	}
+	return &mat
+}
+
 // ObjectDetect contains the object detection model
 type ObjectDetect struct {
 	net  *gocv.Net
@@ -336,17 +352,18 @@ func NewObjectDetection(eCtx *EdgeContext, aod *ActionOnDetect, withCuda bool) (
 	return &ObjectDetect{net: &caffeNet, eCtx: eCtx, aod: aod}, nil
 }
 
-func (od *ObjectDetect) caffeWorker(imgChan chan *gocv.Mat, resCh chan pb.DetectionResult) {
+func (od *ObjectDetect) caffeWorker(imgChan chan *pb.Image, resCh chan pb.DetectionResult) {
 	log.Println("caffeWorker")
 	sec := time.Duration(0)
 	count := 0
 	for img := range imgChan {
-		if img.Empty() {
+		mat := imgToMat(img)
+		if mat.Empty() {
 			log.Println("Img is Empty")
 			continue
 		}
 		t := time.Now()
-		blob := gocv.BlobFromImage(*img, 1.0/255.0, image.Pt(416, 416), gocv.NewScalar(0, 0, 0, 0), true, false)
+		blob := gocv.BlobFromImage(*mat, 1.0/255.0, image.Pt(416, 416), gocv.NewScalar(0, 0, 0, 0), true, false)
 		od.net.SetInput(blob, "data")
 
 		// In gocv v0.25.0, the name of the last output layer is lost, so its replaced with the name of top to retrieve
@@ -355,7 +372,7 @@ func (od *ObjectDetect) caffeWorker(imgChan chan *gocv.Mat, resCh chan pb.Detect
 		prob := od.net.Forward("result")
 		probMat := prob.Reshape(1, 1)
 
-		labels, labelBoxes := regionLayer(&probMat, true, float32(img.Rows()), float32(img.Cols()))
+		labels, labelBoxes := regionLayer(&probMat, true, float32(mat.Rows()), float32(mat.Cols()))
 
 		e := time.Since(t)
 		log.Println("detect time", e)
@@ -367,27 +384,26 @@ func (od *ObjectDetect) caffeWorker(imgChan chan *gocv.Mat, resCh chan pb.Detect
 			Empty:         len(labels) == 0,
 			DetectionTime: time.Now().UnixNano(),
 			Labels:        labels,
-			Img:           img.ToBytes(),
+			Img:           img,
 			LabelBoxes:    labelBoxes,
 		}
 
 		if err := blob.Close(); err != nil {
-			log.Println("blob error ", err)
+			log.Println("blob close error: ", err)
 		}
 		if err := probMat.Close(); err != nil {
-			log.Println("probMat error ", err)
+			log.Println("probMat close error: ", err)
 		}
 		if err := prob.Close(); err != nil {
-			log.Println("prob error ", err)
+			log.Println("prob close error: ", err)
 		}
-		if err := img.Close(); err != nil {
-			log.Println("img error ", err)
+		if err := mat.Close(); err != nil {
+			log.Println("mat close error: ", err)
 		}
+		runtime.GC()
 
 		resCh <- dr
 		od.aod.CheckEvents(&dr)
-
-		runtime.GC()
 
 		if *matprofile {
 			log.Println("profile count:", gocv.MatProfile.Count())
@@ -396,5 +412,6 @@ func (od *ObjectDetect) caffeWorker(imgChan chan *gocv.Mat, resCh chan pb.Detect
 			log.Println("Mat frames", b.String())
 		}
 	}
+	od.net.Close()
 	close(resCh)
 }
