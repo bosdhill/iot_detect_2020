@@ -9,7 +9,7 @@ import (
 func TestFind_String_Subset(t *testing.T) {
 	cases := []struct {
 		description    string
-		detectedLabels map[string]int
+		detectedLabels map[string]int32
 		event          *pb.Event
 		expected       bool
 	}{

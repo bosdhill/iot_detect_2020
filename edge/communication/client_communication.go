@@ -22,7 +22,7 @@ type ClientComm struct {
 	ds     *datastore.DataStore
 	od     *od.ObjectDetect
 	lis    net.Listener
-	eCtx   *context.Context
+	eCtx   context.Context
 	cancel context.CancelFunc
 }
 
@@ -55,7 +55,7 @@ func (comm *ClientComm) UploadImage(stream pb.Uploader_UploadImageServer) error 
 
 // NewClientCommunication returns a new client communication, which wraps around
 // a gRPC server to serve the client's image frame upload requests.
-func NewClientCommunication(eCtx *context.Context, addr string, ds *datastore.DataStore, od *od.ObjectDetect) (*ClientComm, error) {
+func NewClientCommunication(eCtx context.Context, addr string, ds *datastore.DataStore, od *od.ObjectDetect) (*ClientComm, error) {
 	log.Println("NewClientCommunication")
 	flag.Parse()
 	lis, err := net.Listen("tcp", addr)

@@ -12,17 +12,17 @@ import (
 // ActionOnDetect isused to serve the application's requests
 type ActionOnDetect struct {
 	client   pb.ActionOnDetectClient
-	ctx      *context.Context
+	ctx      context.Context
 	events   *pb.Events
 	eventSet *events.EventSet
 }
 
 // NewActionOnDetect starts up a grpc server and
-func NewActionOnDetect(ctx *context.Context, addr string) (*ActionOnDetect, error) {
+func NewActionOnDetect(ctx context.Context, addr string) (*ActionOnDetect, error) {
 	log.Println("NewActionOnDetect")
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithBlock(), grpc.WithInsecure(), grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(math.MaxInt32)))
-	conn, err := grpc.DialContext(*ctx, addr, opts...)
+	conn, err := grpc.DialContext(ctx, addr, opts...)
 	if err != nil {
 		log.Fatalf("Error while dialing. Err: %v", err)
 	}
@@ -34,7 +34,7 @@ func NewActionOnDetect(ctx *context.Context, addr string) (*ActionOnDetect, erro
 func (aod *ActionOnDetect) RegisterEvents(labels map[string]bool) (*events.EventSet, error) {
 	log.Println("RegisterEvents")
 	var err error
-	aod.events, err = aod.client.RegisterEvents(*aod.ctx, &pb.Labels{Labels: labels})
+	aod.events, err = aod.client.RegisterEvents(aod.ctx, &pb.Labels{Labels: labels})
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func (aod *ActionOnDetect) CheckEvents(dr *pb.DetectionResult) {
 		}
 
 		go func() {
-			_, err := aod.client.SendAction(*aod.ctx, &action)
+			_, err := aod.client.SendAction(aod.ctx, &action)
 			if err != nil {
 				log.Printf("Error while sending action: %v", err)
 			}

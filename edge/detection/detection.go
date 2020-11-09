@@ -439,12 +439,12 @@ func imgToMat(img *pb.Image) *gocv.Mat {
 // ObjectDetect contains the object detection model
 type ObjectDetect struct {
 	net *gocv.Net
-	ctx *context.Context
+	ctx context.Context
 	aod *aod.ActionOnDetect
 }
 
 // NewObjectDetection returns a new object detection component
-func NewObjectDetection(ctx *context.Context, aod *aod.ActionOnDetect, withCuda bool, proto, model string) (*ObjectDetect, error) {
+func NewObjectDetection(ctx context.Context, aod *aod.ActionOnDetect, withCuda bool, proto, model string) (*ObjectDetect, error) {
 	log.Println("NewObjectDetection")
 	caffeNet := gocv.ReadNetFromCaffe(proto, model)
 	if caffeNet.Empty() {

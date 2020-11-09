@@ -17,7 +17,7 @@ var dbTable = "detection"
 // DataStore stores the sqllite DB reference
 type DataStore struct {
 	db  *sql.DB
-	ctx *context.Context
+	ctx context.Context
 }
 
 // WriteOutImg handles writing out the annotated image frames
@@ -186,7 +186,7 @@ func (ds *DataStore) InsertLabelsTable(dr *pb.DetectionResult) {
 // images, bounding_box, and labels tables. These tables are used to store the
 // detection results.
 // TODO update schema for labels, and make it number of labels instead of existence of labels
-func NewDataStore(ctx *context.Context) (*DataStore, error) {
+func NewDataStore(ctx context.Context) (*DataStore, error) {
 	log.Println("NewDataStore")
 	os.Remove("./object_detection.db")
 	db, err := sql.Open("sqlite3", "./object_detection.db")

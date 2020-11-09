@@ -162,3 +162,25 @@ mkdir -p $GOPATH/src/github.com/bosdhill/
 cd $GOPATH/src/github.com/bosdhill/
 git clone git@github.com:bosdhill/iot_detect_2020.git
 ```
+
+
+# MongoDB
+
+Set up mongodb data directory
+```sh
+$ cd $GOPATH/src/github.com/bosdhill/iot_detect_2020
+$ sudo chown -R `id -un` edge/datastore/mongodata
+```
+
+ 
+Run mongodb in the background
+```sh
+
+$ mongod --dbpath=$GOPATH/src/github.com/bosdhill/iot_detect_2020/edge/datastore/mongodata
+```
+
+To connect to mongodb
+
+```sh
+mongo
+```

@@ -44,12 +44,12 @@ func main() {
 
 	ctx, _ := context.WithCancel(context.Background())
 
-	ds, err := ds.NewDataStore(&ctx)
+	ds, err := ds.NewDataStore(ctx)
 	if err != nil {
 		panic(err)
 	}
 
-	aod, err := aod.NewActionOnDetect(&ctx, *appServerAddr)
+	aod, err := aod.NewActionOnDetect(ctx, *appServerAddr)
 	if err != nil {
 		panic(err)
 	}
@@ -59,12 +59,12 @@ func main() {
 		panic(err)
 	}
 
-	od, err := od.NewObjectDetection(&ctx, aod, *withCuda, proto, model)
+	od, err := od.NewObjectDetection(ctx, aod, *withCuda, proto, model)
 	if err != nil {
 		panic(err)
 	}
 
-	cComm, err := comm.NewClientCommunication(&ctx, *serverAddr, ds, od)
+	cComm, err := comm.NewClientCommunication(ctx, *serverAddr, ds, od)
 	if err != nil {
 		panic(err)
 	}
