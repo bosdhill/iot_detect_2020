@@ -328,6 +328,7 @@ func imgToMat(img *pb.Image) *gocv.Mat {
 	return &mat
 }
 
+
 // ObjectDetect contains the object detection model
 type ObjectDetect struct {
 	net  *gocv.Net
@@ -344,6 +345,7 @@ func NewObjectDetection(eCtx *EdgeContext, aod *ActionOnDetect) (*ObjectDetect, 
 	}
 	// Set net backend type as CUDA if running on the Jetson Nano
 	if *withCuda {
+		log.Println("Built with CUDA backend enabled")
 		caffeNet.SetPreferableBackend(gocv.NetBackendType(gocv.NetBackendCUDA))
 		caffeNet.SetPreferableTarget(gocv.NetTargetType(gocv.NetTargetCUDA))
 	}
