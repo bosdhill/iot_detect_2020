@@ -5,4 +5,6 @@ edge/model/tiny_yolo.caffemodel
 */.DS_Store
 client/client
 edge/edge
+application/application
+cloud/cloud
 **/*.jpg
