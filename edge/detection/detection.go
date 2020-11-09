@@ -1,10 +1,13 @@
-package main
+package detection
 
 import (
+	"context"
 	"fmt"
+	aod "github.com/bosdhill/iot_detect_2020/edge/actionondetect"
 	pb "github.com/bosdhill/iot_detect_2020/interfaces"
 	"gocv.io/x/gocv"
 	"image"
+	"image/color"
 	"log"
 	"math"
 	"runtime"
@@ -12,34 +15,139 @@ import (
 	"time"
 )
 
-var (
-	proto = "model/tiny_yolo_deploy.prototxt"
-	model = "model/tiny_yolo.caffemodel"
-)
+// NumClasses used in object detection
+const NumClasses = 80
+const n = 5
+const size = NumClasses + n
+const w = 12
+const h = 12
+const blockwd float32 = 13
+const numBoxes = h * w * n
+const thresh = 0.2
+const nmsThreshold = 0.4
 
-// TODO different color for each class -- can be used when augmenting images
-//var colors = [20]color.RGBA{
-//	color.RGBA{230, 25, 75, 0},
-//	color.RGBA{60, 180, 75, 0},
-//	color.RGBA{255, 225, 25, 0},
-//	color.RGBA{0, 130, 200, 0},
-//	color.RGBA{245, 130, 48, 0},
-//	color.RGBA{145, 30, 180, 0},
-//	color.RGBA{70, 240, 240, 0},
-//	color.RGBA{240, 50, 230, 0},
-//	color.RGBA{210, 245, 60, 0},
-//	color.RGBA{250, 190, 190, 0},
-//	color.RGBA{0, 128, 128, 0},
-//	color.RGBA{230, 190, 255, 0},
-//	color.RGBA{170, 110, 40, 0},
-//	color.RGBA{255, 250, 200, 0},
-//	color.RGBA{128, 0, 0, 0},
-//	color.RGBA{170, 255, 195, 0},
-//	color.RGBA{128, 128, 0, 0},
-//	color.RGBA{255, 215, 180, 0},
-//	color.RGBA{0, 0, 128, 0},
-//	color.RGBA{128, 128, 128, 0},
-//}
+var (
+	classNames = [NumClasses]string{"person", "bicycle", "car", "motorcycle", "airplane", "bus", "train",
+		"truck", "boat", "traffic light", "fire hydrant", "stop sign",
+		"parking meter", "bench", "bird", "cat", "dog", "horse", "sheep", "cow",
+		"elephant", "bear", "zebra", "giraffe", "backpack", "umbrella",
+		"handbag", "tie", "suitcase", "frisbee", "skis", "snowboard",
+		"sports ball", "kite", "baseball bat", "baseball glove", "skateboard",
+		"surfboard", "tennis racket", "bottle", "wine glass", "cup", "fork",
+		"knife", "spoon", "bowl", "banana", "apple", "sandwich", "orange",
+		"broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair",
+		"couch", "potted plant", "bed", "dining table", "toilet", "tv",
+		"laptop", "mouse", "remote", "keyboard", "cell phone", "microwave",
+		"oven", "toaster", "sink", "refrigerator", "book", "clock", "vase",
+		"scissors", "teddy bear", "hair drier", "toothbrush"}
+	anchors = [2 * n]float32{0.738768, 0.874946, 2.42204, 2.65704, 4.30971, 7.04493, 10.246, 4.59428, 12.6868, 11.8741}
+
+	// ClassNames is a map of the classnames to pass to RegisterEvents
+	ClassNames = map[string]bool{
+		"person":         true,
+		"bicycle":        true,
+		"car":            true,
+		"motorcycle":     true,
+		"airplane":       true,
+		"bus":            true,
+		"train":          true,
+		"truck":          true,
+		"boat":           true,
+		"traffic light":  true,
+		"fire hydrant":   true,
+		"stop sign":      true,
+		"parking meter":  true,
+		"bench":          true,
+		"bird":           true,
+		"cat":            true,
+		"dog":            true,
+		"horse":          true,
+		"sheep":          true,
+		"cow":            true,
+		"elephant":       true,
+		"bear":           true,
+		"zebra":          true,
+		"giraffe":        true,
+		"backpack":       true,
+		"umbrella":       true,
+		"handbag":        true,
+		"tie":            true,
+		"suitcase":       true,
+		"frisbee":        true,
+		"skis":           true,
+		"snowboard":      true,
+		"sports ball":    true,
+		"kite":           true,
+		"baseball bat":   true,
+		"baseball glove": true,
+		"skateboard":     true,
+		"surfboard":      true,
+		"tennis racket":  true,
+		"bottle":         true,
+		"wine glass":     true,
+		"cup":            true,
+		"fork":           true,
+		"knife":          true,
+		"spoon":          true,
+		"bowl":           true,
+		"banana":         true,
+		"apple":          true,
+		"sandwich":       true,
+		"orange":         true,
+		"broccoli":       true,
+		"carrot":         true,
+		"hot dog":        true,
+		"pizza":          true,
+		"donut":          true,
+		"cake":           true,
+		"chair":          true,
+		"couch":          true,
+		"potted plant":   true,
+		"bed":            true,
+		"dining table":   true,
+		"toilet":         true,
+		"tv":             true,
+		"laptop":         true,
+		"mouse":          true,
+		"remote":         true,
+		"keyboard":       true,
+		"cell phone":     true,
+		"microwave":      true,
+		"oven":           true,
+		"toaster":        true,
+		"sink":           true,
+		"refrigerator":   true,
+		"book":           true,
+		"clock":          true,
+		"vase":           true,
+		"scissors":       true,
+		"teddy bear":     true,
+		"hair drier":     true,
+		"toothbrush":     true}
+
+	colors = [20]color.RGBA{
+		color.RGBA{230, 25, 75, 0},
+		color.RGBA{60, 180, 75, 0},
+		color.RGBA{255, 225, 25, 0},
+		color.RGBA{0, 130, 200, 0},
+		color.RGBA{245, 130, 48, 0},
+		color.RGBA{145, 30, 180, 0},
+		color.RGBA{70, 240, 240, 0},
+		color.RGBA{240, 50, 230, 0},
+		color.RGBA{210, 245, 60, 0},
+		color.RGBA{250, 190, 190, 0},
+		color.RGBA{0, 128, 128, 0},
+		color.RGBA{230, 190, 255, 0},
+		color.RGBA{170, 110, 40, 0},
+		color.RGBA{255, 250, 200, 0},
+		color.RGBA{128, 0, 0, 0},
+		color.RGBA{170, 255, 195, 0},
+		color.RGBA{128, 128, 0, 0},
+		color.RGBA{255, 215, 180, 0},
+		color.RGBA{0, 0, 128, 0},
+		color.RGBA{128, 128, 128, 0},
+	}
+)
 
 // Box represents the bounding box dimensions and class probabilities,
 // confidence, and current class index
@@ -48,14 +156,14 @@ type Box struct {
 	y               float32
 	w               float32
 	h               float32
-	classProbs      [numClasses]float32
+	classProbs      [NumClasses]float32
 	confidence      float32
 	currentClassIdx int
 }
 
 func regionLayer(predictions *gocv.Mat, transposePredictions bool, imgHeight, imgWidth float32) (map[string]int32, map[string]*pb.BoundingBoxes) {
 
-	var data [w * h * 5 * (numClasses + 5)]float32
+	var data [w * h * 5 * (NumClasses + 5)]float32
 	var label string
 
 	if transposePredictions {
@@ -85,8 +193,8 @@ func regionLayer(predictions *gocv.Mat, transposePredictions bool, imgHeight, im
 			continue
 		}
 
-		box.classProbs = softmax(data[index+5 : index+5+numClasses])
-		for j := 0; j < numClasses; j++ {
+		box.classProbs = softmax(data[index+5 : index+5+NumClasses])
+		for j := 0; j < NumClasses; j++ {
 			box.classProbs[j] *= box.confidence
 			if box.classProbs[j] < thresh {
 				box.classProbs[j] = 0
@@ -97,7 +205,7 @@ func regionLayer(predictions *gocv.Mat, transposePredictions bool, imgHeight, im
 	}
 
 	// Non-Maximum-Suppression
-	for k := 0; k < numClasses; k++ {
+	for k := 0; k < NumClasses; k++ {
 		for i := 0; i < len(boxes); i++ {
 			boxes[i].currentClassIdx = k
 		}
@@ -174,9 +282,9 @@ func regionLayer(predictions *gocv.Mat, transposePredictions bool, imgHeight, im
 	return labels, boxesMap
 }
 
-func matToArray(m *gocv.Mat) [w * h * 5 * (numClasses + 5)]float32 {
+func matToArray(m *gocv.Mat) [w * h * 5 * (NumClasses + 5)]float32 {
 
-	result := [w * h * 5 * (numClasses + 5)]float32{}
+	result := [w * h * 5 * (NumClasses + 5)]float32{}
 	i := 0
 	for r := 0; r < m.Rows(); r++ {
 		for c := 0; c < m.Cols(); c++ {
@@ -188,9 +296,9 @@ func matToArray(m *gocv.Mat) [w * h * 5 * (numClasses + 5)]float32 {
 	return result
 }
 
-func transpose(gocvMat *gocv.Mat) [w * h * 5 * (numClasses + 5)]float32 {
+func transpose(gocvMat *gocv.Mat) [w * h * 5 * (NumClasses + 5)]float32 {
 
-	result := [w * h * 5 * (numClasses + 5)]float32{}
+	result := [w * h * 5 * (NumClasses + 5)]float32{}
 	i := 0
 	for c := 0; c < gocvMat.Cols(); c++ {
 		for r := 0; r < gocvMat.Rows(); r++ {
@@ -226,27 +334,27 @@ func logisticActivate(x float32) float32 {
 	return 1.0 / (1.0 + float32(math.Exp(float64(-x))))
 }
 
-func softmax(x []float32) [numClasses]float32 {
+func softmax(x []float32) [NumClasses]float32 {
 	var sum float32 = 0.0
 	var largest float32 = 0.0
 	var e float32
 
-	var output [numClasses]float32
+	var output [NumClasses]float32
 
-	for i := 0; i < numClasses; i++ {
+	for i := 0; i < NumClasses; i++ {
 		if x[i] > largest {
 			largest = x[i]
 		}
 	}
 
-	for i := 0; i < numClasses; i++ {
+	for i := 0; i < NumClasses; i++ {
 		e = float32(math.Exp(float64(x[i] - largest)))
 		sum += e
 		output[i] = e
 	}
 
 	if sum > 1 {
-		for i := 0; i < numClasses; i++ {
+		for i := 0; i < NumClasses; i++ {
 			output[i] /= sum
 		}
 	}
@@ -328,31 +436,30 @@ func imgToMat(img *pb.Image) *gocv.Mat {
 	return &mat
 }
 
-
 // ObjectDetect contains the object detection model
 type ObjectDetect struct {
-	net  *gocv.Net
-	eCtx *EdgeContext
-	aod  *ActionOnDetect
+	net *gocv.Net
+	ctx *context.Context
+	aod *aod.ActionOnDetect
 }
 
 // NewObjectDetection returns a new object detection component
-func NewObjectDetection(eCtx *EdgeContext, aod *ActionOnDetect) (*ObjectDetect, error) {
+func NewObjectDetection(ctx *context.Context, aod *aod.ActionOnDetect, withCuda bool, proto, model string) (*ObjectDetect, error) {
 	log.Println("NewObjectDetection")
 	caffeNet := gocv.ReadNetFromCaffe(proto, model)
 	if caffeNet.Empty() {
 		return nil, fmt.Errorf("cannot read network model from: %v %v", proto, model)
 	}
 	// Set net backend type as CUDA if running on the Jetson Nano
-	if *withCuda {
+	if withCuda {
 		log.Println("Built with CUDA backend enabled")
 		caffeNet.SetPreferableBackend(gocv.NetBackendType(gocv.NetBackendCUDA))
 		caffeNet.SetPreferableTarget(gocv.NetTargetType(gocv.NetTargetCUDA))
 	}
-	return &ObjectDetect{net: &caffeNet, eCtx: eCtx, aod: aod}, nil
+	return &ObjectDetect{net: &caffeNet, ctx: ctx, aod: aod}, nil
 }
 
-func (od *ObjectDetect) caffeWorker(imgChan chan *pb.Image, resCh chan pb.DetectionResult) {
+func (od *ObjectDetect) CaffeWorker(imgChan chan *pb.Image, resCh chan pb.DetectionResult) {
 	log.Println("caffeWorker")
 	sec := time.Duration(0)
 	count := 0

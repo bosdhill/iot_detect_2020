@@ -27,14 +27,14 @@ type EdgeComm struct {
 func NewEdgeComm(addr string) (*EdgeComm, error) {
 	log.Println("NewEdgeComm")
 	var opts []grpc.DialOption
-	opts = append(opts, grpc.WithBlock(), grpc.WithInsecure(), grpc.WithMaxMsgSize(math.MaxInt32))
+	opts = append(opts, grpc.WithBlock(), grpc.WithInsecure(), grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(math.MaxInt32)))
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	//defer cancel()
+
 	conn, err := grpc.DialContext(ctx, addr, opts...)
 	if err != nil {
 		log.Fatalf("Error while dialing. Err: %v", err)
 	}
-	//defer conn.Close()
+
 	client := pb.NewUploaderClient(conn)
 	return &EdgeComm{client}, nil
 }

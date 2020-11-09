@@ -1,8 +1,10 @@
-package main
+package communication
 
 import (
 	"context"
 	"flag"
+	"github.com/bosdhill/iot_detect_2020/edge/datastore"
+	od "github.com/bosdhill/iot_detect_2020/edge/detection"
 	"io"
 	"log"
 	"math"
@@ -17,10 +19,10 @@ import (
 // DataStore, ObjectDetect, and EdgeContext.
 type ClientComm struct {
 	server pb.UploaderServer
-	ds     *DataStore
-	od     *ObjectDetect
+	ds     *datastore.DataStore
+	od     *od.ObjectDetect
 	lis    net.Listener
-	eCtx   *EdgeContext
+	eCtx   *context.Context
 	cancel context.CancelFunc
 }
 
@@ -33,7 +35,7 @@ func (comm *ClientComm) UploadImage(stream pb.Uploader_UploadImageServer) error 
 	count := 0
 	resCh := make(chan pb.DetectionResult)
 	imgCh := make(chan *pb.Image)
-	go comm.od.caffeWorker(imgCh, resCh)
+	go comm.od.CaffeWorker(imgCh, resCh)
 	go comm.ds.InsertWorker(resCh)
 	for {
 		img, err := stream.Recv()
@@ -53,7 +55,7 @@ func (comm *ClientComm) UploadImage(stream pb.Uploader_UploadImageServer) error 
 
 // NewClientCommunication returns a new client communication, which wraps around
 // a gRPC server to serve the client's image frame upload requests.
-func NewClientCommunication(eCtx *EdgeContext, addr string, ds *DataStore, od *ObjectDetect) (*ClientComm, error) {
+func NewClientCommunication(eCtx *context.Context, addr string, ds *datastore.DataStore, od *od.ObjectDetect) (*ClientComm, error) {
 	log.Println("NewClientCommunication")
 	flag.Parse()
 	lis, err := net.Listen("tcp", addr)

@@ -1,7 +1,8 @@
-package main
+package actionondetect
 
 import (
-	"github.com/bosdhill/iot_detect_2020/edge/event_set"
+	"context"
+	"github.com/bosdhill/iot_detect_2020/edge/events"
 	pb "github.com/bosdhill/iot_detect_2020/interfaces"
 	"google.golang.org/grpc"
 	"log"
@@ -11,33 +12,33 @@ import (
 // ActionOnDetect isused to serve the application's requests
 type ActionOnDetect struct {
 	client   pb.ActionOnDetectClient
-	eCtx     *EdgeContext
+	ctx      *context.Context
 	events   *pb.Events
-	eventSet *event_set.EventSet
+	eventSet *events.EventSet
 }
 
 // NewActionOnDetect starts up a grpc server and
-func NewActionOnDetect(eCtx *EdgeContext, addr string) (*ActionOnDetect, error) {
+func NewActionOnDetect(ctx *context.Context, addr string) (*ActionOnDetect, error) {
 	log.Println("NewActionOnDetect")
 	var opts []grpc.DialOption
-	opts = append(opts, grpc.WithBlock(), grpc.WithInsecure(), grpc.WithMaxMsgSize(math.MaxInt32))
-	conn, err := grpc.DialContext(eCtx.ctx, addr, opts...)
+	opts = append(opts, grpc.WithBlock(), grpc.WithInsecure(), grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(math.MaxInt32)))
+	conn, err := grpc.DialContext(*ctx, addr, opts...)
 	if err != nil {
 		log.Fatalf("Error while dialing. Err: %v", err)
 	}
 	client := pb.NewActionOnDetectClient(conn)
-	return &ActionOnDetect{client: client, eCtx: eCtx}, nil
+	return &ActionOnDetect{client: client, ctx: ctx}, nil
 }
 
 // RegisterEvents is used to register the application's events
-func (aod *ActionOnDetect) RegisterEvents(labels map[string]bool) (*event_set.EventSet, error) {
+func (aod *ActionOnDetect) RegisterEvents(labels map[string]bool) (*events.EventSet, error) {
 	log.Println("RegisterEvents")
 	var err error
-	aod.events, err = aod.client.RegisterEvents(aod.eCtx.ctx, &pb.Labels{Labels: labels})
+	aod.events, err = aod.client.RegisterEvents(*aod.ctx, &pb.Labels{Labels: labels})
 	if err != nil {
 		return nil, err
 	}
-	aod.eventSet = event_set.New(aod.events)
+	aod.eventSet = events.New(aod.events)
 	return aod.eventSet, nil
 }
 
@@ -56,18 +57,10 @@ func (aod *ActionOnDetect) CheckEvents(dr *pb.DetectionResult) {
 		}
 
 		go func() {
-			_, err := aod.client.SendAction(aod.eCtx.ctx, &action)
+			_, err := aod.client.SendAction(*aod.ctx, &action)
 			if err != nil {
 				log.Printf("Error while sending action: %v", err)
 			}
 		}()
 	}
 }
-
-// func (aod *Appaod) SendAction(Action) {
-
-// }
-
-// func (aod *Appaod) StreamActions(Action) {
-
-// }

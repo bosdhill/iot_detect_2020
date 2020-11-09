@@ -1,21 +1,23 @@
-package main
+package datastore
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	od "github.com/bosdhill/iot_detect_2020/edge/detection"
+	pb "github.com/bosdhill/iot_detect_2020/interfaces"
 	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"os"
-	pb "github.com/bosdhill/iot_detect_2020/interfaces"
 )
 
 var dbTable = "detection"
 
 // DataStore stores the sqllite DB reference
 type DataStore struct {
-	db   *sql.DB
-	eCtx *EdgeContext
+	db  *sql.DB
+	ctx *context.Context
 }
 
 // WriteOutImg handles writing out the annotated image frames
@@ -38,7 +40,7 @@ func (ds *DataStore) Get() error {
 	}
 	defer rows.Close()
 	var dTime int64
-	var labels [numClasses]bool
+	var labels [od.NumClasses]bool
 	ret := []interface{}{&dTime}
 	for _, b := range labels {
 		ret = append(ret, &b)
@@ -184,7 +186,7 @@ func (ds *DataStore) InsertLabelsTable(dr *pb.DetectionResult) {
 // images, bounding_box, and labels tables. These tables are used to store the
 // detection results.
 // TODO update schema for labels, and make it number of labels instead of existence of labels
-func NewDataStore(eCtx *EdgeContext) (*DataStore, error) {
+func NewDataStore(ctx *context.Context) (*DataStore, error) {
 	log.Println("NewDataStore")
 	os.Remove("./object_detection.db")
 	db, err := sql.Open("sqlite3", "./object_detection.db")
@@ -300,5 +302,5 @@ func NewDataStore(eCtx *EdgeContext) (*DataStore, error) {
 	}
 	log.Println("Successfully created tables")
 
-	return &DataStore{db: db, eCtx: eCtx}, nil
+	return &DataStore{db: db, ctx: ctx}, nil
 }

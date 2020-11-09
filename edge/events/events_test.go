@@ -1,4 +1,4 @@
-package event_set
+package events
 
 import (
 	pb "github.com/bosdhill/iot_detect_2020/interfaces"
@@ -15,7 +15,7 @@ func TestFind_String_Subset(t *testing.T) {
 	}{
 		{
 			description:    "The event labels are a subset of the detectedLabels",
-			detectedLabels: map[string]int{"bus": 1, "car": 2, "person": 1, "truck": 1},
+			detectedLabels: map[string]int32{"bus": 1, "car": 2, "person": 1, "truck": 1},
 			event: &pb.Event{
 				LabelEvents: map[string]*pb.EventConditions{
 					"person": {
@@ -39,7 +39,7 @@ func TestFind_String_Subset(t *testing.T) {
 		},
 		{
 			description:    "The event labels are a not subset of the detectedLabels",
-			detectedLabels: map[string]int{"car": 2, "person": 1, "truck": 1},
+			detectedLabels: map[string]int32{"car": 2, "person": 1, "truck": 1},
 			event: &pb.Event{
 				LabelEvents: map[string]*pb.EventConditions{
 					"person": {
