@@ -1,4 +1,5 @@
 **/*.caffemodel
+edge/datastore/mongodata
 **/*.db
 .idea/
 */.DS_Store
