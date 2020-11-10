@@ -74,6 +74,7 @@ func (ds *MongoDataStore) QueryBy(f interface{}) ([]pb.DetectionResult, error) {
 		}
 	}
 
+	log.Println("query", query)
 	cur, err := ds.col.Find(ds.ctx, query)
 	if err != nil {
 		return nil, err
@@ -106,15 +107,25 @@ func (ds *MongoDataStore) DurationFilter(duration int64) bson.E {
 	return  bson.E{"detectiontime", bson.D{{"$gte", since}}}
 }
 
-// LabelFilter creates a filter for the labels field
-func (ds *MongoDataStore) LabelFilter(labels []string) bson.E {
-	return  bson.E{"labels", bson.D{ {"$in", bson.A{labels}}}}
+// LabelsIntersectFilter creates a filter for the labels field, where the query labels intersect the labels
+func (ds *MongoDataStore) LabelsIntersectFilter(labels []string) bson.E {
+	return  bson.E{"labels", bson.D{{"$in", labels}}}
 }
 
-// LabelMapFilter creates a filter for the label map field
-func (ds *MongoDataStore) LabelMapFilter(labelMap map[string]int32) bson.E {
-	return  bson.E{"labelmap", bson.D{{"$in", bson.A{labelMap}}}}
+// LabelsSubsetFilter creates a filter for the labels field, where the query labels are a subset of the labels
+func (ds *MongoDataStore) LabelsSubsetFilter(labels []string) bson.E {
+	return  bson.E{"labels", bson.D{ {"$all", labels}}}
 }
+
+//// LabelMapFilter creates a filter for the label map field
+//func (ds *MongoDataStore) LabelMapFilter(labelMap map[string]int32) bson.E {
+//	return  bson.E{"labelmap", bson.D{{"$in", labelMap}}}
+//}
+//
+//// LabelNumberFilter creates a filter for labels that are less/equal to a number
+//func (ds *MongoDataStore) LabelNumberFilter(labelMap map[string]int32) bson.E {
+//	return  bson.E{"labelmap", bson.D{{"$in", labelMap}}}
+//}
 
 // And for chaining together filter queries
 func (ds *MongoDataStore) And(param []bson.E) bson.D {
