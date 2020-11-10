@@ -12,13 +12,26 @@ import (
 )
 
 type MongoDataStore struct {
-	db *mongo.Client
-	ctx context.Context
-	col *mongo.Collection
+	db    *mongo.Client
+	ctx   context.Context
+	drCol *mongo.Collection
 }
 
-const dbName = "detections"
-const colName = "detection_result"
+type LabelBoxesDoc struct {
+	DetectionTime string
+	LabelBoxes	  map[string]*pb.BoundingBox
+}
+
+const (
+	dbName = "detections"
+	drColName = "detection_result"
+	LessThan = "$lt"
+	GreaterThan = "$gt"
+	Equal = "$eq"
+	GreaterThanOrEqual = "$gte"
+	LessThanOrEqual = "$lte"
+)
+
 
 // NewMongoDataStore returns a connection to the local mongodb instance
 func NewMongoDataStore() (*MongoDataStore, error) {
@@ -35,20 +48,26 @@ func NewMongoDataStore() (*MongoDataStore, error) {
 	// Creates database if it doesn't exist
 	db.Database(dbName)
 
-	// Creates collection if it doesn't exist
-	collection := db.Database(dbName).Collection(colName)
+	// Creates collections if it doesn't exist
+	drCol := db.Database(dbName).Collection(drColName)
 
-	return &MongoDataStore{db: db, ctx: ctx, col: collection}, nil
+	return &MongoDataStore{db: db, ctx: ctx, drCol: drCol}, nil
 }
 
+// InsertWorker pulls from the detection result channel and calls InsertDetectionResult
 func (ds *MongoDataStore) InsertWorker(drCh chan pb.DetectionResult) {
-
+	log.Println("InsertWorker")
+	for dr := range drCh {
+		if err := ds.InsertDetectionResult(dr); err != nil {
+			log.Printf("could not insert detection result: %v", err)
+		}
+	}
 }
 
-// InsertDetectionResult
+// InsertDetectionResult inserts the detection results into the detection_result
 func (ds *MongoDataStore) InsertDetectionResult(dr pb.DetectionResult) error {
 	log.Println("InsertDetectionResult")
-	res, err := ds.col.InsertOne(ds.ctx, dr)
+	res, err := ds.drCol.InsertOne(ds.ctx, dr)
 
 	if err != nil {
 		return err
@@ -58,24 +77,24 @@ func (ds *MongoDataStore) InsertDetectionResult(dr pb.DetectionResult) error {
 	return nil
 }
 
-// QueryBy queries mongodb by a specific filter or filters chained by Or or And
-func (ds *MongoDataStore) QueryBy(f interface{}) ([]pb.DetectionResult, error) {
+// FilterBy queries mongodb by a specific filter or filters chained by Or or And
+func (ds *MongoDataStore) FilterBy(query interface{}) ([]pb.DetectionResult, error) {
 	var err error
-	var query bson.D
+	var q bson.D
 
 	// Check whether its a bson document element or a bson document
-	b, ok := f.(bson.E)
+	b, ok := query.(bson.E)
 	if ok {
-		query = append(query, b)
+		q = append(q, b)
 	} else {
-		query, ok = f.(bson.D)
+		q, ok = query.(bson.D)
 		if !ok {
-			return nil, fmt.Errorf("filter should be either bson.D or bson.E")
+			return nil, fmt.Errorf("query should be of type bson.D or bson.E")
 		}
 	}
 
-	log.Println("query", query)
-	cur, err := ds.col.Find(ds.ctx, query)
+	log.Println("query", q)
+	cur, err := ds.drCol.Find(ds.ctx, q)
 	if err != nil {
 		return nil, err
 	}
@@ -101,31 +120,37 @@ func (ds *MongoDataStore) QueryBy(f interface{}) ([]pb.DetectionResult, error) {
 	return drSl, nil
 }
 
-// DurationFilter creates a duration filter query the frames between now and now - duration
-func (ds *MongoDataStore) DurationFilter(duration int64) bson.E {
-	since := time.Now().UnixNano() - duration
-	return  bson.E{"detectiontime", bson.D{{"$gte", since}}}
+// LabelMapQuery takes in a labelQuery, which is  a key value pairs, and comparison which is the method of comparing
+// each label key to the value in the map.
+//
+// For example if labelMap = ["person" : 1, "dog": 3] and comparison = Equal
+// will return all detection results where there is exactly one person and 3 dogs.
+func (ds *MongoDataStore) LabelMapQuery(labelMap map[string]int32, comparison string) bson.D {
+	prefixKey := "labelmap"
+	var b bson.D
+	for k, v := range labelMap {
+		key := fmt.Sprintf("%s.%s", prefixKey, k)
+		b = append(b, bson.E{key, bson.D{{comparison, v}}})
+	}
+	return b
 }
 
-// LabelsIntersectFilter creates a filter for the labels field, where the query labels intersect the labels
-func (ds *MongoDataStore) LabelsIntersectFilter(labels []string) bson.E {
+// DurationQuery creates a duration filter query the frames between now and now - duration
+func (ds *MongoDataStore) DurationQuery(duration int64) bson.E {
+	since := time.Now().UnixNano() - duration
+	return  bson.E{"detectiontime", bson.D{{GreaterThanOrEqual, since}}}
+}
+
+// LabelsIntersectQuery creates a filter for the labels field, where the query labels intersect the labels
+func (ds *MongoDataStore) LabelsIntersectQuery(labels []string) bson.E {
 	return  bson.E{"labels", bson.D{{"$in", labels}}}
 }
 
-// LabelsSubsetFilter creates a filter for the labels field, where the query labels are a subset of the labels
-func (ds *MongoDataStore) LabelsSubsetFilter(labels []string) bson.E {
+// LabelsSubsetQuery creates a filter for the labels field, where the query labels are a subset of the labels
+func (ds *MongoDataStore) LabelsSubsetQuery(labels []string) bson.E {
 	return  bson.E{"labels", bson.D{ {"$all", labels}}}
 }
 
-//// LabelMapFilter creates a filter for the label map field
-//func (ds *MongoDataStore) LabelMapFilter(labelMap map[string]int32) bson.E {
-//	return  bson.E{"labelmap", bson.D{{"$in", labelMap}}}
-//}
-//
-//// LabelNumberFilter creates a filter for labels that are less/equal to a number
-//func (ds *MongoDataStore) LabelNumberFilter(labelMap map[string]int32) bson.E {
-//	return  bson.E{"labelmap", bson.D{{"$in", labelMap}}}
-//}
 
 // And for chaining together filter queries
 func (ds *MongoDataStore) And(param []bson.E) bson.D {
