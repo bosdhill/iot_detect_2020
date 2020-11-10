@@ -56,12 +56,8 @@ func (ds *MongoDataStore) InsertDetectionResult(dr pb.DetectionResult) error {
 	return nil
 }
 
-// FilterByTime returns detection results from current unix time minus duration
-func (ds *MongoDataStore) FilterByTime(duration int64) ([]pb.DetectionResult, error) {
-	since := time.Now().UnixNano() - duration
-	log.Println(since)
-	cur, err := ds.col.Find(ds.ctx, bson.D{{"detectiontime", bson.D{{"$gte", since}}}})
-
+func (ds *MongoDataStore) FilterBy(f bson.D) ([]pb.DetectionResult, error) {
+	cur, err := ds.col.Find(ds.ctx, f)
 	if err != nil {
 		return nil, err
 	}
@@ -85,4 +81,13 @@ func (ds *MongoDataStore) FilterByTime(duration int64) ([]pb.DetectionResult, er
 	}
 
 	return drSl, nil
+}
+
+func (ds *MongoDataStore) DurationFilter(duration int64) bson.D {
+	since := time.Now().UnixNano() - duration
+	return  bson.D{{"detectiontime", bson.D{{"$gte", since}}}}
+}
+
+func (ds *MongoDataStore) LabelFilter(labels []string) bson.D {
+	return  bson.D{{"labels", bson.D{{"$in", bson.A{labels}}}}}
 }

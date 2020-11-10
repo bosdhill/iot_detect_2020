@@ -174,7 +174,7 @@ func (ds *DataStore) InsertLabelsTable(dr *pb.DetectionResult) {
 		log.Fatalf("InsertWorker: could not commit txn for bounding_box and images with err = %s", err)
 	}
 	// Update each column of that newly added row
-	for label, numDetected := range dr.Labels {
+	for label, numDetected := range dr.LabelMap {
 		_, err := ds.db.Exec(fmt.Sprintf("UPDATE labels SET %s = %v WHERE detection_time = %d", label, numDetected, dr.DetectionTime))
 		if err != nil {
 			log.Fatalf("InsertWorker: could not prepare update into labels err = %s", err)

@@ -47,7 +47,7 @@ func (aod *ActionOnDetect) RegisterEvents(labels map[string]bool) (*events.Event
 // application.
 func (aod *ActionOnDetect) CheckEvents(dr *pb.DetectionResult) {
 	log.Println("CheckEvents")
-	event := aod.eventSet.Find(dr.Labels)
+	event := aod.eventSet.Find(dr.LabelMap)
 	log.Println("found", event)
 
 	if event != nil {

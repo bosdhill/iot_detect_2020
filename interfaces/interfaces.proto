@@ -170,14 +170,17 @@ message DetectionResult {
 	// The time of detection
 	int64 detection_time = 2;
 
-	// A bitmap of detected labels
-	map<string, int32> labels = 3;
+	// A map of labels to number detected
+	map<string, int32> label_map = 3;
+
+    // A list of labels
+    repeated string labels = 4;
 
 	// The matrix representation of the image frame
-	Image img = 4;
+	Image img = 5;
 
 	// A map from label to its bounding box
-	map<string, BoundingBoxes> label_boxes = 5;
+	map<string, BoundingBoxes> label_boxes = 6;
 }
 
 message BoundingBoxes {

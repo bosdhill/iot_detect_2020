@@ -161,7 +161,7 @@ type Box struct {
 	currentClassIdx int
 }
 
-func regionLayer(predictions *gocv.Mat, transposePredictions bool, imgHeight, imgWidth float32) (map[string]int32, map[string]*pb.BoundingBoxes) {
+func regionLayer(predictions *gocv.Mat, transposePredictions bool, imgHeight, imgWidth float32) ([]string, map[string]int32, map[string]*pb.BoundingBoxes) {
 
 	var data [w * h * 5 * (NumClasses + 5)]float32
 	var label string
@@ -226,7 +226,8 @@ func regionLayer(predictions *gocv.Mat, transposePredictions bool, imgHeight, im
 	}
 
 	boxesMap := make(map[string]*pb.BoundingBoxes)
-	labels := make(map[string]int32)
+	labelMap := make(map[string]int32)
+	labels := make([]string, 0)
 
 	for i := 0; i < len(boxes); i++ {
 		maxI := maxIndex(boxes[i].classProbs[:])
@@ -276,10 +277,11 @@ func regionLayer(predictions *gocv.Mat, transposePredictions bool, imgHeight, im
 			}
 		}
 		boxesMap[label].LabelBoxes = append(boxesMap[label].LabelBoxes, &bbBox)
-		labels[label] += 1
+		labelMap[label] += 1
+		labels = append(labels, label)
 	}
 
-	return labels, boxesMap
+	return labels, labelMap, boxesMap
 }
 
 func matToArray(m *gocv.Mat) [w * h * 5 * (NumClasses + 5)]float32 {
@@ -479,7 +481,7 @@ func (od *ObjectDetect) CaffeWorker(imgChan chan *pb.Image, resCh chan pb.Detect
 		prob := od.net.Forward("result")
 		probMat := prob.Reshape(1, 1)
 
-		labels, labelBoxes := regionLayer(&probMat, true, float32(mat.Rows()), float32(mat.Cols()))
+		labels, labelMap, labelBoxes := regionLayer(&probMat, true, float32(mat.Rows()), float32(mat.Cols()))
 
 		e := time.Since(t)
 		log.Println("detect time", e)
@@ -490,6 +492,7 @@ func (od *ObjectDetect) CaffeWorker(imgChan chan *pb.Image, resCh chan pb.Detect
 		dr := pb.DetectionResult{
 			Empty:         len(labels) == 0,
 			DetectionTime: time.Now().UnixNano(),
+			LabelMap: 	   labelMap,
 			Labels:        labels,
 			Img:           img,
 			LabelBoxes:    labelBoxes,
