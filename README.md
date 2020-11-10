@@ -184,3 +184,24 @@ To connect to mongodb
 ```sh
 mongo
 ```
+
+Mongodb shell
+```bash
+mongo
+```
+
+View and use a db
+```bash
+show dbs
+use detections
+```
+
+delete all documents from a collection
+```bash
+db.detections_result.remove( { } )
+```
+
+delete collection
+```sh
+db.detections_result.drop()
+```
