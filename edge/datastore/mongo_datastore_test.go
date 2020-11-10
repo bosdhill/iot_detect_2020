@@ -46,7 +46,7 @@ func TestMongoDataStore_InsertDetectionResult(t *testing.T) {
 	}
 }
 
-func TestMongoDataStore_FilterByDuration(t *testing.T) {
+func TestMongoDataStore_DurationFilter(t *testing.T) {
 	dr := pb.DetectionResult{
 		Empty:         false,
 		DetectionTime: time.Now().UnixNano(),
@@ -72,14 +72,14 @@ func TestMongoDataStore_FilterByDuration(t *testing.T) {
 	}
 
 	// Filter by detection results from last 30 minutes in nanoseconds
-	drSl, err := ds.FilterBy(ds.DurationFilter(time.Duration(30 * time.Minute).Nanoseconds()))
+	drSl, err := ds.QueryBy(ds.DurationFilter(time.Duration(30 * time.Minute).Nanoseconds()))
 
 	if len(drSl) == 0 {
 		t.Error(err)
 	}
 }
 
-func TestMongoDataStore_FilterByLabels(t *testing.T) {
+func TestMongoDataStore_LabelFilter(t *testing.T) {
 	labels := []string{"person", "bus"}
 	dr := pb.DetectionResult{
 		Empty:         false,
@@ -105,7 +105,41 @@ func TestMongoDataStore_FilterByLabels(t *testing.T) {
 		log.Printf("%v", err)
 	}
 
-	drSl, err := ds.FilterBy(ds.LabelFilter(labels))
+	drSl, err := ds.QueryBy(ds.LabelFilter(labels))
+
+	if len(drSl) == 0 {
+		t.Error(err)
+	}
+}
+
+func TestMongoDataStore_LabelMapFilter(t *testing.T) {
+	labelMap := map[string]int32{"person": 1, "bus": 4}
+	labels := []string{"person", "bus"}
+	dr := pb.DetectionResult{
+		Empty:         false,
+		DetectionTime: time.Now().UnixNano(),
+		LabelMap:      labelMap,
+		Labels:        labels,
+		Img: &pb.Image{
+			Image: nil,
+			Rows:  0,
+			Cols:  0,
+			Type:  0,
+		},
+		LabelBoxes: nil,
+	}
+
+	ds, err := NewMongoDataStore()
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	if err := ds.InsertDetectionResult(dr); err != nil {
+		log.Printf("%v", err)
+	}
+
+	drSl, err := ds.QueryBy(ds.LabelMapFilter(labelMap))
 
 	if len(drSl) == 0 {
 		t.Error(err)

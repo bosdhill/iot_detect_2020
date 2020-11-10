@@ -2,6 +2,7 @@ package datastore
 
 import (
 	"context"
+	"fmt"
 	pb "github.com/bosdhill/iot_detect_2020/interfaces"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -44,6 +45,7 @@ func (ds *MongoDataStore) InsertWorker(drCh chan pb.DetectionResult) {
 
 }
 
+// InsertDetectionResult
 func (ds *MongoDataStore) InsertDetectionResult(dr pb.DetectionResult) error {
 	log.Println("InsertDetectionResult")
 	res, err := ds.col.InsertOne(ds.ctx, dr)
@@ -56,8 +58,23 @@ func (ds *MongoDataStore) InsertDetectionResult(dr pb.DetectionResult) error {
 	return nil
 }
 
-func (ds *MongoDataStore) FilterBy(f bson.D) ([]pb.DetectionResult, error) {
-	cur, err := ds.col.Find(ds.ctx, f)
+// QueryBy queries mongodb by a specific filter or filters chained by Or or And
+func (ds *MongoDataStore) QueryBy(f interface{}) ([]pb.DetectionResult, error) {
+	var err error
+	var query bson.D
+
+	// Check whether its a bson document element or a bson document
+	b, ok := f.(bson.E)
+	if ok {
+		query = append(query, b)
+	} else {
+		query, ok = f.(bson.D)
+		if !ok {
+			return nil, fmt.Errorf("filter should be either bson.D or bson.E")
+		}
+	}
+
+	cur, err := ds.col.Find(ds.ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -83,11 +100,36 @@ func (ds *MongoDataStore) FilterBy(f bson.D) ([]pb.DetectionResult, error) {
 	return drSl, nil
 }
 
-func (ds *MongoDataStore) DurationFilter(duration int64) bson.D {
+// DurationFilter creates a duration filter query the frames between now and now - duration
+func (ds *MongoDataStore) DurationFilter(duration int64) bson.E {
 	since := time.Now().UnixNano() - duration
-	return  bson.D{{"detectiontime", bson.D{{"$gte", since}}}}
+	return  bson.E{"detectiontime", bson.D{{"$gte", since}}}
 }
 
-func (ds *MongoDataStore) LabelFilter(labels []string) bson.D {
-	return  bson.D{{"labels", bson.D{{"$in", bson.A{labels}}}}}
+// LabelFilter creates a filter for the labels field
+func (ds *MongoDataStore) LabelFilter(labels []string) bson.E {
+	return  bson.E{"labels", bson.D{ {"$in", bson.A{labels}}}}
+}
+
+// LabelMapFilter creates a filter for the label map field
+func (ds *MongoDataStore) LabelMapFilter(labelMap map[string]int32) bson.E {
+	return  bson.E{"labelmap", bson.D{{"$in", bson.A{labelMap}}}}
+}
+
+// And for chaining together filter queries
+func (ds *MongoDataStore) And(param []bson.E) bson.D {
+	var b bson.D
+	for _, filter := range param {
+		b = append(b, filter)
+	}
+	return b
+}
+
+// Or for chaining together filter queries
+func (ds *MongoDataStore) Or(param []bson.E) bson.D {
+	var b []bson.E
+	for _, filter := range param {
+		b = append(b, filter)
+	}
+	return bson.D{{"$or", bson.A{b}}}
 }
