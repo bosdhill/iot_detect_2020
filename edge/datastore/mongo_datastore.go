@@ -125,18 +125,25 @@ func NewMongoDataStore(ctx context.Context, mongoUri, mongoAtlasUri string, ttlS
 	return &MongoDataStore{ctx: ctx, drCol: drCol, drRemoteCol: drRemoteCol}, nil
 }
 
-// InsertWorker pulls from the detection result channel and calls InsertDetectionResult
+// InsertWorker pulls from the detection result channel and calls insertDetectionResult
 func (ds *MongoDataStore) InsertWorker(drCh chan pb.DetectionResult) {
 	log.Println("InsertWorker")
 	for dr := range drCh {
-		if err := ds.InsertDetectionResult(dr); err != nil {
-			log.Printf("could not insert detection result: %v", err)
+		// non blocking upload to remote instance
+		go func() {
+			if err := ds.insertDetectionResult(ds.drRemoteCol, dr); err != nil {
+				log.Printf("could not insert detection result to mongodb atlas: %v", err)
+			}
+		}()
+		// local insert
+		if err := ds.insertDetectionResult(ds.drCol, dr); err != nil {
+			log.Printf("could not insert detection result to mongodb: %v", err)
 		}
 	}
 }
 
-// InsertDetectionResult inserts the detection results into the detection_result
-func (ds *MongoDataStore) InsertDetectionResult(dr pb.DetectionResult) error {
+// insertDetectionResult inserts the detection results into the detection_result collection
+func (ds *MongoDataStore) insertDetectionResult(drCol *mongo.Collection, dr pb.DetectionResult) error {
 	log.Println("InsertDetectionResult")
 
 	res, err := ds.drCol.InsertOne(ds.ctx, DetectionResult{
