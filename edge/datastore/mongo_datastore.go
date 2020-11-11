@@ -129,7 +129,7 @@ func NewMongoDataStore(ctx context.Context, mongoUri, mongoAtlasUri string, ttlS
 func (ds *MongoDataStore) InsertWorker(drCh chan pb.DetectionResult) {
 	log.Println("InsertWorker")
 
-	downstreamDrCh := make(chan pb.DetectionResult)
+	//downstreamDrCh := make(chan pb.DetectionResult)
 
 	//// upload to remote instance
 	//go func() {
@@ -148,7 +148,7 @@ func (ds *MongoDataStore) InsertWorker(drCh chan pb.DetectionResult) {
 			if err := ds.insertDetectionResult(ds.drCol, dr); err != nil {
 				log.Printf("could not insert detection result to mongodb: %v", err)
 			}
-			downstreamDrCh <- dr
+			//downstreamDrCh <- dr
 		}
 		close(drCh)
 	//}()
