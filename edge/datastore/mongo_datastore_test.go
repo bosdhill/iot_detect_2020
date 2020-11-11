@@ -2,27 +2,30 @@ package datastore
 
 import (
 	pb "github.com/bosdhill/iot_detect_2020/interfaces"
+	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/bson"
 	"golang.org/x/net/context"
 	"log"
+	"os"
 	"testing"
 	"time"
 )
 
-func TestNewMongoDataStore(t *testing.T) {
-	ctx := context.Background()
-	ds, err := NewMongoDataStore()
+var mongoUri string
+var mongoAtlasUri string
 
+func getEnvVars() {
+	err := godotenv.Load("../credentials.env")
 	if err != nil {
-		t.Errorf("%v", err)
+		log.Fatalf("Error loading .env file")
 	}
 
-	if err := ds.db.Ping(ctx, nil); err != nil {
-		t.Errorf("%v", err)
-	}
+	mongoAtlasUri = os.Getenv("MONGO_ATLAS_URI")
+	mongoUri = os.Getenv("MONGO_LOCAL_URI")
 }
 
 func TestMongoDataStore_InsertDetectionResult(t *testing.T) {
+	getEnvVars()
 	dr := pb.DetectionResult{
 		Empty:         false,
 		DetectionTime: time.Now().UnixNano(),
@@ -36,7 +39,7 @@ func TestMongoDataStore_InsertDetectionResult(t *testing.T) {
 		LabelBoxes: nil,
 	}
 
-	ds, err := NewMongoDataStore()
+	ds, err := NewMongoDataStore(context.Background(), mongoUri, mongoAtlasUri)
 
 	if err != nil {
 		t.Errorf("%v", err)
@@ -62,7 +65,7 @@ func TestMongoDataStore_DurationFilter(t *testing.T) {
 		LabelBoxes: nil,
 	}
 
-	ds, err := NewMongoDataStore()
+	ds, err := NewMongoDataStore(context.Background(), mongoUri, mongoAtlasUri)
 
 	if err != nil {
 		t.Error(err)
@@ -96,7 +99,7 @@ func TestMongoDataStore_LabelsIntersectFilter(t *testing.T) {
 		LabelBoxes: nil,
 	}
 
-	ds, err := NewMongoDataStore()
+	ds, err := NewMongoDataStore(context.Background(), mongoUri, mongoAtlasUri)
 
 	if err != nil {
 		t.Error(err)
@@ -130,7 +133,7 @@ func TestMongoDataStore_And(t *testing.T) {
 		LabelBoxes: nil,
 	}
 
-	ds, err := NewMongoDataStore()
+	ds, err := NewMongoDataStore(context.Background(), mongoUri, mongoAtlasUri)
 
 	if err != nil {
 		t.Error(err)
@@ -176,7 +179,7 @@ func TestMongoDataStore_LabelsSubsetFilter(t *testing.T) {
 		LabelBoxes: nil,
 	}
 
-	ds, err := NewMongoDataStore()
+	ds, err := NewMongoDataStore(context.Background(), mongoUri, mongoAtlasUri)
 
 	if err != nil {
 		t.Error(err)
@@ -209,7 +212,7 @@ func TestMongoDataStore_LabelMapQuery(t *testing.T) {
 		LabelBoxes: nil,
 	}
 
-	ds, err := NewMongoDataStore()
+	ds, err := NewMongoDataStore(context.Background(), mongoUri, mongoAtlasUri)
 
 	if err != nil {
 		t.Error(err)

@@ -7,6 +7,7 @@ import (
 	comm "github.com/bosdhill/iot_detect_2020/edge/communication"
 	ds "github.com/bosdhill/iot_detect_2020/edge/datastore"
 	od "github.com/bosdhill/iot_detect_2020/edge/detection"
+	"github.com/joho/godotenv"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -24,7 +25,15 @@ var (
 	model = "detection/model/tiny_yolo.caffemodel"
 )
 
+func getEnvVars() {
+	err := godotenv.Load("credentials.env")
+	if err != nil {
+		log.Fatalf("Error loading .env file")
+	}
+}
+
 func main() {
+	getEnvVars()
 	flag.Parse()
 
 	if *cpuprofile != "" {
@@ -44,7 +53,10 @@ func main() {
 
 	ctx, _ := context.WithCancel(context.Background())
 
-	ds, err := ds.NewDataStore(ctx)
+	mongoAtlasUri := os.Getenv("MONGO_ATLAS_URI")
+	mongoUri := os.Getenv("MONGO_LOCAL_URI")
+
+	ds, err := ds.NewMongoDataStore(ctx, mongoUri, mongoAtlasUri)
 	if err != nil {
 		panic(err)
 	}

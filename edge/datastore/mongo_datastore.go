@@ -12,46 +12,65 @@ import (
 )
 
 type MongoDataStore struct {
-	db    *mongo.Client
-	ctx   context.Context
-	drCol *mongo.Collection
+	ctx         context.Context
+	drCol       *mongo.Collection
+	drRemoteCol *mongo.Collection
 }
 
 type LabelBoxesDoc struct {
 	DetectionTime string
-	LabelBoxes	  map[string]*pb.BoundingBox
+	LabelBoxes    map[string]*pb.BoundingBox
 }
 
 const (
-	dbName = "detections"
-	drColName = "detection_result"
-	LessThan = "$lt"
-	GreaterThan = "$gt"
-	Equal = "$eq"
+	dbName             = "detections"
+	drColName          = "detection_result"
+	LessThan           = "$lt"
+	GreaterThan        = "$gt"
+	Equal              = "$eq"
 	GreaterThanOrEqual = "$gte"
-	LessThanOrEqual = "$lte"
+	LessThanOrEqual    = "$lte"
 )
 
-
-// NewMongoDataStore returns a connection to the local mongodb instance
-func NewMongoDataStore() (*MongoDataStore, error) {
-	var err error
-	db, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
-
+func initDBCollection(ctx context.Context, uri string) (*mongo.Collection, error) {
+	log.Println("initDBCollection")
+	db, err := mongo.NewClient(options.Client().ApplyURI(uri))
 	if err != nil {
 		return nil, err
 	}
 
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	err = db.Connect(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-	// Creates database if it doesn't exist
+	// test connection
+	if err := db.Ping(ctx, nil); err != nil {
+		return nil, err
+	}
+
+	// creates database if it doesn't exist
 	db.Database(dbName)
 
-	// Creates collections if it doesn't exist
+	// creates collections if it doesn't exist
 	drCol := db.Database(dbName).Collection(drColName)
+	return drCol, nil
+}
 
-	return &MongoDataStore{db: db, ctx: ctx, drCol: drCol}, nil
+// NewMongoDataStore returns a connection to the local mongodb instance
+func NewMongoDataStore(ctx context.Context, mongoUri, mongoAtlasUri string) (*MongoDataStore, error) {
+	log.Println("NewMongoDataStore")
+	drCol, err := initDBCollection(ctx, mongoUri)
+	if err != nil {
+		return nil, err
+	}
+
+	drRemoteCol, err := initDBCollection(ctx, mongoAtlasUri)
+	if err != nil {
+		return nil, err
+	}
+
+	return &MongoDataStore{ctx: ctx, drCol: drCol, drRemoteCol: drRemoteCol}, nil
 }
 
 // InsertWorker pulls from the detection result channel and calls InsertDetectionResult
@@ -138,19 +157,18 @@ func (ds *MongoDataStore) LabelMapQuery(labelMap map[string]int32, comparison st
 // DurationQuery creates a duration filter query the frames between now and now - duration
 func (ds *MongoDataStore) DurationQuery(duration int64) bson.E {
 	since := time.Now().UnixNano() - duration
-	return  bson.E{"detectiontime", bson.D{{GreaterThanOrEqual, since}}}
+	return bson.E{"detectiontime", bson.D{{GreaterThanOrEqual, since}}}
 }
 
 // LabelsIntersectQuery creates a filter for the labels field, where the query labels intersect the labels
 func (ds *MongoDataStore) LabelsIntersectQuery(labels []string) bson.E {
-	return  bson.E{"labels", bson.D{{"$in", labels}}}
+	return bson.E{"labels", bson.D{{"$in", labels}}}
 }
 
 // LabelsSubsetQuery creates a filter for the labels field, where the query labels are a subset of the labels
 func (ds *MongoDataStore) LabelsSubsetQuery(labels []string) bson.E {
-	return  bson.E{"labels", bson.D{ {"$all", labels}}}
+	return bson.E{"labels", bson.D{{"$all", labels}}}
 }
-
 
 // And for chaining together filter queries
 func (ds *MongoDataStore) And(param []bson.E) bson.D {

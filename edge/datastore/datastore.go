@@ -14,14 +14,19 @@ import (
 
 var dbTable = "detection"
 
-// DataStore stores the sqllite DB reference
-type DataStore struct {
+// DataStore interface is used to abstract different data store types
+type DataStore interface {
+	InsertWorker(drCh chan pb.DetectionResult)
+}
+
+// SQLDataStore stores the sqllite DB reference
+type SQLDataStore struct {
 	db  *sql.DB
 	ctx context.Context
 }
 
 // WriteOutImg handles writing out the annotated image frames
-func (ds *DataStore) WriteOutImg() {
+func (ds *SQLDataStore) WriteOutImg() {
 	//for label, box := range res.LabelBoxes {
 	//	gocv.Rectangle(&Img, image.Rect(box.topleft.X, box.topleft.Y, box.bottomright.X, box.bottomright.Y), color.RGBA{230, 25, 75, 0}, 1)
 	//	gocv.PutText(&Img, box.label, image.Point{box.topleft.X, box.topleft.Y - 5}, gocv.FontHersheySimplex, 0.5, color.RGBA{230, 25, 75, 0}, 1)
@@ -30,9 +35,7 @@ func (ds *DataStore) WriteOutImg() {
 }
 
 // Get gets a frame from the data store.
-// TODO Should have a case when there is an Empty Get
-// TODO test Get with a gRPC application interface (next step)
-func (ds *DataStore) Get() error {
+func (ds *SQLDataStore) Get() error {
 	log.Println("Get")
 	rows, err := ds.db.Query("SELECT * FROM labels WHERE person = FALSE AND bus = TRUE")
 	if err != nil {
@@ -62,7 +65,7 @@ func (ds *DataStore) Get() error {
 
 // InsertWorker grabs detection results from the channel and inserts them into
 // the tables
-func (ds *DataStore) InsertWorker(drCh chan pb.DetectionResult) {
+func (ds *SQLDataStore) InsertWorker(drCh chan pb.DetectionResult) {
 	log.Println("InsertWorker")
 	for dr := range drCh {
 		ds.InsertImageTable(&dr)
@@ -73,7 +76,7 @@ func (ds *DataStore) InsertWorker(drCh chan pb.DetectionResult) {
 }
 
 // InsertImageTable inserts detection results into the image table.
-func (ds *DataStore) InsertImageTable(dr *pb.DetectionResult) {
+func (ds *SQLDataStore) InsertImageTable(dr *pb.DetectionResult) {
 	log.Println("InsertImageTable")
 	txn, err := ds.db.Begin()
 	if err != nil {
@@ -107,7 +110,7 @@ func (ds *DataStore) InsertImageTable(dr *pb.DetectionResult) {
 }
 
 // InsertBoundingBoxTable inserts detection results into the bounding box table.
-func (ds *DataStore) InsertBoundingBoxTable(dr *pb.DetectionResult) {
+func (ds *SQLDataStore) InsertBoundingBoxTable(dr *pb.DetectionResult) {
 	log.Println("InsertBoundingBoxTable")
 	txn, err := ds.db.Begin()
 	if err != nil {
@@ -145,7 +148,7 @@ func (ds *DataStore) InsertBoundingBoxTable(dr *pb.DetectionResult) {
 }
 
 // InsertLabelsTable inserts detection results into the labels table
-func (ds *DataStore) InsertLabelsTable(dr *pb.DetectionResult) {
+func (ds *SQLDataStore) InsertLabelsTable(dr *pb.DetectionResult) {
 	log.Println("InsertLabelsTable")
 	txn, err := ds.db.Begin()
 	if err != nil {
@@ -186,7 +189,7 @@ func (ds *DataStore) InsertLabelsTable(dr *pb.DetectionResult) {
 // images, bounding_box, and labels tables. These tables are used to store the
 // detection results.
 // TODO update schema for labels, and make it number of labels instead of existence of labels
-func NewDataStore(ctx context.Context) (*DataStore, error) {
+func NewDataStore(ctx context.Context) (*SQLDataStore, error) {
 	log.Println("NewDataStore")
 	os.Remove("./object_detection.db")
 	db, err := sql.Open("sqlite3", "./object_detection.db")
@@ -302,5 +305,5 @@ func NewDataStore(ctx context.Context) (*DataStore, error) {
 	}
 	log.Println("Successfully created tables")
 
-	return &DataStore{db: db, ctx: ctx}, nil
+	return &SQLDataStore{db: db, ctx: ctx}, nil
 }

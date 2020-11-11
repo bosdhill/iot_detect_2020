@@ -25,10 +25,9 @@ type EdgeComm struct {
 	lis    net.Listener
 }
 
-// RegisterEvents is called by the Edge to set actions for certain events?
+// RegisterEvents is called by the Edge to filter results for events it cares about
 // TODO this should be an event driven pattern, such as in
 //  https://stephenafamo.com/blog/implementing-an-event-driven-system-in-go/
-// SetEvents is a method implemented by the application that determines what labels the application cares about
 func (comm *EdgeComm) RegisterEvents(ctx context.Context, labels *pb.Labels) (*pb.Events, error) {
 	events := &pb.Events{}
 

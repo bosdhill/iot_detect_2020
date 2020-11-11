@@ -16,10 +16,10 @@ import (
 
 // ClientComm is a wrapper around the uploader server which is used to serve
 // client image frame upload requests. It also contains references to a
-// DataStore, ObjectDetect, and EdgeContext.
+// SQLDataStore, ObjectDetect, and EdgeContext.
 type ClientComm struct {
 	server pb.UploaderServer
-	ds     *datastore.DataStore
+	ds     *datastore.MongoDataStore
 	od     *od.ObjectDetect
 	lis    net.Listener
 	eCtx   context.Context
@@ -55,7 +55,7 @@ func (comm *ClientComm) UploadImage(stream pb.Uploader_UploadImageServer) error 
 
 // NewClientCommunication returns a new client communication, which wraps around
 // a gRPC server to serve the client's image frame upload requests.
-func NewClientCommunication(eCtx context.Context, addr string, ds *datastore.DataStore, od *od.ObjectDetect) (*ClientComm, error) {
+func NewClientCommunication(eCtx context.Context, addr string, ds *datastore.MongoDataStore, od *od.ObjectDetect) (*ClientComm, error) {
 	log.Println("NewClientCommunication")
 	flag.Parse()
 	lis, err := net.Listen("tcp", addr)

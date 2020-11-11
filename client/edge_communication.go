@@ -49,8 +49,6 @@ func imgToUploadReq(img gocv.Mat) *pb.Image {
 }
 
 // UploadImage streams image frames to the Edge
-// TODO batch image frames when uploading
-// FIXME message size limit capped at 4 MB -- fails with larger images
 func (e *EdgeComm) UploadImage(c chan gocv.Mat) {
 	log.Printf("UploadImage")
 	// TODO timeout should be twice FPS * number of Frames per video
