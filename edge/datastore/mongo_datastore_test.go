@@ -39,7 +39,7 @@ func TestMongoDataStore_InsertDetectionResult(t *testing.T) {
 		LabelBoxes: nil,
 	}
 
-	ds, err := NewMongoDataStore(context.Background(), mongoUri, mongoAtlasUri)
+	ds, err := NewMongoDataStore(context.Background(), mongoUri, mongoAtlasUri, 600)
 
 	if err != nil {
 		t.Errorf("%v", err)
@@ -65,7 +65,7 @@ func TestMongoDataStore_DurationFilter(t *testing.T) {
 		LabelBoxes: nil,
 	}
 
-	ds, err := NewMongoDataStore(context.Background(), mongoUri, mongoAtlasUri)
+	ds, err := NewMongoDataStore(context.Background(), mongoUri, mongoAtlasUri, 600)
 
 	if err != nil {
 		t.Error(err)
@@ -99,7 +99,7 @@ func TestMongoDataStore_LabelsIntersectFilter(t *testing.T) {
 		LabelBoxes: nil,
 	}
 
-	ds, err := NewMongoDataStore(context.Background(), mongoUri, mongoAtlasUri)
+	ds, err := NewMongoDataStore(context.Background(), mongoUri, mongoAtlasUri, 600)
 
 	if err != nil {
 		t.Error(err)
@@ -133,7 +133,7 @@ func TestMongoDataStore_And(t *testing.T) {
 		LabelBoxes: nil,
 	}
 
-	ds, err := NewMongoDataStore(context.Background(), mongoUri, mongoAtlasUri)
+	ds, err := NewMongoDataStore(context.Background(), mongoUri, mongoAtlasUri, 600)
 
 	if err != nil {
 		t.Error(err)
@@ -179,7 +179,7 @@ func TestMongoDataStore_LabelsSubsetFilter(t *testing.T) {
 		LabelBoxes: nil,
 	}
 
-	ds, err := NewMongoDataStore(context.Background(), mongoUri, mongoAtlasUri)
+	ds, err := NewMongoDataStore(context.Background(), mongoUri, mongoAtlasUri, 600)
 
 	if err != nil {
 		t.Error(err)
@@ -212,7 +212,7 @@ func TestMongoDataStore_LabelMapQuery(t *testing.T) {
 		LabelBoxes: nil,
 	}
 
-	ds, err := NewMongoDataStore(context.Background(), mongoUri, mongoAtlasUri)
+	ds, err := NewMongoDataStore(context.Background(), mongoUri, mongoAtlasUri, 600)
 
 	if err != nil {
 		t.Error(err)

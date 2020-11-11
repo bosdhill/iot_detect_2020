@@ -33,10 +33,11 @@ const (
 )
 
 type DetectionResult struct {
-	Created time.Time
+	Created         time.Time
 	DetectionResult pb.DetectionResult
 }
 
+// initDBCollection connects to the local and remote mongodb instances and creates the detections collection
 func initDBCollection(ctx context.Context, uri string) (*mongo.Collection, error) {
 	log.Println("initDBCollection")
 	db, err := mongo.NewClient(options.Client().ApplyURI(uri))
@@ -61,11 +62,11 @@ func initDBCollection(ctx context.Context, uri string) (*mongo.Collection, error
 	return drCol, nil
 }
 
-// create TTL index for retention policy for local db
-func createIndex(ctx context.Context, drCol *mongo.Collection) error {
+// create TTL index for data retention policy for local db
+func createTTLIndex(ctx context.Context, drCol *mongo.Collection, ttlSec int32) error {
 	ttlIdx := mongo.IndexModel{
 		Keys:    bson.D{{"created", 1}},
-		Options: options.Index().SetExpireAfterSeconds(600),
+		Options: options.Index().SetExpireAfterSeconds(ttlSec),
 	}
 
 	cursor, err := drCol.Indexes().List(ctx)
@@ -103,15 +104,16 @@ func createIndex(ctx context.Context, drCol *mongo.Collection) error {
 	return nil
 }
 
-// NewMongoDataStore returns a connection to the local mongodb instance
-func NewMongoDataStore(ctx context.Context, mongoUri, mongoAtlasUri string) (*MongoDataStore, error) {
+// NewMongoDataStore returns a connection to the local mongodb instance, with uris for local and remote instances, and
+// the time to live for the local mongodb instance in seconds.
+func NewMongoDataStore(ctx context.Context, mongoUri, mongoAtlasUri string, ttlSec int32) (*MongoDataStore, error) {
 	log.Println("NewMongoDataStore")
 	drCol, err := initDBCollection(ctx, mongoUri)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := createIndex(ctx, drCol); err != nil {
+	if err := createTTLIndex(ctx, drCol, ttlSec); err != nil {
 		return nil, err
 	}
 
@@ -137,12 +139,10 @@ func (ds *MongoDataStore) InsertWorker(drCh chan pb.DetectionResult) {
 func (ds *MongoDataStore) InsertDetectionResult(dr pb.DetectionResult) error {
 	log.Println("InsertDetectionResult")
 
-	drBson := DetectionResult{
-		Created: time.Now(),
+	res, err := ds.drCol.InsertOne(ds.ctx, DetectionResult{
+		Created:         time.Now(),
 		DetectionResult: dr,
-	}
-
-	res, err := ds.drCol.InsertOne(ds.ctx, drBson)
+	})
 
 	if err != nil {
 		return err

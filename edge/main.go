@@ -25,6 +25,8 @@ var (
 	model         = "detection/model/tiny_yolo.caffemodel"
 )
 
+const TTL = 30 * 60 * 60 // 30 minute TTL
+
 func getEnvVars() {
 	err := godotenv.Load("credentials.env")
 	if err != nil {
@@ -56,7 +58,7 @@ func main() {
 	mongoAtlasUri := os.Getenv("MONGO_ATLAS_URI")
 	mongoUri := os.Getenv("MONGO_LOCAL_URI")
 
-	ds, err := ds.NewMongoDataStore(ctx, mongoUri, mongoAtlasUri)
+	ds, err := ds.NewMongoDataStore(ctx, mongoUri, mongoAtlasUri, TTL)
 	if err != nil {
 		panic(err)
 	}
