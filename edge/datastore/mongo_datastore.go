@@ -128,18 +128,30 @@ func NewMongoDataStore(ctx context.Context, mongoUri, mongoAtlasUri string, ttlS
 // InsertWorker pulls from the detection result channel and calls insertDetectionResult
 func (ds *MongoDataStore) InsertWorker(drCh chan pb.DetectionResult) {
 	log.Println("InsertWorker")
-	for dr := range drCh {
-		// non blocking upload to remote instance
-		go func() {
-			if err := ds.insertDetectionResult(ds.drRemoteCol, dr); err != nil {
-				log.Printf("could not insert detection result to mongodb atlas: %v", err)
+
+	downstreamDrCh := make(chan pb.DetectionResult)
+
+	//// upload to remote instance
+	//go func() {
+	//	for dr := range downstreamDrCh {
+	//		if err := ds.insertDetectionResult(ds.drRemoteCol, dr); err != nil {
+	//			log.Printf("could not insert detection result to mongodb atlas: %v", err)
+	//		}
+	//		log.Println("uploaded to mongodb atlas")
+	//	}
+	//	close(downstreamDrCh)
+	//}()
+
+	// local db insert
+	//go func() {
+		for dr := range drCh {
+			if err := ds.insertDetectionResult(ds.drCol, dr); err != nil {
+				log.Printf("could not insert detection result to mongodb: %v", err)
 			}
-		}()
-		// local insert
-		if err := ds.insertDetectionResult(ds.drCol, dr); err != nil {
-			log.Printf("could not insert detection result to mongodb: %v", err)
+			downstreamDrCh <- dr
 		}
-	}
+		close(drCh)
+	//}()
 }
 
 // insertDetectionResult inserts the detection results into the detection_result collection

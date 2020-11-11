@@ -461,7 +461,7 @@ func NewObjectDetection(ctx context.Context, aod *aod.ActionOnDetect, withCuda b
 	return &ObjectDetect{net: &caffeNet, ctx: ctx, aod: aod}, nil
 }
 
-func (od *ObjectDetect) CaffeWorker(imgChan chan *pb.Image, resCh chan pb.DetectionResult) {
+func (od *ObjectDetect) CaffeWorker(imgChan chan *pb.Image, drCh chan pb.DetectionResult) {
 	log.Println("caffeWorker")
 	sec := time.Duration(0)
 	count := 0
@@ -511,9 +511,8 @@ func (od *ObjectDetect) CaffeWorker(imgChan chan *pb.Image, resCh chan pb.Detect
 			log.Println("mat close error: ", err)
 		}
 		runtime.GC()
-
-		resCh <- dr
 		od.aod.CheckEvents(&dr)
+		drCh <- dr
 
 		//if *matprofile {
 		//	log.Println("profile count:", gocv.MatProfile.Count())
@@ -522,6 +521,5 @@ func (od *ObjectDetect) CaffeWorker(imgChan chan *pb.Image, resCh chan pb.Detect
 		//	log.Println("Mat frames", b.String())
 		//}
 	}
-	od.net.Close()
-	close(resCh)
+	close(imgChan)
 }

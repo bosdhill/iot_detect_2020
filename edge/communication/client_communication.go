@@ -33,10 +33,10 @@ type ClientComm struct {
 func (comm *ClientComm) UploadImage(stream pb.Uploader_UploadImageServer) error {
 	log.Println("UploadImage")
 	count := 0
-	resCh := make(chan pb.DetectionResult)
+	drCh := make(chan pb.DetectionResult)
 	imgCh := make(chan *pb.Image)
-	go comm.od.CaffeWorker(imgCh, resCh)
-	go comm.ds.InsertWorker(resCh)
+	go comm.od.CaffeWorker(imgCh, drCh)
+	go comm.ds.InsertWorker(drCh)
 	for {
 		img, err := stream.Recv()
 		count++
