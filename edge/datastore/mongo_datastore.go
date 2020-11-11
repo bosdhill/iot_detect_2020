@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	pb "github.com/bosdhill/iot_detect_2020/interfaces"
+	"github.com/go-co-op/gocron"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -13,7 +14,7 @@ import (
 
 type MongoDataStore struct {
 	ctx         context.Context
-	drCol       *mongo.Collection
+	drLocalCol  *mongo.Collection
 	drRemoteCol *mongo.Collection
 }
 
@@ -32,10 +33,6 @@ const (
 	LessThanOrEqual    = "$lte"
 )
 
-type DetectionResult struct {
-	Created         time.Time
-	DetectionResult pb.DetectionResult
-}
 
 // initDBCollection connects to the local and remote mongodb instances and creates the detections collection
 func initDBCollection(ctx context.Context, uri string) (*mongo.Collection, error) {
@@ -62,48 +59,6 @@ func initDBCollection(ctx context.Context, uri string) (*mongo.Collection, error
 	return drCol, nil
 }
 
-// create TTL index for data retention policy for local db
-func createTTLIndex(ctx context.Context, drCol *mongo.Collection, ttlSec int32) error {
-	ttlIdx := mongo.IndexModel{
-		Keys:    bson.D{{"created", 1}},
-		Options: options.Index().SetExpireAfterSeconds(ttlSec),
-	}
-
-	cursor, err := drCol.Indexes().List(ctx)
-	if err != nil {
-		return err
-	}
-
-	// find and delete existing created_1 index
-	var results []bson.M
-	if err = cursor.All(ctx, &results); err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println(results)
-	for _, v := range results {
-		fmt.Println(v)
-		if idx, ok := v["name"]; ok {
-			if idx == "created_1" {
-				// drop it and recreate it if it exists
-				if _, err := drCol.Indexes().DropOne(ctx, "created_1"); err != nil {
-					return err
-				}
-				break
-			}
-		}
-	}
-
-	// create new created_1 index
-	idx, err := drCol.Indexes().CreateOne(ctx, ttlIdx)
-	if err != nil {
-		return err
-	}
-
-	log.Println("created index: ", idx)
-	return nil
-}
-
 // NewMongoDataStore returns a connection to the local mongodb instance, with uris for local and remote instances, and
 // the time to live for the local mongodb instance in seconds.
 func NewMongoDataStore(ctx context.Context, mongoUri, mongoAtlasUri string, ttlSec int32) (*MongoDataStore, error) {
@@ -113,55 +68,105 @@ func NewMongoDataStore(ctx context.Context, mongoUri, mongoAtlasUri string, ttlS
 		return nil, err
 	}
 
-	if err := createTTLIndex(ctx, drCol, ttlSec); err != nil {
-		return nil, err
-	}
-
 	drRemoteCol, err := initDBCollection(ctx, mongoAtlasUri)
 	if err != nil {
 		return nil, err
 	}
 
-	return &MongoDataStore{ctx: ctx, drCol: drCol, drRemoteCol: drRemoteCol}, nil
+	return &MongoDataStore{ctx: ctx, drLocalCol: drCol, drRemoteCol: drRemoteCol}, nil
 }
 
 // InsertWorker pulls from the detection result channel and calls insertDetectionResult
 func (ds *MongoDataStore) InsertWorker(drCh chan pb.DetectionResult) {
 	log.Println("InsertWorker")
-
-	//downstreamDrCh := make(chan pb.DetectionResult)
-
-	//// upload to remote instance
-	//go func() {
-	//	for dr := range downstreamDrCh {
-	//		if err := ds.insertDetectionResult(ds.drRemoteCol, dr); err != nil {
-	//			log.Printf("could not insert detection result to mongodb atlas: %v", err)
-	//		}
-	//		log.Println("uploaded to mongodb atlas")
-	//	}
-	//	close(downstreamDrCh)
-	//}()
-
-	// local db insert
-	//go func() {
-		for dr := range drCh {
-			if err := ds.insertDetectionResult(ds.drCol, dr); err != nil {
-				log.Printf("could not insert detection result to mongodb: %v", err)
-			}
-			//downstreamDrCh <- dr
+	var lower int64
+	var upper int64
+	lower = time.Now().UnixNano()
+	cloudUploadJob := func() {
+		log.Println("cloudUploadJob")
+		upper = lower + time.Duration(30 * time.Second).Nanoseconds()
+		// fetch detection results from last 30 seconds
+		log.Printf("fetching detection results in detectiontime range [%v, %v)\n", lower, upper)
+		drSl, err := ds.FilterBy(ds.TimeRangeQuery(lower, upper))
+		if err != nil {
+			log.Printf("Error while reading from local database: %v", err)
 		}
-		close(drCh)
-	//}()
+		log.Printf("read %v detection results from local db\n", len(drSl))
+
+		// upload to cloud
+		if err := ds.cloudUpload(drSl, ds.TimeRangeQuery(lower, upper)); err != nil {
+			log.Printf("Error uploading to mongodb atlas: %v", err)
+		}
+		lower = upper
+	}
+
+	// Defines a new scheduler that schedules and runs jobs
+	// NOTE: the job may run despite a previously scheduled job not completing, which means it may look like jobs
+	// are failing when they're actually just run redundantly. The jobs are run in a way so that they will be able to
+	// upload detection results within the entire time range, where some times in the range may or may not have any
+	// detection results. Since uploading to the cloud depends on upload speed and network bandwidth if the number of
+	// results is large, a single batched upload may take a while.
+	//
+	// For example, a cloudUploadJob may be scheduled at time T and then reads out entries to upload, which it waits
+	// for before issuing a success message.
+	//
+	// Another job may be scheduled at time T + t that reads an empty slice, and reports a failure message. This is okay
+	// because the time range of the previous upload already accounts for the detection results within that range.
+	//
+	// A possible optimization would be to chunk or batch the uploads to a fixed set instead of batching uploads
+	// over a certain fixed time range.
+	s := gocron.NewScheduler(time.UTC)
+
+	_, err := s.Every(30).Seconds().Do(cloudUploadJob)
+
+	if err != nil {
+		log.Printf("Error while doing job: %v", err)
+	}
+
+	// scheduler starts running jobs and current thread continues to execute
+	s.StartAsync()
+
+	for dr := range drCh {
+		if err := ds.localInsert(dr); err != nil {
+			log.Printf("could not insert detection result to mongodb: %v", err)
+		}
+	}
+	close(drCh)
 }
 
-// insertDetectionResult inserts the detection results into the detection_result collection
-func (ds *MongoDataStore) insertDetectionResult(drCol *mongo.Collection, dr pb.DetectionResult) error {
-	log.Println("InsertDetectionResult")
+// cloudUpload uploads detection results to mongodb atlas and removes those same detection results from the local
+// mongodb instance
+func (ds *MongoDataStore) cloudUpload(drSl []pb.DetectionResult, timeRange bson.E) error {
+	log.Println("cloudUpload")
 
-	res, err := drCol.InsertOne(ds.ctx, DetectionResult{
-		Created:         time.Now(),
-		DetectionResult: dr,
-	})
+	var drInsert []interface{}
+	for _, dr := range drSl {
+		drInsert = append(drInsert, dr)
+	}
+
+	res, err := ds.drRemoteCol.InsertMany(ds.ctx, drInsert)
+
+	if err != nil {
+		return err
+	}
+	log.Printf("uploaded ids: %v", res.InsertedIDs)
+
+	deleteRes, err := ds.drLocalCol.DeleteMany(ds.ctx, elemToDoc(timeRange))
+
+	if err != nil {
+		return err
+	}
+
+	log.Printf("deleted %v detection results locally", deleteRes.DeletedCount)
+
+	return nil
+}
+
+// localInsert inserts the detection results into the detection_result collection
+func (ds *MongoDataStore) localInsert(dr pb.DetectionResult) error {
+	log.Println("localInsert")
+
+	res, err := ds.drLocalCol.InsertOne(ds.ctx, dr)
 
 	if err != nil {
 		return err
@@ -171,8 +176,14 @@ func (ds *MongoDataStore) insertDetectionResult(drCol *mongo.Collection, dr pb.D
 	return nil
 }
 
+func elemToDoc(elem bson.E) bson.D {
+	var doc bson.D
+	doc = append(doc, elem)
+	return doc
+}
+
 // FilterBy queries mongodb by a specific filter or filters chained by Or or And
-func (ds *MongoDataStore) FilterBy(query interface{}) ([]DetectionResult, error) {
+func (ds *MongoDataStore) FilterBy(query interface{}) ([]pb.DetectionResult, error) {
 	var err error
 	var q bson.D
 
@@ -188,16 +199,16 @@ func (ds *MongoDataStore) FilterBy(query interface{}) ([]DetectionResult, error)
 	}
 
 	log.Println("query", q)
-	cur, err := ds.drCol.Find(ds.ctx, q)
+	cur, err := ds.drLocalCol.Find(ds.ctx, q)
 	if err != nil {
 		return nil, err
 	}
 	defer cur.Close(context.Background())
 
-	drSl := make([]DetectionResult, 0)
+	drSl := make([]pb.DetectionResult, 0)
 
 	for cur.Next(context.Background()) {
-		dr := DetectionResult{}
+		dr := pb.DetectionResult{}
 		err := cur.Decode(&dr)
 
 		if err != nil {
@@ -220,7 +231,7 @@ func (ds *MongoDataStore) FilterBy(query interface{}) ([]DetectionResult, error)
 // For example if labelMap = ["person" : 1, "dog": 3] and comparison = Equal
 // will return all detection results where there is exactly one person and 3 dogs.
 func (ds *MongoDataStore) LabelMapQuery(labelMap map[string]int32, comparison string) bson.D {
-	prefixKey := "detectionresult.labelmap"
+	prefixKey := "labelmap"
 	var b bson.D
 	for k, v := range labelMap {
 		key := fmt.Sprintf("%s.%s", prefixKey, k)
@@ -229,20 +240,25 @@ func (ds *MongoDataStore) LabelMapQuery(labelMap map[string]int32, comparison st
 	return b
 }
 
-// DurationQuery creates a duration filter query the frames between now and now - duration
+// TimeRangeQuery creates a filter query for the detection results between a time range
+func (ds *MongoDataStore) TimeRangeQuery(lower, upper int64) bson.E {
+	return bson.E{"detectiontime", bson.D{{GreaterThanOrEqual, lower}, {LessThan, upper}}}
+}
+
+// DurationQuery creates a duration filter query the detection results between now and now - duration
 func (ds *MongoDataStore) DurationQuery(duration int64) bson.E {
 	since := time.Now().UnixNano() - duration
-	return bson.E{"detectionresult.detectiontime", bson.D{{GreaterThanOrEqual, since}}}
+	return bson.E{"detectiontime", bson.D{{GreaterThanOrEqual, since}}}
 }
 
 // LabelsIntersectQuery creates a filter for the labels field, where the query labels intersect the labels
 func (ds *MongoDataStore) LabelsIntersectQuery(labels []string) bson.E {
-	return bson.E{"detectionresult.labels", bson.D{{"$in", labels}}}
+	return bson.E{"labels", bson.D{{"$in", labels}}}
 }
 
 // LabelsSubsetQuery creates a filter for the labels field, where the query labels are a subset of the labels
 func (ds *MongoDataStore) LabelsSubsetQuery(labels []string) bson.E {
-	return bson.E{"detectionresult.labels", bson.D{{"$all", labels}}}
+	return bson.E{"labels", bson.D{{"$all", labels}}}
 }
 
 // And for chaining together filter queries

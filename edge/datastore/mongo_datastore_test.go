@@ -45,7 +45,7 @@ func TestMongoDataStore_InsertDetectionResult(t *testing.T) {
 		t.Errorf("%v", err)
 	}
 
-	if err := ds.insertDetectionResult(ds.drCol, dr); err != nil {
+	if err := ds.insertDetectionResult(ds.drLocalCol, dr); err != nil {
 		t.Errorf("%v", err)
 	}
 }
@@ -71,7 +71,7 @@ func TestMongoDataStore_DurationFilter(t *testing.T) {
 		t.Error(err)
 	}
 
-	if err := ds.insertDetectionResult(ds.drCol, dr); err != nil {
+	if err := ds.insertDetectionResult(ds.drLocalCol, dr); err != nil {
 		log.Printf("%v", err)
 	}
 
@@ -105,7 +105,7 @@ func TestMongoDataStore_LabelsIntersectFilter(t *testing.T) {
 		t.Error(err)
 	}
 
-	if err := ds.insertDetectionResult(ds.drCol, dr); err != nil {
+	if err := ds.insertDetectionResult(ds.drLocalCol, dr); err != nil {
 		log.Printf("%v", err)
 	}
 
@@ -139,7 +139,7 @@ func TestMongoDataStore_And(t *testing.T) {
 		t.Error(err)
 	}
 
-	if err := ds.insertDetectionResult(ds.drCol, dr); err != nil {
+	if err := ds.insertDetectionResult(ds.drLocalCol, dr); err != nil {
 		log.Printf("%v", err)
 	}
 
@@ -185,7 +185,7 @@ func TestMongoDataStore_LabelsSubsetFilter(t *testing.T) {
 		t.Error(err)
 	}
 
-	if err := ds.insertDetectionResult(ds.drCol, dr); err != nil {
+	if err := ds.insertDetectionResult(ds.drLocalCol, dr); err != nil {
 		log.Printf("%v", err)
 	}
 
@@ -218,7 +218,7 @@ func TestMongoDataStore_LabelMapQuery(t *testing.T) {
 		t.Error(err)
 	}
 
-	if err := ds.insertDetectionResult(ds.drCol, dr); err != nil {
+	if err := ds.insertDetectionResult(ds.drLocalCol, dr); err != nil {
 		log.Printf("%v", err)
 	}
 

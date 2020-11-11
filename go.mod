@@ -7,6 +7,7 @@ require (
 	github.com/awalterschulze/gographviz v2.0.1+incompatible // indirect
 	github.com/aws/aws-sdk-go v1.35.24 // indirect
 	github.com/beevik/prefixtree v0.0.0-20190221160703-0e2fef796dd6
+	github.com/go-co-op/gocron v0.3.3
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang/protobuf v1.4.3
 	github.com/golang/snappy v0.0.2 // indirect
