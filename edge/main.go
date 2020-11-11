@@ -15,18 +15,18 @@ import (
 	"runtime/pprof"
 )
 
+const TTL = 30 * 60 * 60 // 30 minute TTL
+
 var (
 	cpuprofile    = flag.String("cpuprofile", "", "write cpu profile to file")
 	serverAddr    = flag.String("server-addr", "192.168.1.121:10000", "The edge server address in the format of host:port")
 	appServerAddr = flag.String("app-server-addr", "localhost:4200", "The app server address in the format of host:port")
 	withCuda      = flag.Bool("with-cuda", false, "Determines whether cuda is enabled or not")
 	matprofile    = flag.Bool("matprofile", false, "displays profile count of gocv.Mat")
-	ttl 		  = flag.Int64("ttl", TTL, "TTL for local mongodb instance")
+	ttl           = flag.Int64("ttl", TTL, "TTL for local mongodb instance")
 	proto         = "detection/model/tiny_yolo_deploy.prototxt"
 	model         = "detection/model/tiny_yolo.caffemodel"
 )
-
-const TTL = 30 * 60 * 60 // 30 minute TTL
 
 func getEnvVars() {
 	err := godotenv.Load("credentials.env")
