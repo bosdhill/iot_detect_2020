@@ -21,8 +21,8 @@ var (
 	appServerAddr = flag.String("app-server-addr", "localhost:4200", "The app server address in the format of host:port")
 	withCuda      = flag.Bool("with-cuda", false, "Determines whether cuda is enabled or not")
 	matprofile    = flag.Bool("matprofile", false, "displays profile count of gocv.Mat")
-	proto = "detection/model/tiny_yolo_deploy.prototxt"
-	model = "detection/model/tiny_yolo.caffemodel"
+	proto         = "detection/model/tiny_yolo_deploy.prototxt"
+	model         = "detection/model/tiny_yolo.caffemodel"
 )
 
 func getEnvVars() {
