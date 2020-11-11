@@ -21,6 +21,7 @@ var (
 	appServerAddr = flag.String("app-server-addr", "localhost:4200", "The app server address in the format of host:port")
 	withCuda      = flag.Bool("with-cuda", false, "Determines whether cuda is enabled or not")
 	matprofile    = flag.Bool("matprofile", false, "displays profile count of gocv.Mat")
+	ttl 		  = flag.Int64("ttl", TTL, "TTL for local mongodb instance")
 	proto         = "detection/model/tiny_yolo_deploy.prototxt"
 	model         = "detection/model/tiny_yolo.caffemodel"
 )
@@ -58,7 +59,7 @@ func main() {
 	mongoAtlasUri := os.Getenv("MONGO_ATLAS_URI")
 	mongoUri := os.Getenv("MONGO_LOCAL_URI")
 
-	ds, err := ds.NewMongoDataStore(ctx, mongoUri, mongoAtlasUri, TTL)
+	ds, err := ds.NewMongoDataStore(ctx, mongoUri, mongoAtlasUri, int32(*ttl))
 	if err != nil {
 		panic(err)
 	}
