@@ -1,5 +1,6 @@
 syntax = "proto3";
 import "google/protobuf/empty.proto";
+//import "google/protobuf/timestamp.proto";
 option go_package = ".;interfaces";
 package google.protobuf;
 
@@ -169,6 +170,9 @@ message DetectionResult {
 
 	// The time of detection
 	int64 detection_time = 2;
+
+//    // The time of detection
+//    google.protobuf.Timestamp detection_time = 2;
 
 	// A map of labels to number detected
 	map<string, int32> label_map = 3;

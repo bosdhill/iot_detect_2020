@@ -32,6 +32,11 @@ const (
 	LessThanOrEqual    = "$lte"
 )
 
+type DetectionResult struct {
+	Created time.Time
+	DetectionResult pb.DetectionResult
+}
+
 func initDBCollection(ctx context.Context, uri string) (*mongo.Collection, error) {
 	log.Println("initDBCollection")
 	db, err := mongo.NewClient(options.Client().ApplyURI(uri))
@@ -39,8 +44,7 @@ func initDBCollection(ctx context.Context, uri string) (*mongo.Collection, error
 		return nil, err
 	}
 
-	err = db.Connect(ctx)
-	if err != nil {
+	if err := db.Connect(ctx); err != nil {
 		return nil, err
 	}
 
@@ -57,11 +61,57 @@ func initDBCollection(ctx context.Context, uri string) (*mongo.Collection, error
 	return drCol, nil
 }
 
+// create TTL index for retention policy for local db
+func createIndex(ctx context.Context, drCol *mongo.Collection) error {
+	ttlIdx := mongo.IndexModel{
+		Keys:    bson.D{{"created", 1}},
+		Options: options.Index().SetExpireAfterSeconds(600),
+	}
+
+	cursor, err := drCol.Indexes().List(ctx)
+	if err != nil {
+		return err
+	}
+
+	// find and delete existing created_1 index
+	var results []bson.M
+	if err = cursor.All(ctx, &results); err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(results)
+	for _, v := range results {
+		fmt.Println(v)
+		if idx, ok := v["name"]; ok {
+			if idx == "created_1" {
+				// drop it and recreate it if it exists
+				if _, err := drCol.Indexes().DropOne(ctx, "created_1"); err != nil {
+					return err
+				}
+				break
+			}
+		}
+	}
+
+	// create new created_1 index
+	idx, err := drCol.Indexes().CreateOne(ctx, ttlIdx)
+	if err != nil {
+		return err
+	}
+
+	log.Println("created index: ", idx)
+	return nil
+}
+
 // NewMongoDataStore returns a connection to the local mongodb instance
 func NewMongoDataStore(ctx context.Context, mongoUri, mongoAtlasUri string) (*MongoDataStore, error) {
 	log.Println("NewMongoDataStore")
 	drCol, err := initDBCollection(ctx, mongoUri)
 	if err != nil {
+		return nil, err
+	}
+
+	if err := createIndex(ctx, drCol); err != nil {
 		return nil, err
 	}
 
@@ -86,7 +136,13 @@ func (ds *MongoDataStore) InsertWorker(drCh chan pb.DetectionResult) {
 // InsertDetectionResult inserts the detection results into the detection_result
 func (ds *MongoDataStore) InsertDetectionResult(dr pb.DetectionResult) error {
 	log.Println("InsertDetectionResult")
-	res, err := ds.drCol.InsertOne(ds.ctx, dr)
+
+	drBson := DetectionResult{
+		Created: time.Now(),
+		DetectionResult: dr,
+	}
+
+	res, err := ds.drCol.InsertOne(ds.ctx, drBson)
 
 	if err != nil {
 		return err
@@ -97,7 +153,7 @@ func (ds *MongoDataStore) InsertDetectionResult(dr pb.DetectionResult) error {
 }
 
 // FilterBy queries mongodb by a specific filter or filters chained by Or or And
-func (ds *MongoDataStore) FilterBy(query interface{}) ([]pb.DetectionResult, error) {
+func (ds *MongoDataStore) FilterBy(query interface{}) ([]DetectionResult, error) {
 	var err error
 	var q bson.D
 
@@ -119,10 +175,10 @@ func (ds *MongoDataStore) FilterBy(query interface{}) ([]pb.DetectionResult, err
 	}
 	defer cur.Close(context.Background())
 
-	drSl := make([]pb.DetectionResult, 0)
+	drSl := make([]DetectionResult, 0)
 
 	for cur.Next(context.Background()) {
-		dr := pb.DetectionResult{}
+		dr := DetectionResult{}
 		err := cur.Decode(&dr)
 
 		if err != nil {
@@ -145,7 +201,7 @@ func (ds *MongoDataStore) FilterBy(query interface{}) ([]pb.DetectionResult, err
 // For example if labelMap = ["person" : 1, "dog": 3] and comparison = Equal
 // will return all detection results where there is exactly one person and 3 dogs.
 func (ds *MongoDataStore) LabelMapQuery(labelMap map[string]int32, comparison string) bson.D {
-	prefixKey := "labelmap"
+	prefixKey := "detectionresult.labelmap"
 	var b bson.D
 	for k, v := range labelMap {
 		key := fmt.Sprintf("%s.%s", prefixKey, k)
@@ -157,17 +213,17 @@ func (ds *MongoDataStore) LabelMapQuery(labelMap map[string]int32, comparison st
 // DurationQuery creates a duration filter query the frames between now and now - duration
 func (ds *MongoDataStore) DurationQuery(duration int64) bson.E {
 	since := time.Now().UnixNano() - duration
-	return bson.E{"detectiontime", bson.D{{GreaterThanOrEqual, since}}}
+	return bson.E{"detectionresult.detectiontime", bson.D{{GreaterThanOrEqual, since}}}
 }
 
 // LabelsIntersectQuery creates a filter for the labels field, where the query labels intersect the labels
 func (ds *MongoDataStore) LabelsIntersectQuery(labels []string) bson.E {
-	return bson.E{"labels", bson.D{{"$in", labels}}}
+	return bson.E{"detectionresult.labels", bson.D{{"$in", labels}}}
 }
 
 // LabelsSubsetQuery creates a filter for the labels field, where the query labels are a subset of the labels
 func (ds *MongoDataStore) LabelsSubsetQuery(labels []string) bson.E {
-	return bson.E{"labels", bson.D{{"$all", labels}}}
+	return bson.E{"detectionresult.labels", bson.D{{"$all", labels}}}
 }
 
 // And for chaining together filter queries
