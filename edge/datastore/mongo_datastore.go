@@ -146,7 +146,7 @@ func (ds *MongoDataStore) InsertWorker(drCh chan pb.DetectionResult) {
 func (ds *MongoDataStore) insertDetectionResult(drCol *mongo.Collection, dr pb.DetectionResult) error {
 	log.Println("InsertDetectionResult")
 
-	res, err := ds.drCol.InsertOne(ds.ctx, DetectionResult{
+	res, err := drCol.InsertOne(ds.ctx, DetectionResult{
 		Created:         time.Now(),
 		DetectionResult: dr,
 	})
