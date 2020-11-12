@@ -15,7 +15,11 @@ import (
 	"runtime/pprof"
 )
 
-const TTL = 30 * 60 * 60 // 30 minute TTL
+const (
+	//TTL       = 30 * 60 * 60 // 30 minute TTL
+	TTL 	  = 30 // 30 second TTL
+	BatchSize = 20
+)
 
 var (
 	cpuprofile    = flag.String("cpuprofile", "", "write cpu profile to file")
@@ -24,6 +28,7 @@ var (
 	withCuda      = flag.Bool("with-cuda", false, "Determines whether cuda is enabled or not")
 	matprofile    = flag.Bool("matprofile", false, "displays profile count of gocv.Mat")
 	ttl           = flag.Int64("ttl", TTL, "TTL for local mongodb instance")
+	batchSize     = flag.Int64("batchsize", BatchSize, "Batchsize for cloud upload")
 	proto         = "detection/model/tiny_yolo_deploy.prototxt"
 	model         = "detection/model/tiny_yolo.caffemodel"
 )
@@ -59,7 +64,7 @@ func main() {
 	mongoAtlasUri := os.Getenv("MONGO_ATLAS_URI")
 	mongoUri := os.Getenv("MONGO_LOCAL_URI")
 
-	ds, err := ds.NewMongoDataStore(ctx, mongoUri, mongoAtlasUri, int32(*ttl))
+	ds, err := ds.NewMongoDataStore(ctx, mongoUri)
 	if err != nil {
 		panic(err)
 	}
@@ -79,12 +84,19 @@ func main() {
 		panic(err)
 	}
 
-	cComm, err := comm.NewClientCommunication(ctx, *serverAddr, ds, od)
+	clientComm, err := comm.NewClientCommunication(ctx, *serverAddr, ds, od)
 	if err != nil {
 		panic(err)
 	}
 
-	err = cComm.ServeClient()
+	cloudComm, err := comm.NewCloudCommunication(ctx, ds, mongoAtlasUri)
+	if err != nil {
+		panic(err)
+	}
+
+	go cloudComm.CloudInsert(*batchSize, *ttl)
+
+	err = clientComm.ServeClient()
 	if err != nil {
 		panic(err)
 	}

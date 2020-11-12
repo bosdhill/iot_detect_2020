@@ -76,7 +76,7 @@ func TestMongoDataStore_DurationFilter(t *testing.T) {
 	}
 
 	// Filter by detection results from last 30 minutes in nanoseconds
-	drSl, err := ds.FilterBy(ds.DurationQuery(time.Duration(30 * time.Minute).Nanoseconds()))
+	drSl, err := ds.Find(ds.DurationFilter(time.Duration(30 * time.Minute).Nanoseconds()))
 
 	if len(drSl) == 0 {
 		t.Error(err)
@@ -109,7 +109,7 @@ func TestMongoDataStore_LabelsIntersectFilter(t *testing.T) {
 		log.Printf("%v", err)
 	}
 
-	drSl, err := ds.FilterBy(ds.LabelsIntersectQuery(labels))
+	drSl, err := ds.Find(ds.LabelsIntersectFilter(labels))
 
 	if len(drSl) == 0 {
 		t.Error(err)
@@ -143,9 +143,9 @@ func TestMongoDataStore_And(t *testing.T) {
 		log.Printf("%v", err)
 	}
 
-	drSl, err := ds.FilterBy(bson.D{
-		ds.DurationQuery(time.Duration(30 * time.Minute).Nanoseconds()),
-		ds.LabelsIntersectQuery(labels),
+	drSl, err := ds.Find(bson.D{
+		ds.DurationFilter(time.Duration(30 * time.Minute).Nanoseconds()),
+		ds.LabelsIntersectFilter(labels),
 	})
 
 	if len(drSl) == 0 {
@@ -153,9 +153,9 @@ func TestMongoDataStore_And(t *testing.T) {
 	}
 
 	query := []string{"dog"}
-	drSl, err = ds.FilterBy(bson.D{
-		ds.DurationQuery(time.Duration(30 * time.Minute).Nanoseconds()),
-		ds.LabelsIntersectQuery(query),
+	drSl, err = ds.Find(bson.D{
+		ds.DurationFilter(time.Duration(30 * time.Minute).Nanoseconds()),
+		ds.LabelsIntersectFilter(query),
 	})
 
 	if len(drSl) == 0 {
@@ -189,7 +189,7 @@ func TestMongoDataStore_LabelsSubsetFilter(t *testing.T) {
 		log.Printf("%v", err)
 	}
 
-	drSl, err := ds.FilterBy(ds.LabelsSubsetQuery(labels))
+	drSl, err := ds.Find(ds.LabelsSubsetFilter(labels))
 
 	if len(drSl) == 0 {
 		t.Error(err)
@@ -223,34 +223,34 @@ func TestMongoDataStore_LabelMapQuery(t *testing.T) {
 	}
 
 	labelQuery := map[string]int32{"bike": 100}
-	drSl, err := ds.FilterBy(ds.LabelMapQuery(labelQuery, GreaterThanOrEqual))
+	drSl, err := ds.Find(ds.LabelMapFilter(labelQuery, GreaterThanOrEqual))
 
 	if len(drSl) == 0 {
 		t.Error(err)
 	}
 
-	drSl, err = ds.FilterBy(ds.LabelMapQuery(labelQuery, Equal))
+	drSl, err = ds.Find(ds.LabelMapFilter(labelQuery, Equal))
 
 	if len(drSl) == 0 {
 		t.Error(err)
 	}
 
 	labelQuery = map[string]int32{"bike": 200}
-	drSl, err = ds.FilterBy(ds.LabelMapQuery(labelQuery, LessThan))
+	drSl, err = ds.Find(ds.LabelMapFilter(labelQuery, LessThan))
 
 	if len(drSl) == 0 {
 		t.Error(err)
 	}
 
 	labelQuery = map[string]int32{"bus": 1}
-	drSl, err = ds.FilterBy(ds.LabelMapQuery(labelQuery, GreaterThan))
+	drSl, err = ds.Find(ds.LabelMapFilter(labelQuery, GreaterThan))
 
 	if len(drSl) == 0 {
 		t.Error(err)
 	}
 
 	labelQuery = map[string]int32{"bus": 10}
-	drSl, err = ds.FilterBy(ds.LabelMapQuery(labelQuery, LessThanOrEqual))
+	drSl, err = ds.Find(ds.LabelMapFilter(labelQuery, LessThanOrEqual))
 
 	if len(drSl) == 0 {
 		t.Error(err)
