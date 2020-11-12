@@ -17,11 +17,6 @@ type MongoDataStore struct {
 	client *mongo.Client
 }
 
-type LabelBoxesDoc struct {
-	DetectionTime string
-	LabelBoxes    map[string]*pb.BoundingBox
-}
-
 const (
 	dbName             = "detections"
 	drColName          = "detection_result"

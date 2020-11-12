@@ -55,7 +55,8 @@ message Events {
 }
 
 // Event message defines the conditions required for an Action to be triggered as well as the granularity of data to be
-// wrapped in an Action.
+// wrapped in an Action. Basically the filter defined by the application to filter out events they care about in real
+// time. Standard application queries will be an analog of this.
 message Event {
     // hash event uid
     uint64 uid = 1;
