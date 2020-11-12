@@ -502,6 +502,8 @@ func (od *ObjectDetect) CaffeWorker(imgChan chan *pb.Image, drCh chan pb.Detecti
 			LabelBoxes:    labelBoxes,
 		}
 
+		log.Printf("detected labelsMap: %v\n", labelMap)
+
 		if err := blob.Close(); err != nil {
 			log.Println("blob close error: ", err)
 		}
