@@ -47,6 +47,7 @@ func (ds *DataSource) GetFrames(c chan<- gocv.Mat) {
 				return
 			}
 			if !img.Empty() {
+				//gocv.IMWrite(fmt.Sprintf("./temp/caught%v.jpeg", count), img)
 				c <- img
 				count++
 			}

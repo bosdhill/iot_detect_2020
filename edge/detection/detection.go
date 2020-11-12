@@ -1,3 +1,4 @@
+// Ref: https://github.com/dymat/GOLOv2
 package detection
 
 import (
@@ -186,7 +187,6 @@ func regionLayer(predictions *gocv.Mat, transposePredictions bool, imgHeight, im
 		box.y = (row + logisticActivate(data[index+1])) / blockwd
 		box.w = float32(math.Exp(float64(data[index+2]))) * anchors[2*N] / blockwd
 		box.h = float32(math.Exp(float64(data[index+3]))) * anchors[2*N+1] / blockwd
-
 		box.confidence = logisticActivate(data[index+4])
 
 		if box.confidence < thresh {
@@ -472,6 +472,10 @@ func (od *ObjectDetect) CaffeWorker(imgChan chan *pb.Image, drCh chan pb.Detecti
 			continue
 		}
 		t := time.Now()
+
+		//gocv.IMWrite(fmt.Sprintf("./temp/received_pre_%v.jpeg", count), *mat)
+		//gocv.Resize(*mat, mat, image.Pt(416, 416), 1.0/255.0, 1.0/255.0, gocv.InterpolationDefault)
+		//gocv.IMWrite(fmt.Sprintf("./temp/received_%v.jpeg", count), *mat)
 		blob := gocv.BlobFromImage(*mat, 1.0/255.0, image.Pt(416, 416), gocv.NewScalar(0, 0, 0, 0), true, false)
 		od.net.SetInput(blob, "data")
 

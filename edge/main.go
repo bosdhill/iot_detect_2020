@@ -17,8 +17,9 @@ import (
 
 const (
 	//TTL       = 30 * 60 * 60 // 30 minute TTL
-	TTL       = 30 // 30 second TTL
-	BatchSize = 20
+	TTL         = 30 // 30 second TTL
+	BatchSize   = 20
+	Credentials = "credentials.env"
 )
 
 var (
@@ -29,12 +30,13 @@ var (
 	matprofile    = flag.Bool("matprofile", false, "displays profile count of gocv.Mat")
 	ttl           = flag.Int64("ttl", TTL, "TTL for local mongodb instance")
 	batchSize     = flag.Int64("batchsize", BatchSize, "Batchsize for cloud upload")
+	withCloud 	  = flag.Bool("with-cloud", true, "enable cloud backups")
 	proto         = "detection/model/tiny_yolo_deploy.prototxt"
 	model         = "detection/model/tiny_yolo.caffemodel"
 )
 
 func getEnvVars() {
-	err := godotenv.Load("credentials.env")
+	err := godotenv.Load(Credentials)
 	if err != nil {
 		log.Fatalf("Error loading .env file")
 	}
@@ -61,7 +63,6 @@ func main() {
 
 	ctx, _ := context.WithCancel(context.Background())
 
-	mongoAtlasUri := os.Getenv("MONGO_ATLAS_URI")
 	mongoUri := os.Getenv("MONGO_LOCAL_URI")
 
 	ds, err := ds.NewMongoDataStore(ctx, mongoUri)
@@ -89,12 +90,16 @@ func main() {
 		panic(err)
 	}
 
-	cloudComm, err := comm.NewCloudCommunication(ctx, ds, mongoAtlasUri)
-	if err != nil {
-		panic(err)
-	}
+	if *withCloud {
+		mongoAtlasUri := os.Getenv("MONGO_ATLAS_URI")
 
-	go cloudComm.CloudInsert(*batchSize, *ttl)
+		cloudComm, err := comm.NewCloudCommunication(ctx, ds, mongoAtlasUri)
+		if err != nil {
+			panic(err)
+		}
+
+		go cloudComm.CloudInsert(*batchSize, *ttl)
+	}
 
 	err = clientComm.ServeClient()
 	if err != nil {
