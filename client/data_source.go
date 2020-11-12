@@ -9,7 +9,7 @@ import (
 // DataSource used gocv for caputring image frames via a webcam.
 type DataSource struct {
 	capt *gocv.VideoCapture
-	Fc   int
+	fc   int
 }
 
 // NewDataSource returns a new data source component.
@@ -27,20 +27,16 @@ func NewDataSource(filePath string) (*DataSource, error) {
 // GetFrames reads frames into a channel
 func (ds *DataSource) GetFrames(c chan<- gocv.Mat) {
 	log.Println("GetFrames")
-	log.Println("numFrames", ds.Fc)
+	log.Println("numFrames", ds.fc)
 	count := 0
-	for {
-		if count < ds.Fc {
-			img := gocv.NewMat()
-			ds.capt.Read(&img)
-			c <- img
-			count++
-		} else {
-			log.Println("frames read", count)
-			close(c)
-			break
-		}
+	for i := 0; i < ds.fc; i++ {
+		img := gocv.NewMat()
+		ds.capt.Read(&img)
+		c <- img
+		count++
 	}
+	log.Println("frames read", count)
+	close(c)
 }
 
 // Show is used for testing and displays the image frames locally
