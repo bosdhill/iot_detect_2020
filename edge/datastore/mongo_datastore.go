@@ -43,8 +43,11 @@ func (ds *MongoDataStore) InsertWorker(drCh chan pb.DetectionResult) {
 	log.Println("InsertWorker")
 
 	for dr := range drCh {
-		if err := ds.insert(dr); err != nil {
-			log.Printf("could not insert detection result to mongodb: %v", err)
+		// TODO: have option for storing non-empty detection results for the application
+		if !dr.Empty {
+			if err := ds.insert(dr); err != nil {
+				log.Printf("could not insert detection result to mongodb: %v", err)
+			}
 		}
 	}
 	close(drCh)
