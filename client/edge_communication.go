@@ -69,6 +69,7 @@ func (e *EdgeComm) UploadImage(c chan gocv.Mat) {
 			log.Fatalf("UploadImage: could not close img with error = %s", err)
 		}
 	}
+	close(c)
 	reply, err := stream.CloseAndRecv()
 	if err != nil {
 		log.Fatalf("UploadImage: could not CloseAndRecv() got error %v, want %v", err, nil)

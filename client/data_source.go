@@ -28,15 +28,31 @@ func NewDataSource(filePath string) (*DataSource, error) {
 func (ds *DataSource) GetFrames(c chan<- gocv.Mat) {
 	log.Println("GetFrames")
 	log.Println("numFrames", ds.fc)
+
 	count := 0
-	for i := 0; i < ds.fc; i++ {
-		img := gocv.NewMat()
-		ds.capt.Read(&img)
-		c <- img
-		count++
+	// fixed number of frames from mp4
+	if ds.fc != 0 {
+		for i := 0; i < ds.fc; i++ {
+			img := gocv.NewMat()
+			ds.capt.Read(&img)
+			c <- img
+			count++
+		}
+	} else {
+		// unknown number of frames from webcam
+		for {
+			img := gocv.NewMat()
+			if ok := ds.capt.Read(&img); !ok {
+				log.Println("webcam closed")
+				return
+			}
+			if !img.Empty() {
+				c <- img
+				count++
+			}
+		}
 	}
 	log.Println("frames read", count)
-	close(c)
 }
 
 // Show is used for testing and displays the image frames locally
