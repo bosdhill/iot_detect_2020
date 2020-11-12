@@ -39,13 +39,13 @@ func TestMongoDataStore_InsertDetectionResult(t *testing.T) {
 		LabelBoxes: nil,
 	}
 
-	ds, err := NewMongoDataStore(context.Background(), mongoUri, mongoAtlasUri, 600)
+	ds, err := NewMongoDataStore(context.Background(), mongoUri)
 
 	if err != nil {
 		t.Errorf("%v", err)
 	}
 
-	if err := ds.insertDetectionResult(ds.drLocalCol, dr); err != nil {
+	if err := ds.insert(dr); err != nil {
 		t.Errorf("%v", err)
 	}
 }
@@ -65,13 +65,13 @@ func TestMongoDataStore_DurationFilter(t *testing.T) {
 		LabelBoxes: nil,
 	}
 
-	ds, err := NewMongoDataStore(context.Background(), mongoUri, mongoAtlasUri, 600)
+	ds, err := NewMongoDataStore(context.Background(), mongoUri)
 
 	if err != nil {
 		t.Error(err)
 	}
 
-	if err := ds.insertDetectionResult(ds.drLocalCol, dr); err != nil {
+	if err := ds.insert(dr); err != nil {
 		log.Printf("%v", err)
 	}
 
@@ -99,13 +99,13 @@ func TestMongoDataStore_LabelsIntersectFilter(t *testing.T) {
 		LabelBoxes: nil,
 	}
 
-	ds, err := NewMongoDataStore(context.Background(), mongoUri, mongoAtlasUri, 600)
+	ds, err := NewMongoDataStore(context.Background(), mongoUri)
 
 	if err != nil {
 		t.Error(err)
 	}
 
-	if err := ds.insertDetectionResult(ds.drLocalCol, dr); err != nil {
+	if err := ds.insert(dr); err != nil {
 		log.Printf("%v", err)
 	}
 
@@ -133,13 +133,13 @@ func TestMongoDataStore_And(t *testing.T) {
 		LabelBoxes: nil,
 	}
 
-	ds, err := NewMongoDataStore(context.Background(), mongoUri, mongoAtlasUri, 600)
+	ds, err := NewMongoDataStore(context.Background(), mongoUri)
 
 	if err != nil {
 		t.Error(err)
 	}
 
-	if err := ds.insertDetectionResult(ds.drLocalCol, dr); err != nil {
+	if err := ds.insert(dr); err != nil {
 		log.Printf("%v", err)
 	}
 
@@ -179,13 +179,13 @@ func TestMongoDataStore_LabelsSubsetFilter(t *testing.T) {
 		LabelBoxes: nil,
 	}
 
-	ds, err := NewMongoDataStore(context.Background(), mongoUri, mongoAtlasUri, 600)
+	ds, err := NewMongoDataStore(context.Background(), mongoUri)
 
 	if err != nil {
 		t.Error(err)
 	}
 
-	if err := ds.insertDetectionResult(ds.drLocalCol, dr); err != nil {
+	if err := ds.insert(dr); err != nil {
 		log.Printf("%v", err)
 	}
 
@@ -212,13 +212,13 @@ func TestMongoDataStore_LabelMapQuery(t *testing.T) {
 		LabelBoxes: nil,
 	}
 
-	ds, err := NewMongoDataStore(context.Background(), mongoUri, mongoAtlasUri, 600)
+	ds, err := NewMongoDataStore(context.Background(), mongoUri)
 
 	if err != nil {
 		t.Error(err)
 	}
 
-	if err := ds.insertDetectionResult(ds.drLocalCol, dr); err != nil {
+	if err := ds.insert(dr); err != nil {
 		log.Printf("%v", err)
 	}
 

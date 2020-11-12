@@ -17,7 +17,7 @@ import (
 
 const (
 	//TTL       = 30 * 60 * 60 // 30 minute TTL
-	TTL 	  = 30 // 30 second TTL
+	TTL       = 30 // 30 second TTL
 	BatchSize = 20
 )
 

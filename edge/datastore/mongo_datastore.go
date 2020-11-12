@@ -48,16 +48,16 @@ func (ds *MongoDataStore) InsertWorker(drCh chan pb.DetectionResult) {
 	log.Println("InsertWorker")
 
 	for dr := range drCh {
-		if err := ds.localInsert(dr); err != nil {
+		if err := ds.insert(dr); err != nil {
 			log.Printf("could not insert detection result to mongodb: %v", err)
 		}
 	}
 	close(drCh)
 }
 
-// localInsert inserts the detection results into the detection_result collection
-func (ds *MongoDataStore) localInsert(dr pb.DetectionResult) error {
-	log.Println("localInsert")
+// insert inserts the detection results into the detection_result collection
+func (ds *MongoDataStore) insert(dr pb.DetectionResult) error {
+	log.Println("insert")
 
 	res, err := ds.client.Database(dbName).Collection(drColName).InsertOne(ds.ctx, dr)
 
@@ -80,7 +80,7 @@ func (ds *MongoDataStore) DeleteMany(filter bson.D) (*mongo.DeleteResult, error)
 }
 
 // Find queries mongodb by a specific filter or filters chained by Or or And
-func (ds *MongoDataStore) Find(filter interface{}, opt *options.FindOptions) ([]pb.DetectionResult, error) {
+func (ds *MongoDataStore) Find(filter interface{}, opt ...*options.FindOptions) ([]pb.DetectionResult, error) {
 	var err error
 	var q bson.D
 
@@ -96,7 +96,7 @@ func (ds *MongoDataStore) Find(filter interface{}, opt *options.FindOptions) ([]
 	}
 
 	log.Println("filter", q)
-	cur, err := ds.client.Database(dbName).Collection(drColName).Find(ds.ctx, q, opt)
+	cur, err := ds.client.Database(dbName).Collection(drColName).Find(ds.ctx, q, opt...)
 	if err != nil {
 		return nil, err
 	}
