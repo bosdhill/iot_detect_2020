@@ -10,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
+	"sync"
 	"time"
 )
 
@@ -39,15 +40,27 @@ func NewCloudCommunication(ctx context.Context, ds *datastore.MongoDataStore, mo
 // locally removes a batchSize number of frames.
 func (cloudComm *CloudComm) CloudInsert(batchSize int64, ttl int64) {
 	log.Println("CloudInsert")
+	var mutex = &sync.Mutex{}
 
+	// cloudInsertJob is run every TTL seconds, and handles cloud upload in 3 phases:
+	// 		1) read batchSize number of detection results that haven't been uploaded
+	//		2) upload batchSize number of detection results
+	// 		3) remove the image field from each uploaded detection result
 	cloudInsertJob := func() {
 		log.Println("cloudInsertJob")
+		mutex.Lock()
+		defer mutex.Unlock()
 		// Find all detection results that haven't been uploaded (img.image not nil)
 		drSl, err := cloudComm.ds.Find(bson.D{{"img.image", bson.D{{"$ne", nil}}}}, options.Find().SetLimit(batchSize))
 		if err != nil {
 			log.Printf("Error while reading from local database: %v", err)
 		} else {
 			log.Printf("read %v detection results from local db\n", len(drSl))
+		}
+
+		// If there are no results to upload, exit
+		if len(drSl) == 0 {
+			return
 		}
 
 		// Upload phase
@@ -66,8 +79,6 @@ func (cloudComm *CloudComm) CloudInsert(batchSize int64, ttl int64) {
 		}
 	}
 
-	// The job may run despite a previously scheduled job not completing, which means it may look like jobs
-	// are failing when they're actually just run redundantly.
 	s := gocron.NewScheduler(time.UTC)
 
 	_, err := s.Every(uint64(ttl)).Seconds().Do(cloudInsertJob)
