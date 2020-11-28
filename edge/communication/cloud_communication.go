@@ -36,11 +36,11 @@ func NewCloudCommunication(ctx context.Context, ds *datastore.MongoDataStore, mo
 	return &CloudComm{ctx: ctx, client: client, ds: ds}, nil
 }
 
-// CloudInsert creates two jobs that are mutually exclusive:
+// CloudUpload creates two jobs that are mutually exclusive:
 // 		1) a cloud insert job scheduled for every uploadTTL seconds
 // 		2) a local delete job scheduled for every deleteTTL seconds
-func (cComm *CloudComm) CloudInsert(batchSize int64, uploadTTL, deleteTTL int64) {
-	log.Println("CloudInsert")
+func (cComm *CloudComm) CloudUpload(batchSize int64, uploadTTL, deleteTTL int64) {
+	log.Println("CloudUpload")
 	var mtx = &sync.Mutex{}
 
 	// cloudInsertJob is run every uploadTTL seconds, and handles cloud upload in 3 phases:

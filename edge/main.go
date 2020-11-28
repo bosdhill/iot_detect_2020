@@ -99,7 +99,7 @@ func main() {
 			panic(err)
 		}
 
-		cloudComm.CloudInsert(*batchSize, *uploadTTL, *deleteTTL)
+		cloudComm.CloudUpload(*batchSize, *uploadTTL, *deleteTTL)
 	}
 
 	err = clientComm.ServeClient()
