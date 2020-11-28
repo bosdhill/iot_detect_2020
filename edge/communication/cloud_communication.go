@@ -57,7 +57,7 @@ func (cComm *CloudComm) CloudInsert(batchSize int64, uploadTTL, deleteTTL int64)
 		if err != nil {
 			log.Printf("Error while reading from local database: %v", err)
 		} else {
-			log.Printf("read %v detection results from local db\n", len(drSl))
+			log.Printf("Found %v detection results from local db\n", len(drSl))
 		}
 
 		// If there are no results to upload, exit
@@ -70,7 +70,7 @@ func (cComm *CloudComm) CloudInsert(batchSize int64, uploadTTL, deleteTTL int64)
 		if err != nil {
 			log.Printf("Error while remotely inserting: %v", err)
 		}
-		log.Printf("Last detection time was: %v\n", *dTime)
+		log.Printf("Last detection time inserted was: %v\n", *dTime)
 
 		// Update phase
 		updateRes, err := cComm.localUpdate(*dTime)
