@@ -59,7 +59,7 @@ func (cComm *CloudComm) CloudInsert(batchSize int64, uploadTTL, deleteTTL int64)
 		} else {
 			log.Printf("Found %v detection results from local db\n", len(drSl))
 		}
-		
+
 		if len(drSl) == 0 {
 			return
 		}

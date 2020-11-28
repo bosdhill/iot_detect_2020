@@ -3,10 +3,10 @@ package main
 import (
 	"context"
 	"flag"
-	aod "github.com/bosdhill/iot_detect_2020/edge/actionondetect"
 	comm "github.com/bosdhill/iot_detect_2020/edge/communication"
 	ds "github.com/bosdhill/iot_detect_2020/edge/datastore"
 	od "github.com/bosdhill/iot_detect_2020/edge/detection"
+	aod "github.com/bosdhill/iot_detect_2020/edge/eventondetect"
 	"github.com/joho/godotenv"
 	"log"
 	"net/http"
@@ -71,12 +71,12 @@ func main() {
 		panic(err)
 	}
 
-	aod, err := aod.NewActionOnDetect(ctx, *appServerAddr)
+	aod, err := aod.NewEventOnDetect(ctx, *appServerAddr)
 	if err != nil {
 		panic(err)
 	}
 
-	_, err = aod.RegisterEvents(od.ClassNames)
+	_, err = aod.RegisterEventFilters(od.ClassNames)
 	if err != nil {
 		panic(err)
 	}
