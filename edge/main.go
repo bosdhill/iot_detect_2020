@@ -16,10 +16,10 @@ import (
 )
 
 const (
-	//TTL       = 30 * 60 * 60 // 30 minute TTL
-	TTL         = 30 // 30 second TTL
-	BatchSize   = 20
-	Credentials = "credentials.env"
+	defaultBatchSize = 20
+	credentials      = "credentials.env"
+	defaultUploadTTL = 30
+	defaultDeleteTTL = 60 * 60 * 24 // 24 hour TTL
 )
 
 var (
@@ -28,15 +28,16 @@ var (
 	appServerAddr = flag.String("app-server-addr", "localhost:4200", "The app server address in the format of host:port")
 	withCuda      = flag.Bool("with-cuda", false, "Determines whether cuda is enabled or not")
 	matprofile    = flag.Bool("matprofile", false, "displays profile count of gocv.Mat")
-	ttl           = flag.Int64("ttl", TTL, "TTL for local mongodb instance")
-	batchSize     = flag.Int64("batchsize", BatchSize, "Batchsize for cloud upload")
-	withCloud 	  = flag.Bool("with-cloud", true, "enable cloud backups")
+	uploadTTL     = flag.Int64("uploadTTL", defaultUploadTTL, "TTL for local mongodb instance")
+	deleteTTL     = flag.Int64("deleteTTL", defaultDeleteTTL, "TTL for local mongodb instance")
+	batchSize     = flag.Int64("batchsize", defaultBatchSize, "Batchsize for cloud upload")
+	withCloud     = flag.Bool("with-cloud", true, "enable cloud backups")
 	proto         = "detection/model/tiny_yolo_deploy.prototxt"
 	model         = "detection/model/tiny_yolo.caffemodel"
 )
 
 func getEnvVars() {
-	err := godotenv.Load(Credentials)
+	err := godotenv.Load(credentials)
 	if err != nil {
 		log.Fatalf("Error loading .env file")
 	}
@@ -98,7 +99,7 @@ func main() {
 			panic(err)
 		}
 
-		cloudComm.CloudInsert(*batchSize, *ttl)
+		cloudComm.CloudInsert(*batchSize, *uploadTTL, *deleteTTL)
 	}
 
 	err = clientComm.ServeClient()

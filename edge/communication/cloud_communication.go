@@ -36,22 +36,24 @@ func NewCloudCommunication(ctx context.Context, ds *datastore.MongoDataStore, mo
 	return &CloudComm{ctx: ctx, client: client, ds: ds}, nil
 }
 
-// CloudInsert creates a cloud insert job scheduled for every TTL seconds. The cloud insert job remotely inserts and
-// locally removes a batchSize number of frames.
-func (cloudComm *CloudComm) CloudInsert(batchSize int64, ttl int64) {
+// CloudInsert creates two jobs that are mutually exclusive:
+// 		1) a cloud insert job scheduled for every uploadTTL seconds
+// 		2) a local delete job scheduled for every deleteTTL seconds
+func (cloudComm *CloudComm) CloudInsert(batchSize int64, uploadTTL, deleteTTL int64) {
 	log.Println("CloudInsert")
-	var mutex = &sync.Mutex{}
+	var mtx = &sync.Mutex{}
 
-	// cloudInsertJob is run every TTL seconds, and handles cloud upload in 3 phases:
+	// cloudInsertJob is run every uploadTTL seconds, and handles cloud upload in 3 phases:
 	// 		1) read batchSize number of detection results that haven't been uploaded
 	//		2) upload batchSize number of detection results
 	// 		3) remove the image field from each uploaded detection result
 	cloudInsertJob := func() {
 		log.Println("cloudInsertJob")
-		mutex.Lock()
-		defer mutex.Unlock()
-		// Find all detection results that haven't been uploaded (img.image not nil)
-		drSl, err := cloudComm.ds.Find(bson.D{{"img.image", bson.D{{"$ne", nil}}}}, options.Find().SetLimit(batchSize))
+		mtx.Lock()
+		defer mtx.Unlock()
+
+		// Read phase
+		drSl, err := cloudComm.localFind(batchSize)
 		if err != nil {
 			log.Printf("Error while reading from local database: %v", err)
 		} else {
@@ -71,7 +73,7 @@ func (cloudComm *CloudComm) CloudInsert(batchSize int64, ttl int64) {
 		log.Printf("Last detection time was: %v\n", *dTime)
 
 		// Update phase
-		updateRes, err := cloudComm.updateLocalDr(*dTime)
+		updateRes, err := cloudComm.localUpdate(*dTime)
 		if err != nil {
 			log.Printf("Error while locally updating: %v", err)
 		} else {
@@ -79,12 +81,32 @@ func (cloudComm *CloudComm) CloudInsert(batchSize int64, ttl int64) {
 		}
 	}
 
+	// localDeleteJob is run every deleteTTL seconds, and scans for all detection results with img.image equal to null
+	// and deletes them
+	localDeleteJob := func() {
+		log.Println("localDeleteJob")
+		mtx.Lock()
+		defer mtx.Unlock()
+
+		filter := bson.D{{"img.image", nil}}
+		delRes, err := cloudComm.ds.DeleteMany(filter)
+		if err != nil {
+			log.Printf("Error while locally deleting: %v", err)
+		} else {
+			log.Printf("Deleted %v detection results on the local instance\n", delRes.DeletedCount)
+		}
+	}
+
 	s := gocron.NewScheduler(time.UTC)
 
-	_, err := s.Every(uint64(ttl)).Seconds().Do(cloudInsertJob)
-
+	_, err := s.Every(uint64(uploadTTL)).Seconds().Do(cloudInsertJob)
 	if err != nil {
-		log.Printf("Error while doing job: %v", err)
+		log.Fatalf("Error while doing job: %v", err)
+	}
+
+	_, err = s.Every(uint64(deleteTTL)).Seconds().Do(localDeleteJob)
+	if err != nil {
+		log.Fatalf("Error while doing job: %v", err)
 	}
 
 	s.StartAsync()
@@ -110,17 +132,27 @@ func (cloudComm *CloudComm) remoteInsert(drSl []pb.DetectionResult) (*int64, err
 	return &lastDetectionTime, nil
 }
 
-// deleteLocalDr deletes the local detection results up to the last detection time that was uploaded
-func (cloudComm *CloudComm) deleteLocalDr(lastDetectionTime int64) (*mongo.DeleteResult, error) {
-	log.Println("deleteLocalDr")
-	query := bson.D{{"detectiontime", bson.D{{datastore.LessThanOrEqual, lastDetectionTime}}}}
-	return cloudComm.ds.DeleteMany(query)
+// localFind returns all detection results that haven't been uploaded, which is determined by whether img.image is nil
+func (cloudComm *CloudComm) localFind(batchSize int64) ([]pb.DetectionResult, error) {
+	filter := bson.D{{"img.image", bson.D{{"$ne", nil}}}}
+	drSl, err := cloudComm.ds.Find(filter, options.Find().SetLimit(batchSize))
+	if err != nil {
+		return nil, err
+	}
+	return drSl, nil
 }
 
-// updateLocalDr updates the local detection results up to the last detection time that was uploaded in order to remove
+// localDelete deletes the local detection results up to the last detection time that was uploaded
+func (cloudComm *CloudComm) localDelete(lastDetectionTime int64) (*mongo.DeleteResult, error) {
+	log.Println("localDelete")
+	filter := bson.D{{"detectiontime", bson.D{{datastore.LessThanOrEqual, lastDetectionTime}}}}
+	return cloudComm.ds.DeleteMany(filter)
+}
+
+// localUpdate updates the local detection results up to the last detection time that was uploaded in order to remove
 // the image binary so the Edge retains metadata only
-func (cloudComm *CloudComm) updateLocalDr(lastDetectionTime int64) (*mongo.UpdateResult, error) {
-	log.Println("updateLocalDr")
+func (cloudComm *CloudComm) localUpdate(lastDetectionTime int64) (*mongo.UpdateResult, error) {
+	log.Println("localUpdate")
 	filter := bson.D{{"detectiontime", bson.D{{datastore.LessThanOrEqual, lastDetectionTime}}}}
 	update := bson.D{{"$set", bson.D{{"img.image", nil}}}}
 	return cloudComm.ds.UpdateMany(filter, update)
