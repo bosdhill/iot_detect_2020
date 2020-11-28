@@ -1,4 +1,12 @@
 # Edge
+- When deleting the frames, it should be an update where the metadata is left behind. There could be a separate collection which stores only metadata, 
+    so maybe move frames between collections in the delete phase of cloud upload? 
+        - Insert phase/upload phase
+        - Delete phase (update records to only have metadata)
+            - This phase makes it so if a app request is received that asks for only metadata, it can be served, but the app that asks 
+            for metadata + frames will need to hit up the cloud. Need to add that feature (read from cloud)
+            - Low latency if app is on edge, if app isn't on edge then obviously it would cost req latency to edge + req latency to cloud + resp latency to edge  
+            + resp latency to app
 - Encapsulate each component into a package and make their "global" variables exported constants and also rename their "New" methods
 - Checking for at least 1 label detected (person or bus). just count as you're checking containment and break when its one (contains vs contains_at_least_one)
 - Should probably include a name field in event since application creates the events

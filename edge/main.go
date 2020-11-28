@@ -98,7 +98,7 @@ func main() {
 			panic(err)
 		}
 
-		go cloudComm.CloudInsert(*batchSize, *ttl)
+		cloudComm.CloudInsert(*batchSize, *ttl)
 	}
 
 	err = clientComm.ServeClient()

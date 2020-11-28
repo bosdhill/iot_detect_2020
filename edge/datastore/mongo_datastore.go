@@ -77,6 +77,16 @@ func (ds *MongoDataStore) DeleteMany(filter bson.D) (*mongo.DeleteResult, error)
 	return deleteRes, nil
 }
 
+// UpdateMany serves a update many filter query locally
+func (ds *MongoDataStore) UpdateMany(filter bson.D, update bson.D) (*mongo.UpdateResult, error) {
+	deleteRes, err := ds.client.Database(dbName).Collection(drColName).UpdateMany(ds.ctx, filter, update)
+
+	if err != nil {
+		return nil, err
+	}
+	return deleteRes, nil
+}
+
 // Find queries mongodb by a specific filter or filters chained by Or or And
 func (ds *MongoDataStore) Find(filter interface{}, opt ...*options.FindOptions) ([]pb.DetectionResult, error) {
 	var err error

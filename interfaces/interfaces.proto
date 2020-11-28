@@ -166,17 +166,14 @@ message Action {
 
 // DetectionResult represents the result of the object detection model
 message DetectionResult {
-    // Whether or not the result has no objects
+    // Whether or not the result has any objects
 	bool empty = 1;
 
 	// The time of detection
 	int64 detection_time = 2;
 
-//    // The time of detection
-//    google.protobuf.Timestamp detection_time = 2;
-
 	// A map of labels to number detected
-	map<string, int32> label_map = 3;
+	map<string, int32> label_number = 3;
 
     // A list of labels
     repeated string labels = 4;

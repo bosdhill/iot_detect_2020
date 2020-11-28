@@ -39,21 +39,30 @@ func NewCloudCommunication(ctx context.Context, ds *datastore.MongoDataStore, mo
 // locally removes a batchSize number of frames.
 func (cloudComm *CloudComm) CloudInsert(batchSize int64, ttl int64) {
 	log.Println("CloudInsert")
+
 	cloudInsertJob := func() {
 		log.Println("cloudInsertJob")
-
-		drSl, err := cloudComm.ds.Find(bson.D{}, options.Find().SetLimit(batchSize))
+		// Find all detection results that haven't been uploaded (img.image not nil)
+		drSl, err := cloudComm.ds.Find(bson.D{{"img.image", bson.D{{"$ne", nil}}}}, options.Find().SetLimit(batchSize))
 		if err != nil {
 			log.Printf("Error while reading from local database: %v", err)
 		} else {
 			log.Printf("read %v detection results from local db\n", len(drSl))
 		}
 
-		deleteRes, err := cloudComm.remoteInsert(drSl)
+		// Upload phase
+		dTime, err := cloudComm.remoteInsert(drSl)
 		if err != nil {
 			log.Printf("Error while remotely inserting: %v", err)
+		}
+		log.Printf("Last detection time was: %v\n", *dTime)
+
+		// Update phase
+		updateRes, err := cloudComm.updateLocalDr(*dTime)
+		if err != nil {
+			log.Printf("Error while locally updating: %v", err)
 		} else {
-			log.Printf("Deleted %v detection results from the local instance\n", deleteRes.DeletedCount)
+			log.Printf("Updated %v detection results on the local instance\n", updateRes.ModifiedCount)
 		}
 	}
 
@@ -72,7 +81,7 @@ func (cloudComm *CloudComm) CloudInsert(batchSize int64, ttl int64) {
 
 // remoteInsert inserts the detection results in the mongodb cloud instance, and then deletes the detection results up
 // to and including he last detection result that was remotely inserted.
-func (cloudComm *CloudComm) remoteInsert(drSl []pb.DetectionResult) (*mongo.DeleteResult, error) {
+func (cloudComm *CloudComm) remoteInsert(drSl []pb.DetectionResult) (*int64, error) {
 	log.Println("remoteInsert")
 	var drInsert []interface{}
 	for _, dr := range drSl {
@@ -87,8 +96,21 @@ func (cloudComm *CloudComm) remoteInsert(drSl []pb.DetectionResult) (*mongo.Dele
 	log.Printf("uploaded ids: %v", res.InsertedIDs)
 
 	lastDetectionTime := drSl[len(drSl)-1].DetectionTime
+	return &lastDetectionTime, nil
+}
 
+// deleteLocalDr deletes the local detection results up to the last detection time that was uploaded
+func (cloudComm *CloudComm) deleteLocalDr(lastDetectionTime int64) (*mongo.DeleteResult, error) {
+	log.Println("deleteLocalDr")
 	query := bson.D{{"detectiontime", bson.D{{datastore.LessThanOrEqual, lastDetectionTime}}}}
-
 	return cloudComm.ds.DeleteMany(query)
+}
+
+// updateLocalDr updates the local detection results up to the last detection time that was uploaded in order to remove
+// the image binary so the Edge retains metadata only
+func (cloudComm *CloudComm) updateLocalDr(lastDetectionTime int64) (*mongo.UpdateResult, error) {
+	log.Println("updateLocalDr")
+	filter := bson.D{{"detectiontime", bson.D{{datastore.LessThanOrEqual, lastDetectionTime}}}}
+	update := bson.D{{"$set", bson.D{{"img.image", nil}}}}
+	return cloudComm.ds.UpdateMany(filter, update)
 }

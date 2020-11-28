@@ -496,7 +496,7 @@ func (od *ObjectDetect) CaffeWorker(imgChan chan *pb.Image, drCh chan pb.Detecti
 		dr := pb.DetectionResult{
 			Empty:         len(labels) == 0,
 			DetectionTime: time.Now().UnixNano(),
-			LabelMap:      labelMap,
+			LabelNumber:   labelMap,
 			Labels:        labels,
 			Img:           img,
 			LabelBoxes:    labelBoxes,
