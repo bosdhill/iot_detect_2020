@@ -27,10 +27,10 @@ const (
 	LessThanOrEqual    = "$lte"
 )
 
-// NewMongoDataStore returns a connection to the local mongodb instance, with uris for local and remote instances, and
+// New returns a connection to the local mongodb instance, with uris for local and remote instances, and
 // the time to live for the local mongodb instance in seconds.
-func NewMongoDataStore(ctx context.Context, mongoUri string) (*MongoDataStore, error) {
-	log.Println("NewMongoDataStore")
+func New(ctx context.Context, mongoUri string) (*MongoDataStore, error) {
+	log.Println("New")
 	client, err := connection.New(ctx, mongoUri)
 	if err != nil {
 		return nil, err

@@ -445,9 +445,9 @@ type ObjectDetect struct {
 	eod *eod.EventOnDetect
 }
 
-// NewObjectDetection returns a new object detection component
-func NewObjectDetection(ctx context.Context, eod *eod.EventOnDetect, withCuda bool, proto, model string) (*ObjectDetect, error) {
-	log.Println("NewObjectDetection")
+// New returns a new object detection component
+func New(ctx context.Context, eod *eod.EventOnDetect, withCuda bool, proto, model string) (*ObjectDetect, error) {
+	log.Println("New")
 	caffeNet := gocv.ReadNetFromCaffe(proto, model)
 	if caffeNet.Empty() {
 		return nil, fmt.Errorf("cannot read network model from: %v %v", proto, model)

@@ -17,9 +17,9 @@ type EventOnDetect struct {
 	eventSet     *events.EventFilterSet
 }
 
-// NewEventOnDetect starts up a grpc server and
-func NewEventOnDetect(ctx context.Context, addr string) (*EventOnDetect, error) {
-	log.Println("NewEventOnDetect")
+// New creates an event on detect client
+func New(ctx context.Context, addr string) (*EventOnDetect, error) {
+	log.Println("New")
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithBlock(), grpc.WithInsecure(), grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(math.MaxInt32)))
 	conn, err := grpc.DialContext(ctx, addr, opts...)

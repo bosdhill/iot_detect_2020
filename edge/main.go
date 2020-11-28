@@ -3,10 +3,10 @@ package main
 import (
 	"context"
 	"flag"
-	comm "github.com/bosdhill/iot_detect_2020/edge/communication"
-	ds "github.com/bosdhill/iot_detect_2020/edge/datastore"
-	od "github.com/bosdhill/iot_detect_2020/edge/detection"
-	eod "github.com/bosdhill/iot_detect_2020/edge/eventondetect"
+	"github.com/bosdhill/iot_detect_2020/edge/communication"
+	"github.com/bosdhill/iot_detect_2020/edge/datastore"
+	"github.com/bosdhill/iot_detect_2020/edge/detection"
+	"github.com/bosdhill/iot_detect_2020/edge/eventondetect"
 	"github.com/joho/godotenv"
 	"log"
 	"net/http"
@@ -66,27 +66,27 @@ func main() {
 
 	mongoUri := os.Getenv("MONGO_LOCAL_URI")
 
-	ds, err := ds.NewMongoDataStore(ctx, mongoUri)
+	ds, err := datastore.New(ctx, mongoUri)
 	if err != nil {
 		panic(err)
 	}
 
-	eod, err := eod.NewEventOnDetect(ctx, *appServerAddr)
+	eod, err := eventondetect.New(ctx, *appServerAddr)
 	if err != nil {
 		panic(err)
 	}
 
-	_, err = eod.RegisterEventFilters(od.ClassNames)
+	_, err = eod.RegisterEventFilters(detection.ClassNames)
 	if err != nil {
 		panic(err)
 	}
 
-	od, err := od.NewObjectDetection(ctx, eod, *withCuda, proto, model)
+	od, err := detection.New(ctx, eod, *withCuda, proto, model)
 	if err != nil {
 		panic(err)
 	}
 
-	clientComm, err := comm.NewClientCommunication(ctx, *serverAddr, ds, od)
+	clientComm, err := communication.NewClientCommunication(ctx, *serverAddr, ds, od)
 	if err != nil {
 		panic(err)
 	}
@@ -94,7 +94,7 @@ func main() {
 	if *withCloud {
 		mongoAtlasUri := os.Getenv("MONGO_ATLAS_URI")
 
-		cloudComm, err := comm.NewCloudCommunication(ctx, ds, mongoAtlasUri)
+		cloudComm, err := communication.NewCloudCommunication(ctx, ds, mongoAtlasUri)
 		if err != nil {
 			panic(err)
 		}

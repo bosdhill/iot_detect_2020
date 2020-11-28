@@ -39,7 +39,7 @@ func TestMongoDataStore_InsertDetectionResult(t *testing.T) {
 		LabelBoxes: nil,
 	}
 
-	ds, err := NewMongoDataStore(context.Background(), mongoUri)
+	ds, err := New(context.Background(), mongoUri)
 
 	if err != nil {
 		t.Errorf("%v", err)
@@ -54,7 +54,7 @@ func TestMongoDataStore_DurationFilter(t *testing.T) {
 	dr := pb.DetectionResult{
 		Empty:         false,
 		DetectionTime: time.Now().UnixNano(),
-		LabelMap:      map[string]int32{"person": 1, "bus": 4},
+		LabelNumber:   map[string]int32{"person": 1, "bus": 4},
 		Labels:        []string{"person", "bus"},
 		Img: &pb.Image{
 			Image: nil,
@@ -65,7 +65,7 @@ func TestMongoDataStore_DurationFilter(t *testing.T) {
 		LabelBoxes: nil,
 	}
 
-	ds, err := NewMongoDataStore(context.Background(), mongoUri)
+	ds, err := New(context.Background(), mongoUri)
 
 	if err != nil {
 		t.Error(err)
@@ -88,7 +88,7 @@ func TestMongoDataStore_LabelsIntersectFilter(t *testing.T) {
 	dr := pb.DetectionResult{
 		Empty:         false,
 		DetectionTime: time.Now().UnixNano(),
-		LabelMap:      map[string]int32{"person": 1, "bus": 4},
+		LabelNumber:   map[string]int32{"person": 1, "bus": 4},
 		Labels:        labels,
 		Img: &pb.Image{
 			Image: nil,
@@ -99,7 +99,7 @@ func TestMongoDataStore_LabelsIntersectFilter(t *testing.T) {
 		LabelBoxes: nil,
 	}
 
-	ds, err := NewMongoDataStore(context.Background(), mongoUri)
+	ds, err := New(context.Background(), mongoUri)
 
 	if err != nil {
 		t.Error(err)
@@ -122,7 +122,7 @@ func TestMongoDataStore_And(t *testing.T) {
 	dr := pb.DetectionResult{
 		Empty:         false,
 		DetectionTime: time.Now().UnixNano(),
-		LabelMap:      labelMap,
+		LabelNumber:   labelMap,
 		Labels:        labels,
 		Img: &pb.Image{
 			Image: nil,
@@ -133,7 +133,7 @@ func TestMongoDataStore_And(t *testing.T) {
 		LabelBoxes: nil,
 	}
 
-	ds, err := NewMongoDataStore(context.Background(), mongoUri)
+	ds, err := New(context.Background(), mongoUri)
 
 	if err != nil {
 		t.Error(err)
@@ -168,7 +168,7 @@ func TestMongoDataStore_LabelsSubsetFilter(t *testing.T) {
 	dr := pb.DetectionResult{
 		Empty:         false,
 		DetectionTime: time.Now().UnixNano(),
-		LabelMap:      map[string]int32{"person": 1, "bus": 4, "bike": 1},
+		LabelNumber:   map[string]int32{"person": 1, "bus": 4, "bike": 1},
 		Labels:        labels,
 		Img: &pb.Image{
 			Image: nil,
@@ -179,7 +179,7 @@ func TestMongoDataStore_LabelsSubsetFilter(t *testing.T) {
 		LabelBoxes: nil,
 	}
 
-	ds, err := NewMongoDataStore(context.Background(), mongoUri)
+	ds, err := New(context.Background(), mongoUri)
 
 	if err != nil {
 		t.Error(err)
@@ -201,7 +201,7 @@ func TestMongoDataStore_LabelMapQuery(t *testing.T) {
 	dr := pb.DetectionResult{
 		Empty:         false,
 		DetectionTime: time.Now().UnixNano(),
-		LabelMap:      map[string]int32{"person": 1, "bus": 10, "bike": 100},
+		LabelNumber:   map[string]int32{"person": 1, "bus": 10, "bike": 100},
 		Labels:        labels,
 		Img: &pb.Image{
 			Image: nil,
@@ -212,7 +212,7 @@ func TestMongoDataStore_LabelMapQuery(t *testing.T) {
 		LabelBoxes: nil,
 	}
 
-	ds, err := NewMongoDataStore(context.Background(), mongoUri)
+	ds, err := New(context.Background(), mongoUri)
 
 	if err != nil {
 		t.Error(err)
