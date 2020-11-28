@@ -21,25 +21,23 @@ message Image {
     int32 type = 4;
 }
 
-// ImageResponse is a message that has a boolean that tells whether upload was
-// successful
+// ImageResponse is a message that has a boolean that tells whether upload was successful
 message ImageResponse {
     bool success = 1;
 }
 
-// ActionOnDetect service provides the application an interface for querying
-// the Edge for detection results, and creating custom events that are detected
-// (or triggered) on the Edge and then handled as an action by the application
-service ActionOnDetect {
+// EventOnDetect service provides the application an interface for querying the Edge for detection results, and
+// creating custom events that are detected (or triggered) on the Edge and then handled by the application
+service EventOnDetect {
     // RegisterEvents is an rpc implemented by the application server that allows
     // the application to create custom events to be detected by the Edge
-    rpc RegisterEvents(Labels) returns (Events) {}
+    rpc RegisterEventFilters (Labels) returns (EventFilters) {}
 
-    // SendAction sends the triggered action from the Edge to the Client
-    rpc SendAction(Action) returns (google.protobuf.Empty) {}
+    // SendEvent sends the triggered action from the Edge to the Client
+    rpc SendEvent (Event) returns (google.protobuf.Empty) {}
 
-    // StreamActions streams Actions from the Edge to the Client
-    rpc StreamActions(stream Action) returns (google.protobuf.Empty) {}
+    // StreamEvents streams Actions from the Edge to the Client
+    rpc StreamEvents (stream Event) returns (google.protobuf.Empty) {}
 
     // TODO need to handle batching actions
 }
@@ -49,15 +47,14 @@ message Labels {
 }
 
 // Events is just a wrapper around a list of Event messages
-message Events {
-    //Key = label
-  repeated Event events = 1;
+message EventFilters {
+  repeated EventFilter event_filters = 1;
 }
 
 // Event message defines the conditions required for an Action to be triggered as well as the granularity of data to be
 // wrapped in an Action. Basically the filter defined by the application to filter out events they care about in real
 // time. Standard application queries will be an analog of this.
-message Event {
+message EventFilter {
     // hash event uid
     uint64 uid = 1;
 
@@ -156,8 +153,8 @@ message EventConditions {
     }
 }
 
-// Action message corresponds to the trigger of an Event (similar to DetectionResult)
-message Action {
+// Event message corresponds to the detection of an Event (similar to DetectionResult)
+message Event {
     DetectionResult detection_result = 1;
 
     // annotated_img is the img annotated with bounding boxes
@@ -166,17 +163,14 @@ message Action {
 
 // DetectionResult represents the result of the object detection model
 message DetectionResult {
-    // Whether or not the result has no objects
+    // Whether or not the result has any objects
 	bool empty = 1;
 
 	// The time of detection
 	int64 detection_time = 2;
 
-//    // The time of detection
-//    google.protobuf.Timestamp detection_time = 2;
-
 	// A map of labels to number detected
-	map<string, int32> label_map = 3;
+	map<string, int32> label_number = 3;
 
     // A list of labels
     repeated string labels = 4;

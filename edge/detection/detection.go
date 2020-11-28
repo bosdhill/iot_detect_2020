@@ -1,9 +1,10 @@
+// Ref: https://github.com/dymat/GOLOv2
 package detection
 
 import (
 	"context"
 	"fmt"
-	aod "github.com/bosdhill/iot_detect_2020/edge/actionondetect"
+	aod "github.com/bosdhill/iot_detect_2020/edge/eventondetect"
 	pb "github.com/bosdhill/iot_detect_2020/interfaces"
 	"gocv.io/x/gocv"
 	"image"
@@ -42,7 +43,7 @@ var (
 		"scissors", "teddy bear", "hair drier", "toothbrush"}
 	anchors = [2 * n]float32{0.738768, 0.874946, 2.42204, 2.65704, 4.30971, 7.04493, 10.246, 4.59428, 12.6868, 11.8741}
 
-	// ClassNames is a map of the classnames to pass to RegisterEvents
+	// ClassNames is a map of the classnames to pass to RegisterEventFilters
 	ClassNames = map[string]bool{
 		"person":         true,
 		"bicycle":        true,
@@ -186,7 +187,6 @@ func regionLayer(predictions *gocv.Mat, transposePredictions bool, imgHeight, im
 		box.y = (row + logisticActivate(data[index+1])) / blockwd
 		box.w = float32(math.Exp(float64(data[index+2]))) * anchors[2*N] / blockwd
 		box.h = float32(math.Exp(float64(data[index+3]))) * anchors[2*N+1] / blockwd
-
 		box.confidence = logisticActivate(data[index+4])
 
 		if box.confidence < thresh {
@@ -442,11 +442,11 @@ func imgToMat(img *pb.Image) *gocv.Mat {
 type ObjectDetect struct {
 	net *gocv.Net
 	ctx context.Context
-	aod *aod.ActionOnDetect
+	aod *aod.EventOnDetect
 }
 
 // NewObjectDetection returns a new object detection component
-func NewObjectDetection(ctx context.Context, aod *aod.ActionOnDetect, withCuda bool, proto, model string) (*ObjectDetect, error) {
+func NewObjectDetection(ctx context.Context, aod *aod.EventOnDetect, withCuda bool, proto, model string) (*ObjectDetect, error) {
 	log.Println("NewObjectDetection")
 	caffeNet := gocv.ReadNetFromCaffe(proto, model)
 	if caffeNet.Empty() {
@@ -472,6 +472,10 @@ func (od *ObjectDetect) CaffeWorker(imgChan chan *pb.Image, drCh chan pb.Detecti
 			continue
 		}
 		t := time.Now()
+
+		//gocv.IMWrite(fmt.Sprintf("./temp/received_pre_%v.jpeg", count), *mat)
+		//gocv.Resize(*mat, mat, image.Pt(416, 416), 1.0/255.0, 1.0/255.0, gocv.InterpolationDefault)
+		//gocv.IMWrite(fmt.Sprintf("./temp/received_%v.jpeg", count), *mat)
 		blob := gocv.BlobFromImage(*mat, 1.0/255.0, image.Pt(416, 416), gocv.NewScalar(0, 0, 0, 0), true, false)
 		od.net.SetInput(blob, "data")
 
@@ -492,11 +496,13 @@ func (od *ObjectDetect) CaffeWorker(imgChan chan *pb.Image, drCh chan pb.Detecti
 		dr := pb.DetectionResult{
 			Empty:         len(labels) == 0,
 			DetectionTime: time.Now().UnixNano(),
-			LabelMap:      labelMap,
+			LabelNumber:   labelMap,
 			Labels:        labels,
 			Img:           img,
 			LabelBoxes:    labelBoxes,
 		}
+
+		log.Printf("detected labelsMap: %v\n", labelMap)
 
 		if err := blob.Close(); err != nil {
 			log.Println("blob close error: ", err)
@@ -511,7 +517,7 @@ func (od *ObjectDetect) CaffeWorker(imgChan chan *pb.Image, drCh chan pb.Detecti
 			log.Println("mat close error: ", err)
 		}
 		runtime.GC()
-		od.aod.CheckEvents(&dr)
+		od.aod.FilterEvents(&dr)
 		drCh <- dr
 
 		//if *matprofile {

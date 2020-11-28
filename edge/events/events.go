@@ -5,17 +5,17 @@ import (
 	pb "github.com/bosdhill/iot_detect_2020/interfaces"
 )
 
-type EventSet []eventLabelPair
+type EventFilterSet []eventLabelPair
 
 type eventLabelPair struct {
 	labels []string
-	event  *pb.Event
+	event  *pb.EventFilter
 }
 
 // New returns a slice of eventLabelPairs
-func New(events *pb.Events) *EventSet {
-	eSet := make(EventSet, 0)
-	for _, event := range events.GetEvents() {
+func New(events *pb.EventFilters) *EventFilterSet {
+	eSet := make(EventFilterSet, 0)
+	for _, event := range events.GetEventFilters() {
 		eSet = append(eSet, eventLabelPair{event.GetLabels(), event})
 	}
 	return &eSet
@@ -32,7 +32,7 @@ func contains(detectedLabels map[string]int32, labels []string) bool {
 }
 
 // Find returns the event if the labels in eventLabelPairs is a subset of detectedLabels
-func (eSet *EventSet) Find(detectedLabels map[string]int32) *pb.Event {
+func (eSet *EventFilterSet) Find(detectedLabels map[string]int32) *pb.EventFilter {
 	for _, pair := range *eSet {
 		if contains(detectedLabels, pair.labels) {
 			return pair.event
@@ -41,7 +41,7 @@ func (eSet *EventSet) Find(detectedLabels map[string]int32) *pb.Event {
 	return nil
 }
 
-func (eSet *EventSet) String() string {
+func (eSet *EventFilterSet) String() string {
 	ret := "\n"
 	for _, e := range *eSet {
 		ret += fmt.Sprintf("e.labels: %v\ne.event: [%v],\n", e.labels, e.event)

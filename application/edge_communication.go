@@ -21,20 +21,20 @@ var (
 
 // EdgeComm is used to wrap the server for serving actions issued by the Edge
 type EdgeComm struct {
-	server pb.ActionOnDetectServer
+	server pb.EventOnDetectServer
 	lis    net.Listener
 }
 
-// RegisterEvents is called by the Edge to filter results for events it cares about
+// RegisterEventFilters is called by the Edge to filter results for events it cares about
 // TODO this should be an event driven pattern, such as in
 //  https://stephenafamo.com/blog/implementing-an-event-driven-system-in-go/
-func (comm *EdgeComm) RegisterEvents(ctx context.Context, labels *pb.Labels) (*pb.Events, error) {
-	events := &pb.Events{}
+func (comm *EdgeComm) RegisterEventFilters(ctx context.Context, labels *pb.Labels) (*pb.EventFilters, error) {
+	events := &pb.EventFilters{}
 
 	// Example of application setting an Event with EventConditions specified for triggering an Action
 	// TODO need to handle person or bus, not just person and bus
-	if labels.Labels["person"] && labels.Labels["bus"] {
-		event := &pb.Event{
+	if labels.Labels["person"] {
+		event := &pb.EventFilter{
 			LabelEvents: map[string]*pb.EventConditions{
 				"person": {
 					ConfThreshold: 0.30,
@@ -42,38 +42,32 @@ func (comm *EdgeComm) RegisterEvents(ctx context.Context, labels *pb.Labels) (*p
 					QuantityBound: uint32(pb.EventConditions_GREATER | pb.EventConditions_EQUAL),
 					Proximity:     pb.EventConditions_PROXIMITY_UNSPECIFIED,
 				},
-				"bus": {
-					ConfThreshold: 0.30,
-					Quantity:      1,
-					QuantityBound: uint32(pb.EventConditions_GREATER | pb.EventConditions_EQUAL),
-					Proximity:     pb.EventConditions_PROXIMITY_UNSPECIFIED,
-				},
 			},
-			Labels:          []string{"person", "bus"},
-			DistanceMeasure: pb.Event_DISTANCE_MEASURE_UNSPECIFIED,
-			Flags:           uint32(pb.Event_METADATA),
+			Labels:          []string{"person"},
+			DistanceMeasure: pb.EventFilter_DISTANCE_MEASURE_UNSPECIFIED,
+			Flags:           uint32(pb.EventFilter_METADATA),
 		}
 		uid, err := hashstructure.Hash(event, nil)
 		if err != nil {
-			log.Println("RegisterEvents: uid hash failed")
+			log.Println("RegisterEventFilters: uid hash failed")
 			return nil, err
 		}
 		event.Uid = uid
-		events.Events = append(events.Events, event)
+		events.EventFilters = append(events.EventFilters, event)
 	}
 
 	return events, nil
 }
 
-// SendAction receives the action sent by the Edge
-func (comm *EdgeComm) SendAction(ctx context.Context, action *pb.Action) (*empty.Empty, error) {
-	log.Println("SendAction")
-	log.Printf("Received: %v, %v\n", action.GetDetectionResult().Labels, action.GetDetectionResult().GetLabelBoxes())
+// SendEvent receives the action sent by the Edge
+func (comm *EdgeComm) SendEvent(ctx context.Context, event *pb.Event) (*empty.Empty, error) {
+	log.Println("SendEvent")
+	log.Printf("Received: %v, %v\n", event.GetDetectionResult().Labels, event.GetDetectionResult().GetLabelBoxes())
 	return &empty.Empty{}, nil
 }
 
-// StreamActions TODO
-func (comm *EdgeComm) StreamActions(pb.ActionOnDetect_StreamActionsServer) error {
+// StreamEvents TODO
+func (comm *EdgeComm) StreamEvents(server pb.EventOnDetect_StreamEventsServer) error {
 	panic("implement me")
 }
 
@@ -95,7 +89,7 @@ func (comm *EdgeComm) ServeEdge() error {
 	var opts []grpc.ServerOption
 	opts = append(opts, grpc.MaxRecvMsgSize(math.MaxInt32), grpc.MaxSendMsgSize(math.MaxInt32))
 	grpcServer := grpc.NewServer(opts...)
-	pb.RegisterActionOnDetectServer(grpcServer, comm)
+	pb.RegisterEventOnDetectServer(grpcServer, comm)
 	err := grpcServer.Serve(comm.lis)
 	if err != nil {
 		return err

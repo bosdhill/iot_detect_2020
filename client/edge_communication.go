@@ -51,10 +51,7 @@ func imgToUploadReq(img gocv.Mat) *pb.Image {
 // UploadImage streams image frames to the Edge
 func (e *EdgeComm) UploadImage(c chan gocv.Mat) {
 	log.Printf("UploadImage")
-	// TODO timeout should be twice FPS * number of Frames per video
-	//ctx, _ := context.WithTimeout(context.Background(), 0)
 	ctx, _ := context.WithCancel(context.Background())
-	//defer cancel()
 	stream, err := e.client.UploadImage(ctx)
 	if err != nil {
 		log.Fatalf("UploadImage: could not upload image with error = %v", err)
@@ -69,6 +66,7 @@ func (e *EdgeComm) UploadImage(c chan gocv.Mat) {
 			log.Fatalf("UploadImage: could not close img with error = %s", err)
 		}
 	}
+	close(c)
 	reply, err := stream.CloseAndRecv()
 	if err != nil {
 		log.Fatalf("UploadImage: could not CloseAndRecv() got error %v, want %v", err, nil)

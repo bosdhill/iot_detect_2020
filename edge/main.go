@@ -3,10 +3,10 @@ package main
 import (
 	"context"
 	"flag"
-	aod "github.com/bosdhill/iot_detect_2020/edge/actionondetect"
 	comm "github.com/bosdhill/iot_detect_2020/edge/communication"
 	ds "github.com/bosdhill/iot_detect_2020/edge/datastore"
 	od "github.com/bosdhill/iot_detect_2020/edge/detection"
+	aod "github.com/bosdhill/iot_detect_2020/edge/eventondetect"
 	"github.com/joho/godotenv"
 	"log"
 	"net/http"
@@ -16,9 +16,10 @@ import (
 )
 
 const (
-	//TTL       = 30 * 60 * 60 // 30 minute TTL
-	TTL       = 30 // 30 second TTL
-	BatchSize = 20
+	defaultBatchSize = 20
+	credentials      = "credentials.env"
+	defaultUploadTTL = 30
+	defaultDeleteTTL = 60 * 60 * 24 // 24 hour TTL
 )
 
 var (
@@ -27,14 +28,16 @@ var (
 	appServerAddr = flag.String("app-server-addr", "localhost:4200", "The app server address in the format of host:port")
 	withCuda      = flag.Bool("with-cuda", false, "Determines whether cuda is enabled or not")
 	matprofile    = flag.Bool("matprofile", false, "displays profile count of gocv.Mat")
-	ttl           = flag.Int64("ttl", TTL, "TTL for local mongodb instance")
-	batchSize     = flag.Int64("batchsize", BatchSize, "Batchsize for cloud upload")
+	uploadTTL     = flag.Int64("uploadTTL", defaultUploadTTL, "TTL for local mongodb instance")
+	deleteTTL     = flag.Int64("deleteTTL", defaultDeleteTTL, "TTL for local mongodb instance")
+	batchSize     = flag.Int64("batchsize", defaultBatchSize, "Batchsize for cloud upload")
+	withCloud     = flag.Bool("with-cloud", true, "enable cloud backups")
 	proto         = "detection/model/tiny_yolo_deploy.prototxt"
 	model         = "detection/model/tiny_yolo.caffemodel"
 )
 
 func getEnvVars() {
-	err := godotenv.Load("credentials.env")
+	err := godotenv.Load(credentials)
 	if err != nil {
 		log.Fatalf("Error loading .env file")
 	}
@@ -61,7 +64,6 @@ func main() {
 
 	ctx, _ := context.WithCancel(context.Background())
 
-	mongoAtlasUri := os.Getenv("MONGO_ATLAS_URI")
 	mongoUri := os.Getenv("MONGO_LOCAL_URI")
 
 	ds, err := ds.NewMongoDataStore(ctx, mongoUri)
@@ -69,12 +71,12 @@ func main() {
 		panic(err)
 	}
 
-	aod, err := aod.NewActionOnDetect(ctx, *appServerAddr)
+	aod, err := aod.NewEventOnDetect(ctx, *appServerAddr)
 	if err != nil {
 		panic(err)
 	}
 
-	_, err = aod.RegisterEvents(od.ClassNames)
+	_, err = aod.RegisterEventFilters(od.ClassNames)
 	if err != nil {
 		panic(err)
 	}
@@ -89,12 +91,16 @@ func main() {
 		panic(err)
 	}
 
-	cloudComm, err := comm.NewCloudCommunication(ctx, ds, mongoAtlasUri)
-	if err != nil {
-		panic(err)
-	}
+	if *withCloud {
+		mongoAtlasUri := os.Getenv("MONGO_ATLAS_URI")
 
-	go cloudComm.CloudInsert(*batchSize, *ttl)
+		cloudComm, err := comm.NewCloudCommunication(ctx, ds, mongoAtlasUri)
+		if err != nil {
+			panic(err)
+		}
+
+		cloudComm.CloudInsert(*batchSize, *uploadTTL, *deleteTTL)
+	}
 
 	err = clientComm.ServeClient()
 	if err != nil {
