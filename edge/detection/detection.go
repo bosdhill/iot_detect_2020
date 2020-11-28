@@ -4,7 +4,7 @@ package detection
 import (
 	"context"
 	"fmt"
-	aod "github.com/bosdhill/iot_detect_2020/edge/eventondetect"
+	eod "github.com/bosdhill/iot_detect_2020/edge/eventondetect"
 	pb "github.com/bosdhill/iot_detect_2020/interfaces"
 	"gocv.io/x/gocv"
 	"image"
@@ -442,11 +442,11 @@ func imgToMat(img *pb.Image) *gocv.Mat {
 type ObjectDetect struct {
 	net *gocv.Net
 	ctx context.Context
-	aod *aod.EventOnDetect
+	eod *eod.EventOnDetect
 }
 
 // NewObjectDetection returns a new object detection component
-func NewObjectDetection(ctx context.Context, aod *aod.EventOnDetect, withCuda bool, proto, model string) (*ObjectDetect, error) {
+func NewObjectDetection(ctx context.Context, eod *eod.EventOnDetect, withCuda bool, proto, model string) (*ObjectDetect, error) {
 	log.Println("NewObjectDetection")
 	caffeNet := gocv.ReadNetFromCaffe(proto, model)
 	if caffeNet.Empty() {
@@ -458,7 +458,7 @@ func NewObjectDetection(ctx context.Context, aod *aod.EventOnDetect, withCuda bo
 		caffeNet.SetPreferableBackend(gocv.NetBackendType(gocv.NetBackendCUDA))
 		caffeNet.SetPreferableTarget(gocv.NetTargetType(gocv.NetTargetCUDA))
 	}
-	return &ObjectDetect{net: &caffeNet, ctx: ctx, aod: aod}, nil
+	return &ObjectDetect{net: &caffeNet, ctx: ctx, eod: eod}, nil
 }
 
 func (od *ObjectDetect) CaffeWorker(imgChan chan *pb.Image, drCh chan pb.DetectionResult) {
@@ -517,7 +517,7 @@ func (od *ObjectDetect) CaffeWorker(imgChan chan *pb.Image, drCh chan pb.Detecti
 			log.Println("mat close error: ", err)
 		}
 		runtime.GC()
-		od.aod.FilterEvents(&dr)
+		od.eod.FilterEvents(&dr)
 		drCh <- dr
 
 		//if *matprofile {

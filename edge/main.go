@@ -6,7 +6,7 @@ import (
 	comm "github.com/bosdhill/iot_detect_2020/edge/communication"
 	ds "github.com/bosdhill/iot_detect_2020/edge/datastore"
 	od "github.com/bosdhill/iot_detect_2020/edge/detection"
-	aod "github.com/bosdhill/iot_detect_2020/edge/eventondetect"
+	eod "github.com/bosdhill/iot_detect_2020/edge/eventondetect"
 	"github.com/joho/godotenv"
 	"log"
 	"net/http"
@@ -71,17 +71,17 @@ func main() {
 		panic(err)
 	}
 
-	aod, err := aod.NewEventOnDetect(ctx, *appServerAddr)
+	eod, err := eod.NewEventOnDetect(ctx, *appServerAddr)
 	if err != nil {
 		panic(err)
 	}
 
-	_, err = aod.RegisterEventFilters(od.ClassNames)
+	_, err = eod.RegisterEventFilters(od.ClassNames)
 	if err != nil {
 		panic(err)
 	}
 
-	od, err := od.NewObjectDetection(ctx, aod, *withCuda, proto, model)
+	od, err := od.NewObjectDetection(ctx, eod, *withCuda, proto, model)
 	if err != nil {
 		panic(err)
 	}

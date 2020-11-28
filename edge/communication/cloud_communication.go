@@ -133,6 +133,7 @@ func (cComm *CloudComm) remoteInsert(drSl []pb.DetectionResult) (*int64, error) 
 
 // localFind returns all detection results that haven't been uploaded, which is determined by whether img.image is nil
 func (cComm *CloudComm) localFind(batchSize int64) ([]pb.DetectionResult, error) {
+	log.Println("localFind")
 	filter := bson.D{{"img.image", bson.D{{"$ne", nil}}}}
 	drSl, err := cComm.ds.Find(filter, options.Find().SetLimit(batchSize))
 	if err != nil {
