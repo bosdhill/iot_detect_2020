@@ -72,6 +72,7 @@ func (eQuery *EdgeQuery) TestQuery() {
 		log.Fatal(err)
 	}
 
+	// Get Events from the last 60 seconds that match filter
 	eFilter := &pb.EventFilter{
 		Seconds: 60,
 		Name:    "TestQueryEvent",
