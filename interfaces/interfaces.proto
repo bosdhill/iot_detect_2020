@@ -57,7 +57,7 @@ message EventFilters {
 // object to be used for real time event filtration and for mongodb in historic queries, as well as flags to determine
 // the exact fields to be set and returned.
 message EventFilter {
-    //  Used to query detection results from the last n seconds. This is field is ignored in real time event filtration.
+    //  Used to query detection results within the last n seconds. This is field is ignored in real time event filtration.
     int64 seconds = 1;
 
     // The name of the event, which is used when returning the event to the application. This field is ignored in query

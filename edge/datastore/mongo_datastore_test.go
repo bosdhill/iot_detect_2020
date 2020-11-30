@@ -256,3 +256,71 @@ func TestMongoDataStore_LabelMapQuery(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestMarshal(t *testing.T) {
+	labels := []string{"person", "bus", "bike"}
+	dr := pb.DetectionResult{
+		Empty:         false,
+		DetectionTime: time.Now().UnixNano(),
+		LabelNumber:   map[string]int32{"person": 1, "bus": 10, "bike": 100},
+		Labels:        labels,
+		Img: &pb.Image{
+			Image: nil,
+			Rows:  0,
+			Cols:  0,
+			Type:  0,
+		},
+		LabelBoxes: nil,
+	}
+
+	ds, err := New(context.Background(), mongoUri)
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	if err := ds.insert(dr); err != nil {
+		log.Printf("%v", err)
+	}
+
+	//var query = bson.D{{
+	//		"$or",
+	//		[]bson.E{bson.E{"labelnumber.person", bson.D{{"$gte", 1}}}},
+	//	},
+	//}
+	//var query = bson.E{Key: "labelnumber.person", Value: bson.D{{"$gte", 1}}}
+	//
+	//var queryBsonE = []bson.E{query}
+	//
+	//var queryOr = bson.D{{"$or", bson.A{queryBsonE}}}
+
+	//var query = bson.D{{"$or", bson.A{[]bson.E{bson.E{Key: "labelnumber.person", Value: bson.D{{"$gte", 1}}}}}}}
+
+	var query = bson.E{"$or", bson.A{[]bson.E{bson.E{Key: "labelnumber.person", Value: bson.D{{"$gte", 1}}}}}}
+
+	filter, err := bson.Marshal(query)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Println("filter", query)
+
+	var bF bson.E
+	err = bson.Unmarshal(filter, &bF)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Println("bF", bF)
+
+	if err := ds.insert(dr); err != nil {
+		log.Printf("%v", err)
+	}
+
+	//drSl, err := ds.Find(ds.Or([]bson.E{query}))
+	drSl, err := ds.Find(bF)
+
+	if len(drSl) == 0 {
+		t.Error(err)
+	}
+}

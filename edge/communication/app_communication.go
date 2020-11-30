@@ -30,7 +30,7 @@ func (comm *AppComm) Find(ctx context.Context, eFilter *pb.EventFilter) (*pb.Eve
 	if err != nil {
 		return nil, err
 	}
-	secondsNano := time.Duration(eFilter.GetSeconds()).Nanoseconds()
+	secondsNano := (time.Duration(eFilter.GetSeconds()) * time.Second).Nanoseconds()
 
 	log.Printf("Querying from last %v nano seconds\n", secondsNano)
 
@@ -43,10 +43,14 @@ func (comm *AppComm) Find(ctx context.Context, eFilter *pb.EventFilter) (*pb.Eve
 	if err != nil {
 		return nil, err
 	}
+
 	if len(drSl) == 0 {
 		// TODO read/redirect to Cloud
 	}
-	events := realtimefilter.NewEvents(eFilter, &drSl)
+
+	log.Printf("Found %v detection results for filter %v\n", len(drSl), filter)
+
+	events := realtimefilter.NewEvents(eFilter, drSl)
 	return events, nil
 }
 
@@ -61,10 +65,9 @@ func NewAppCommunication(eCtx context.Context, ds *datastore.MongoDataStore, add
 		return nil, err
 	}
 	return &AppComm{
-		server: nil,
-		ds:     ds,
-		lis:    lis,
-		eCtx:   eCtx,
+		ds:   ds,
+		lis:  lis,
+		eCtx: eCtx,
 	}, nil
 }
 

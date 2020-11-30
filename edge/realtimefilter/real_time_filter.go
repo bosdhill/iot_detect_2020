@@ -199,22 +199,23 @@ func compareAnd(detectedLabels map[string]int32, labelQuery map[string]bson.D) b
 }
 
 // NewEvent returns a new Event based on the EventFilter and DetectionResult
-func NewEvent(eventFilter *pb.EventFilter, dr *pb.DetectionResult) *pb.Event {
+func NewEvent(eventFilter *pb.EventFilter, dr pb.DetectionResult) *pb.Event {
 	log.Println("NewEvent")
 	// TODO omit DetectionResult fields based on flags in eventFilter
 	return &pb.Event{
 		Name:            eventFilter.Name,
-		DetectionResult: dr,
+		DetectionResult: &dr,
 		AnnotatedImg:    nil,
 	}
 }
 
 // NewEvents returns a set of Events for an EventFilter
-func NewEvents(eventFilter *pb.EventFilter, drSl *[]pb.DetectionResult) *pb.Events {
+func NewEvents(eventFilter *pb.EventFilter, drSl []pb.DetectionResult) *pb.Events {
 	log.Println("NewEvents")
 	var events = &pb.Events{}
-	for _, dr := range *drSl {
-		events.Events = append(events.Events, NewEvent(eventFilter, &dr))
+	for _, dr := range drSl {
+		log.Println("Adding: ", dr.LabelNumber, dr.DetectionTime)
+		events.Events = append(events.Events, NewEvent(eventFilter, dr))
 	}
 	return events
 }
@@ -228,7 +229,7 @@ func (rtSet *Set) GetEvents(dr *pb.DetectionResult) *pb.Events {
 		aSl, ok := realTimeFilter.query.(bson.A)
 		if ok {
 			if containsAll(dr.LabelNumber, aSl) {
-				events.Events = append(events.Events, NewEvent(realTimeFilter.eventFilter, dr))
+				events.Events = append(events.Events, NewEvent(realTimeFilter.eventFilter, *dr))
 			}
 		} else {
 			// check whether its a logicalQuery
@@ -236,13 +237,13 @@ func (rtSet *Set) GetEvents(dr *pb.DetectionResult) *pb.Events {
 			m, ok := f[OrOp]
 			if ok {
 				if compareOr(dr.LabelNumber, m) {
-					events.Events = append(events.Events, NewEvent(realTimeFilter.eventFilter, dr))
+					events.Events = append(events.Events, NewEvent(realTimeFilter.eventFilter, *dr))
 				}
 			} else {
 				// if not "or", then its "and"
 				m = f[AndOp]
 				if compareAnd(dr.LabelNumber, m) {
-					events.Events = append(events.Events, NewEvent(realTimeFilter.eventFilter, dr))
+					events.Events = append(events.Events, NewEvent(realTimeFilter.eventFilter, *dr))
 				}
 			}
 		}
