@@ -25,9 +25,9 @@ const (
 	Equal              = "$eq"
 	GreaterThanOrEqual = "$gte"
 	LessThanOrEqual    = "$lte"
-	AndOp = "$and"
-	OrOp = "$or"
-	AllOp = "$all"
+	AndOp              = "$and"
+	OrOp               = "$or"
+	AllOp              = "$all"
 )
 
 // New returns a connection to the local mongodb instance, with uris for local and remote instances, and
@@ -156,6 +156,7 @@ func (ds *MongoDataStore) TimeRangeFilter(lower, upper int64) bson.E {
 // DurationFilter creates a duration filter query the detection results between now and now - duration
 func (ds *MongoDataStore) DurationFilter(duration int64) bson.E {
 	since := time.Now().UnixNano() - duration
+	log.Printf("Querying for results greater than or equal to %v\n", since)
 	return bson.E{"detectiontime", bson.D{{GreaterThanOrEqual, since}}}
 }
 

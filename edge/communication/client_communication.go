@@ -2,7 +2,6 @@ package communication
 
 import (
 	"context"
-	"flag"
 	"github.com/bosdhill/iot_detect_2020/edge/datastore"
 	od "github.com/bosdhill/iot_detect_2020/edge/detection"
 	"io"
@@ -56,7 +55,6 @@ func (comm *ClientComm) UploadImage(stream pb.Uploader_UploadImageServer) error 
 // a gRPC server to serve the client's image frame upload requests.
 func NewClientCommunication(eCtx context.Context, addr string, ds *datastore.MongoDataStore, od *od.ObjectDetect) (*ClientComm, error) {
 	log.Println("NewClientCommunication")
-	flag.Parse()
 	lis, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, err

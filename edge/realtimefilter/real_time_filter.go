@@ -40,7 +40,7 @@ func New(events *pb.EventFilters) (*Set, error) {
 	for _, event := range events.GetEventFilters() {
 		bFilter := event.GetFilter()
 
-		filter, err := validate(bFilter)
+		filter, err := UnmarshallBsonDFilter(bFilter)
 		if err != nil {
 			return nil, err
 		}
@@ -115,12 +115,22 @@ func createArrayQuery(filter bson.D, array string, operator string) (bson.A, err
 	return aSl, nil
 }
 
-// validate unmarshals the query in the EventFilter and returns a query if it's valid, otherwise an error
-func validate(bFilter []byte) (bson.D, error) {
+// UnmarshallBsonDFilter unmarshals the query in the EventFilter and returns a query if it's valid, otherwise an error
+func UnmarshallBsonDFilter(bFilter []byte) (bson.D, error) {
 	var filter bson.D
 	err := bson.Unmarshal(bFilter, &filter)
 	if err != nil {
 		return nil, err
+	}
+	return filter, nil
+}
+
+// UnmarshallBsonEFilter unmarshals the query in the EventFilter and returns a query if it's valid, otherwise an error
+func UnmarshallBsonEFilter(bFilter []byte) (bson.E, error) {
+	var filter bson.E
+	err := bson.Unmarshal(bFilter, &filter)
+	if err != nil {
+		return bson.E{}, err
 	}
 	return filter, nil
 }
@@ -197,6 +207,16 @@ func NewEvent(eventFilter *pb.EventFilter, dr *pb.DetectionResult) *pb.Event {
 		DetectionResult: dr,
 		AnnotatedImg:    nil,
 	}
+}
+
+// NewEvents returns a set of Events for an EventFilter
+func NewEvents(eventFilter *pb.EventFilter, drSl *[]pb.DetectionResult) *pb.Events {
+	log.Println("NewEvents")
+	var events = &pb.Events{}
+	for _, dr := range *drSl {
+		events.Events = append(events.Events, NewEvent(eventFilter, &dr))
+	}
+	return events
 }
 
 // GetEvents returns the all the Events for the EventFilters that the DetectionResult satisfies

@@ -13,6 +13,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"runtime/pprof"
+	"sync"
 )
 
 const (
@@ -23,17 +24,18 @@ const (
 )
 
 var (
-	cpuprofile    = flag.String("cpuprofile", "", "write cpu profile to file")
-	serverAddr    = flag.String("server-addr", "192.168.1.121:10000", "The edge server address in the format of host:port")
-	appServerAddr = flag.String("app-server-addr", "localhost:4200", "The app server address in the format of host:port")
-	withCuda      = flag.Bool("with-cuda", false, "Determines whether cuda is enabled or not")
-	matprofile    = flag.Bool("matprofile", false, "displays profile count of gocv.Mat")
-	uploadTTL     = flag.Int64("uploadTTL", defaultUploadTTL, "TTL for local mongodb instance")
-	deleteTTL     = flag.Int64("deleteTTL", defaultDeleteTTL, "TTL for local mongodb instance")
-	batchSize     = flag.Int64("batchsize", defaultBatchSize, "Batchsize for cloud upload")
-	withCloud     = flag.Bool("with-cloud", true, "enable cloud backups")
-	proto         = "detection/model/tiny_yolo_deploy.prototxt"
-	model         = "detection/model/tiny_yolo.caffemodel"
+	cpuprofile         = flag.String("cpuprofile", "", "write cpu profile to file")
+	serverAddr         = flag.String("server-addr", "192.168.1.121:10000", "The edge server address in the format of host:port")
+	appServerAddr      = flag.String("app-server-addr", "localhost:4200", "The app server address in the format of host:port")
+	appQueryServerAddr = flag.String("app-query-addr", "localhost:4204", "The app query server address in the format of host:port")
+	withCuda           = flag.Bool("with-cuda", false, "Determines whether cuda is enabled or not")
+	matprofile         = flag.Bool("matprofile", false, "displays profile count of gocv.Mat")
+	uploadTTL          = flag.Int64("uploadTTL", defaultUploadTTL, "TTL for local mongodb instance")
+	deleteTTL          = flag.Int64("deleteTTL", defaultDeleteTTL, "TTL for local mongodb instance")
+	batchSize          = flag.Int64("batchsize", defaultBatchSize, "Batchsize for cloud upload")
+	withCloud          = flag.Bool("with-cloud", true, "enable cloud backups")
+	proto              = "detection/model/tiny_yolo_deploy.prototxt"
+	model              = "detection/model/tiny_yolo.caffemodel"
 )
 
 func getEnvVars() {
@@ -91,6 +93,11 @@ func main() {
 		panic(err)
 	}
 
+	appComm, err := communication.NewAppCommunication(ctx, ds, *appQueryServerAddr)
+	if err != nil {
+		panic(err)
+	}
+
 	if *withCloud {
 		mongoAtlasUri := os.Getenv("MONGO_ATLAS_URI")
 
@@ -102,8 +109,26 @@ func main() {
 		cloudComm.CloudUpload(*batchSize, *uploadTTL, *deleteTTL)
 	}
 
-	err = clientComm.ServeClient()
-	if err != nil {
-		panic(err)
-	}
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+
+		err = clientComm.ServeClient()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+
+		err = appComm.ServeApp()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	wg.Wait()
 }
