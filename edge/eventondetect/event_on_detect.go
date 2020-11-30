@@ -56,7 +56,7 @@ func (eod *EventOnDetect) FilterEvents(dr *pb.DetectionResult) {
 
 	if events != nil {
 		go func() {
-			_, err := eod.client.SendEvent(eod.ctx, events)
+			_, err := eod.client.SendEvents(eod.ctx, events)
 			if err != nil {
 				log.Printf("Error while sending action: %v", err)
 			}

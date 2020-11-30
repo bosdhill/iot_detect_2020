@@ -130,7 +130,7 @@ func (comm *EdgeComm) RegisterEventFilters(ctx context.Context, labels *pb.Label
 }
 
 // SendEvent receives the Events sent by the Edge
-func (comm *EdgeComm) SendEvent(ctx context.Context, events *pb.Events) (*empty.Empty, error) {
+func (comm *EdgeComm) SendEvents(ctx context.Context, events *pb.Events) (*empty.Empty, error) {
 	log.Println("SendEvent")
 	for _, e := range events.GetEvents() {
 		log.Println(e.Name)

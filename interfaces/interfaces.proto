@@ -27,15 +27,15 @@ message ImageResponse {
     bool success = 1;
 }
 
-// EventOnDetect service provides the application an interface for querying the Edge for detection results, and
-// creating custom events that are detected (or triggered) on the Edge and then handled by the application
+// EventOnDetect service provides the application an interface for setting the event filters in order for
+// the application to receive event notifications in real time
 service EventOnDetect {
     // RegisterEvents is an rpc implemented by the application server that allows
-    // the application to create custom events to be detected by the Edge
+    // the application to create custom event filters used to detect Events on the Edge
     rpc RegisterEventFilters (Labels) returns (EventFilters) {}
 
-    // SendEvent sends the detected events from the Edge to the Application
-    rpc SendEvent (Events) returns (google.protobuf.Empty) {}
+    // SendEvents sends the detected events from the Edge to the Application
+    rpc SendEvents (Events) returns (google.protobuf.Empty) {}
 
     // StreamEvents streams Actions from the Edge to the Client
     rpc StreamEvents (stream Event) returns (google.protobuf.Empty) {}
