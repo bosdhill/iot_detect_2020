@@ -1,10 +1,11 @@
 syntax = "proto3";
 import "google/protobuf/empty.proto";
+import "google/protobuf/descriptor.proto";
 //import "google/protobuf/timestamp.proto";
 option go_package = ".;interfaces";
 package google.protobuf;
 
-// Uploader service serves image frame uploads from the client.
+// Uploader service provides an RPC endpoint on the Edge for the client to upload image frames.
 service Uploader {
     // A client-to-server streaming RPC.
     //
@@ -42,35 +43,33 @@ service EventOnDetect {
     // TODO need to handle batching actions
 }
 
+// Labels are the labels detected by the object detection model on the Edge
 message Labels {
     map<string, bool> labels = 1;
 }
 
-// Events is just a wrapper around a list of Event messages
+// EventFilters is an array of EventFilter
 message EventFilters {
   repeated EventFilter event_filters = 1;
 }
 
-// Event message defines the conditions required for an Action to be triggered as well as the granularity of data to be
-// wrapped in an Action. Basically the filter defined by the application to filter out events they care about in real
-// time. Standard application queries will be an analog of this.
+// EventFilter is used in both real time event filtration and historic queries. It provides the marshalled bson
+// object to be used for real time event filtration and for mongodb in historic queries, as well as flags to determine
+// the exact fields to be set and returned.
 message EventFilter {
-    // hash event uid
-    uint64 uid = 1;
+    // Filter by detection results detected in the last n seconds. This is field is ignored in real time event
+    // filtration.
+    int64 time_filter = 1;
 
-    // labels present in event
-    repeated string labels = 2;
+    // The name of the event, which is used when returning the event to the application. This field is ignored in query
+    // event filtration.
+    string name = 2;
 
-    // label_union is the set of labels used in determining an Event, with the key as the label. For an Event to trigger
-    // an Action, all labels in label_union must be present in the frame, and each label's EventConditions must be
-    // satisfied.
-    map<string, EventConditions> label_events = 3;
-
-    // distance_measure is the distance measure to be used when determining proximity between objects
-    DistanceMeasure distance_measure = 4;
+    // MongoDB bson query
+    bytes filter = 3;
 
     // flags determine the granularity of data returned in an Action
-    uint32 flags = 5;
+    uint32 flags = 4;
 
     // Flags enum provides for the bitwise field flags
     enum Flags {
@@ -91,74 +90,19 @@ message EventFilter {
 
         // Return confidence
         CONFIDENCE = 16;
-
-        // Store this result (event object detection result) on the edge
-        PERSIST = 32;
-    }
-
-    // DistanceMeasure enum defines different distance measures that can be used while measuring object proximity
-    enum DistanceMeasure {
-        // Dummy distance measure
-        DISTANCE_MEASURE_UNSPECIFIED = 0;
-
-        // euclidean distance measure used in proximity detection
-        EUCLIDEAN = 1;
-
-        // manhattan distance measure used in proximity detection
-        MANHATTAN = 2;
     }
 }
 
-// EventSpecification message defines the relationship this label has with other labels in label_union. When there is
-// more than 1 label in label_union, the EventSpecification message can be used for more complex queries
-message EventConditions {
-
-    // lower bound confidence threshold
-    float conf_threshold = 1;
-
-    // quantity of objects with this label
-    int32 quantity = 2;
-
-    // bound on quantity required for this label (bitwise flag)
-    uint32 quantity_bound = 3;
-
-    // proximity method used for this label to other labels in label_union
-    Proximity proximity = 4;
-
-    // QuantityBound enum defines the different bounds on the number of labels
-    enum QuantityBound {
-        // Dummy flag
-        QUANTITY_BOUND_UNSPECIFIED = 0;
-
-        // quantity of objects with label less than threshold
-        LESS = 1;
-
-        // quantity of objects with label greater than threshold
-        GREATER = 2;
-
-        // quantity of objects with label equal to threshold
-        EQUAL = 4;
-    }
-
-    // Proximity enum defines which proximity method to use
-    enum Proximity {
-        // Dummy value
-        PROXIMITY_UNSPECIFIED = 0;
-
-        // Apply distance measure to bounding box perimeters
-        BOX = 1;
-
-        // Apply distance measure to centers of bounding boxes
-        CENTER = 2;
-    }
-}
-
-// Event message corresponds to the detection of an Event (similar to DetectionResult)
+// Event message corresponds to the detection of an Event with an EventFilter
 message Event {
-    DetectionResult detection_result = 1;
+    // name of this event, which is determined by the EventFilter
+    string name = 1;
+
+    // Metadata
+    DetectionResult detection_result = 2;
 
     // annotated_img is the img annotated with bounding boxes
-    bytes annotated_img = 2;
+    bytes annotated_img = 3;
 }
 
 // DetectionResult represents the result of the object detection model
@@ -194,5 +138,10 @@ message BoundingBox {
     int32 bottom_right_x = 3;
     int32 bottom_right_y = 4;
     float confidence = 5;
+}
+
+service EdgeQuery {
+    rpc Find (EventFilter) returns (Event) {}
+    rpc EventStream(EventFilter) returns (stream Event) {}
 }
 

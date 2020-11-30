@@ -76,10 +76,10 @@ func main() {
 		panic(err)
 	}
 
-	_, err = eod.RegisterEventFilters(detection.ClassNames)
-	if err != nil {
-		panic(err)
-	}
+	//_, err = eod.RegisterEventFilters(detection.ClassNames)
+	//if err != nil {
+	//	panic(err)
+	//}
 
 	od, err := detection.New(ctx, eod, *withCuda, proto, model)
 	if err != nil {

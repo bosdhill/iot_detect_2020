@@ -25,6 +25,9 @@ const (
 	Equal              = "$eq"
 	GreaterThanOrEqual = "$gte"
 	LessThanOrEqual    = "$lte"
+	AndOp = "$and"
+	OrOp = "$or"
+	AllOp = "$all"
 )
 
 // New returns a connection to the local mongodb instance, with uris for local and remote instances, and
@@ -136,7 +139,7 @@ func (ds *MongoDataStore) Find(filter interface{}, opt ...*options.FindOptions) 
 // For example if labelMap = ["person" : 1, "dog": 3] and comparison = Equal
 // will return all detection results where there is exactly one person and 3 dogs.
 func (ds *MongoDataStore) LabelMapFilter(labelMap map[string]int32, comparison string) bson.D {
-	prefixKey := "labelmap"
+	prefixKey := "labelnumber"
 	var b bson.D
 	for k, v := range labelMap {
 		key := fmt.Sprintf("%s.%s", prefixKey, k)
@@ -163,7 +166,7 @@ func (ds *MongoDataStore) LabelsIntersectFilter(labels []string) bson.E {
 
 // LabelsSubsetFilter creates a filter for the labels field, where the query labels are a subset of the labels
 func (ds *MongoDataStore) LabelsSubsetFilter(labels []string) bson.E {
-	return bson.E{"labels", bson.D{{"$all", labels}}}
+	return bson.E{"labels", bson.D{{AllOp, labels}}}
 }
 
 // And for chaining together filter queries
@@ -181,5 +184,5 @@ func (ds *MongoDataStore) Or(param []bson.E) bson.D {
 	for _, filter := range param {
 		b = append(b, filter)
 	}
-	return bson.D{{"$or", bson.A{b}}}
+	return bson.D{{OrOp, bson.A{b}}}
 }

@@ -4,7 +4,7 @@ import (
 	"context"
 	"flag"
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/mitchellh/hashstructure"
+	"go.mongodb.org/mongo-driver/bson"
 	"log"
 	"math"
 	"net"
@@ -25,34 +25,42 @@ type EdgeComm struct {
 	lis    net.Listener
 }
 
+const (
+	LessThan           = "$lt"
+	GreaterThan        = "$gt"
+	Equal              = "$eq"
+	GreaterThanOrEqual = "$gte"
+	LessThanOrEqual    = "$lte"
+)
+
 // RegisterEventFilters is called by the Edge to filter results for events it cares about
-// TODO this should be an event driven pattern, such as in
-//  https://stephenafamo.com/blog/implementing-an-event-driven-system-in-go/
 func (comm *EdgeComm) RegisterEventFilters(ctx context.Context, labels *pb.Labels) (*pb.EventFilters, error) {
 	events := &pb.EventFilters{}
 
-	// Example of application setting an Event with EventConditions specified for triggering an Action
-	// TODO need to handle person or bus, not just person and bus
 	if labels.Labels["person"] {
-		event := &pb.EventFilter{
-			LabelEvents: map[string]*pb.EventConditions{
-				"person": {
-					ConfThreshold: 0.30,
-					Quantity:      1,
-					QuantityBound: uint32(pb.EventConditions_GREATER | pb.EventConditions_EQUAL),
-					Proximity:     pb.EventConditions_PROXIMITY_UNSPECIFIED,
+		// marshal mongodb bson filter
+		filter, err := bson.Marshal(bson.D{
+			bson.E{
+				Key: "person",
+				Value: bson.D{
+					bson.E{
+						Key:   GreaterThanOrEqual,
+						Value: 1,
+					},
 				},
 			},
-			Labels:          []string{"person"},
-			DistanceMeasure: pb.EventFilter_DISTANCE_MEASURE_UNSPECIFIED,
-			Flags:           uint32(pb.EventFilter_METADATA),
-		}
-		uid, err := hashstructure.Hash(event, nil)
+		})
+
 		if err != nil {
-			log.Println("RegisterEventFilters: uid hash failed")
-			return nil, err
+			log.Fatal(err)
 		}
-		event.Uid = uid
+
+		event := &pb.EventFilter{
+			Name:   "MoreThanOnePersonFound",
+			Filter: filter,
+			Flags:  0,
+		}
+
 		events.EventFilters = append(events.EventFilters, event)
 	}
 
