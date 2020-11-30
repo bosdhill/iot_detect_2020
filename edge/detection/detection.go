@@ -517,7 +517,7 @@ func (od *ObjectDetect) CaffeWorker(imgChan chan *pb.Image, drCh chan pb.Detecti
 			log.Println("mat close error: ", err)
 		}
 		runtime.GC()
-		od.eod.FilterEvents(&dr)
+		go od.eod.FilterEvents(&dr)
 		drCh <- dr
 
 		//if *matprofile {
