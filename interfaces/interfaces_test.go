@@ -97,7 +97,6 @@ func TestComparisonType_Descriptor(t *testing.T) {
 	//	},
 	//}
 
-
 	//filterEventAnd := bson.D{
 	//	bson.E{
 	//		Key: "$and",

@@ -34,8 +34,8 @@ service EventOnDetect {
     // the application to create custom events to be detected by the Edge
     rpc RegisterEventFilters (Labels) returns (EventFilters) {}
 
-    // SendEvent sends the triggered action from the Edge to the Client
-    rpc SendEvent (Event) returns (google.protobuf.Empty) {}
+    // SendEvent sends the detected events from the Edge to the Application
+    rpc SendEvent (Events) returns (google.protobuf.Empty) {}
 
     // StreamEvents streams Actions from the Edge to the Client
     rpc StreamEvents (stream Event) returns (google.protobuf.Empty) {}
@@ -91,6 +91,10 @@ message EventFilter {
         // Return confidence
         CONFIDENCE = 16;
     }
+}
+
+message Events {
+    repeated Event events = 1;
 }
 
 // Event message corresponds to the detection of an Event with an EventFilter

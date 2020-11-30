@@ -35,42 +35,108 @@ const (
 
 // RegisterEventFilters is called by the Edge to filter results for events it cares about
 func (comm *EdgeComm) RegisterEventFilters(ctx context.Context, labels *pb.Labels) (*pb.EventFilters, error) {
-	events := &pb.EventFilters{}
-
-	if labels.Labels["person"] {
-		// marshal mongodb bson filter
-		filter, err := bson.Marshal(bson.D{
-			bson.E{
-				Key: "person",
-				Value: bson.D{
-					bson.E{
-						Key:   GreaterThanOrEqual,
-						Value: 1,
+	eventFilters := &pb.EventFilters{}
+	if labels.Labels["person"] && labels.Labels["bus"] {
+		filters := map[string]bson.D{
+			"FourPersonsOrFourBuses": {
+				bson.E{
+					Key: "$or",
+					Value: bson.D{
+						bson.E{
+							Key: "person",
+							Value: bson.E{
+								Key:   "$gte",
+								Value: 2,
+							},
+						},
+						bson.E{
+							Key: "bus",
+							Value: bson.E{
+								Key:   "$gte",
+								Value: 1,
+							},
+						},
 					},
 				},
 			},
-		})
-
-		if err != nil {
-			log.Fatal(err)
+			"AtLeastOnePersonAndBus": {
+				bson.E{
+					Key: "$and",
+					Value: bson.D{
+						bson.E{
+							Key: "person",
+							Value: bson.E{
+								Key:   "$gte",
+								Value: 1,
+							},
+						},
+						bson.E{
+							Key: "bus",
+							Value: bson.E{
+								Key:   "$lte",
+								Value: 10,
+							},
+						},
+					},
+				},
+			},
+			"PersonAndBus": {
+				bson.E{
+					Key: "labels",
+					Value: bson.D{
+						bson.E{
+							Key: "$all",
+							Value: bson.A{
+								"person",
+								"bus",
+							},
+						},
+					},
+				},
+			},
+			"AtLeast3People": {
+				bson.E{
+					Key: "$or",
+					Value: bson.D{
+						bson.E{
+							Key: "person",
+							Value: bson.E{
+								Key:   "$gte",
+								Value: 3,
+							},
+						},
+					},
+				},
+			},
 		}
 
-		event := &pb.EventFilter{
-			Name:   "MoreThanOnePersonFound",
-			Filter: filter,
-			Flags:  0,
-		}
+		for name, filter := range filters {
+			mFilter, err := bson.Marshal(filter)
+			if err != nil {
+				log.Fatal(err)
+			}
 
-		events.EventFilters = append(events.EventFilters, event)
+			eFilter := &pb.EventFilter{
+				Name:   name,
+				Filter: mFilter,
+				Flags:  0,
+			}
+
+			eventFilters.EventFilters = append(eventFilters.EventFilters, eFilter)
+		}
 	}
 
-	return events, nil
+	return eventFilters, nil
 }
 
-// SendEvent receives the action sent by the Edge
-func (comm *EdgeComm) SendEvent(ctx context.Context, event *pb.Event) (*empty.Empty, error) {
+// SendEvent receives the Events sent by the Edge
+func (comm *EdgeComm) SendEvent(ctx context.Context, events *pb.Events) (*empty.Empty, error) {
 	log.Println("SendEvent")
-	log.Printf("Received: %v, %v\n", event.GetDetectionResult().Labels, event.GetDetectionResult().GetLabelBoxes())
+	for _, e := range events.GetEvents() {
+		log.Println(e.Name)
+		log.Println(e.GetDetectionResult().GetDetectionTime())
+		log.Println(e.GetDetectionResult().GetLabelNumber())
+	}
 	return &empty.Empty{}, nil
 }
 

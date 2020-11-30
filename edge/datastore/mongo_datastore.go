@@ -33,7 +33,7 @@ const (
 // New returns a connection to the local mongodb instance, with uris for local and remote instances, and
 // the time to live for the local mongodb instance in seconds.
 func New(ctx context.Context, mongoUri string) (*MongoDataStore, error) {
-	log.Println("New")
+	log.Println("NewMongoDataStore")
 	client, err := connection.New(ctx, mongoUri)
 	if err != nil {
 		return nil, err

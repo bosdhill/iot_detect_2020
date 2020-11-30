@@ -2,17 +2,24 @@ package realtimefilter
 
 import (
 	"fmt"
-	"github.com/bosdhill/iot_detect_2020/edge/datastore"
 	pb "github.com/bosdhill/iot_detect_2020/interfaces"
 	"go.mongodb.org/mongo-driver/bson"
 	"log"
 )
 
 const (
-	notWrappedError = "createLogicalQuery: query is not wrapped with $and or $or"
-	notBsonDError   = "createLogicalQuery: pb.EventFiller.Filter is not bsonD"
-	notBsonAError   = "createArrayQuery: pb.EventFiller.Filter inner is not bsonA"
-	notAllError     = "createArrayQuery: pb.EventFiller.Filter is not wrapped with $all"
+	notWrappedError    = "createLogicalQuery: query is not wrapped with $and or $or"
+	notBsonDError      = "createLogicalQuery: pb.EventFiller.Filter is not bsonD"
+	notBsonAError      = "createArrayQuery: pb.EventFiller.Filter inner is not bsonA"
+	notAllError        = "createArrayQuery: pb.EventFiller.Filter is not wrapped with $all"
+	LessThan           = "$lt"
+	GreaterThan        = "$gt"
+	Equal              = "$eq"
+	GreaterThanOrEqual = "$gte"
+	LessThanOrEqual    = "$lte"
+	AndOp              = "$and"
+	OrOp               = "$or"
+	AllOp              = "$all"
 )
 
 type Set []realTimeFilter
@@ -39,17 +46,17 @@ func New(events *pb.EventFilters) (*Set, error) {
 		}
 
 		// check if its an $or statement
-		logicalQuery, err := createLogicalQuery(filter, datastore.OrOp)
+		logicalQuery, err := createLogicalQuery(filter, OrOp)
 		if err == nil {
 			set = append(set, realTimeFilter{logicalQuery, event})
 		} else {
 			// check if its an $and statement
-			logicalQuery, err = createLogicalQuery(filter, datastore.AndOp)
+			logicalQuery, err = createLogicalQuery(filter, AndOp)
 			if err == nil {
 				set = append(set, realTimeFilter{logicalQuery, event})
 			} else {
 				// finally, check if its an $all statement
-				arrayQuery, err := createArrayQuery(filter, "labels", datastore.AllOp)
+				arrayQuery, err := createArrayQuery(filter, "labels", AllOp)
 				if err != nil {
 					return nil, err
 				}
@@ -124,15 +131,15 @@ func compare(n int32, compareQuery bson.D) bool {
 	bound := compareQuery.Map()["value"].(int32)
 
 	switch op {
-	case datastore.LessThan:
+	case LessThan:
 		return n < bound
-	case datastore.LessThanOrEqual:
+	case LessThanOrEqual:
 		return n <= bound
-	case datastore.Equal:
+	case Equal:
 		return n == bound
-	case datastore.GreaterThan:
+	case GreaterThan:
 		return n > bound
-	case datastore.GreaterThanOrEqual:
+	case GreaterThanOrEqual:
 		return n >= bound
 	}
 	return false
@@ -193,29 +200,29 @@ func NewEvent(eventFilter *pb.EventFilter, dr *pb.DetectionResult) *pb.Event {
 }
 
 // GetEvents returns the all the Events for the EventFilters that the DetectionResult satisfies
-func (rtSet *Set) GetEvents(dr *pb.DetectionResult) []*pb.Event {
+func (rtSet *Set) GetEvents(dr *pb.DetectionResult) *pb.Events {
 	log.Println("GetEvents")
-	var events []*pb.Event
+	events := &pb.Events{}
 	for _, realTimeFilter := range *rtSet {
 		// check whether its an array query
 		aSl, ok := realTimeFilter.query.(bson.A)
 		if ok {
 			if containsAll(dr.LabelNumber, aSl) {
-				events = append(events, NewEvent(realTimeFilter.eventFilter, dr))
+				events.Events = append(events.Events, NewEvent(realTimeFilter.eventFilter, dr))
 			}
 		} else {
 			// check whether its a logicalQuery
 			f := realTimeFilter.query.(logicalQuery)
-			m, ok := f[datastore.OrOp]
+			m, ok := f[OrOp]
 			if ok {
 				if compareOr(dr.LabelNumber, m) {
-					events = append(events, NewEvent(realTimeFilter.eventFilter, dr))
+					events.Events = append(events.Events, NewEvent(realTimeFilter.eventFilter, dr))
 				}
 			} else {
 				// if not "or", then its "and"
-				m = f[datastore.AndOp]
+				m = f[AndOp]
 				if compareAnd(dr.LabelNumber, m) {
-					events = append(events, NewEvent(realTimeFilter.eventFilter, dr))
+					events.Events = append(events.Events, NewEvent(realTimeFilter.eventFilter, dr))
 				}
 			}
 		}

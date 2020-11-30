@@ -2,6 +2,7 @@ package eventondetect
 
 import (
 	"context"
+	"github.com/bosdhill/iot_detect_2020/edge/realtimefilter"
 	pb "github.com/bosdhill/iot_detect_2020/interfaces"
 	"google.golang.org/grpc"
 	"log"
@@ -13,12 +14,12 @@ type EventOnDetect struct {
 	client       pb.EventOnDetectClient
 	ctx          context.Context
 	eventFilters *pb.EventFilters
-	//eventSet     *realtimefilter.Set
+	rtFilter     *realtimefilter.Set
 }
 
 // New creates an event on detect client
 func New(ctx context.Context, addr string) (*EventOnDetect, error) {
-	log.Println("New")
+	log.Println("NewEventOnDetect")
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithBlock(), grpc.WithInsecure(), grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(math.MaxInt32)))
 	conn, err := grpc.DialContext(ctx, addr, opts...)
@@ -30,35 +31,35 @@ func New(ctx context.Context, addr string) (*EventOnDetect, error) {
 }
 
 // RegisterEventFilters is used to register the application's eventFilters
-//func (aod *EventOnDetect) RegisterEventFilters(labels map[string]bool) (*realtimefilter.Set, error) {
-//	log.Println("RegisterEventFilters")
-//	var err error
-//	aod.eventFilters, err = aod.client.RegisterEventFilters(aod.ctx, &pb.Labels{Labels: labels})
-//	if err != nil {
-//		return nil, err
-//	}
-//	aod.eventSet = realtimefilter.New(aod.eventFilters)
-//	return aod.eventSet, nil
-//}
+func (eod *EventOnDetect) RegisterEventFilters(labels map[string]bool) (*realtimefilter.Set, error) {
+	log.Println("RegisterEventFilters")
+	var err error
+	eod.eventFilters, err = eod.client.RegisterEventFilters(eod.ctx, &pb.Labels{Labels: labels})
+	if err != nil {
+		return nil, err
+	}
+
+	eod.rtFilter, err = realtimefilter.New(eod.eventFilters)
+	if err != nil {
+		return nil, err
+	}
+
+	return eod.rtFilter, nil
+}
 
 // FilterEvents checks whether the detection result satisfies any event conditions set by the application. If it does,
 // it creates an event and sends it to the application.
-func (aod *EventOnDetect) FilterEvents(dr *pb.DetectionResult) {
+func (eod *EventOnDetect) FilterEvents(dr *pb.DetectionResult) {
 	log.Println("FilterEvents")
-	//event := aod.eventSet.Find(dr.LabelNumber)
-	//log.Println("found", event)
+	events := eod.rtFilter.GetEvents(dr)
+	log.Printf("Found %v events", len(events.GetEvents()))
 
-	//if event != nil {
-	//	event := pb.Event{
-	//		DetectionResult: dr,
-	//		AnnotatedImg:    nil,
-	//	}
-	//
-	//	go func() {
-	//		_, err := aod.client.SendEvent(aod.ctx, &event)
-	//		if err != nil {
-	//			log.Printf("Error while sending action: %v", err)
-	//		}
-	//	}()
-	//}
+	if events != nil {
+		go func() {
+			_, err := eod.client.SendEvent(eod.ctx, events)
+			if err != nil {
+				log.Printf("Error while sending action: %v", err)
+			}
+		}()
+	}
 }

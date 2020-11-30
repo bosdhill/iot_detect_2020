@@ -196,11 +196,11 @@ func TestSet_GetEvents(t *testing.T) {
 	dr := &pb.DetectionResult{
 		Empty:         false,
 		DetectionTime: 0,
-		LabelNumber:   map[string]int32{
-			"bus" : 2,
-			"person" : 3,
+		LabelNumber: map[string]int32{
+			"bus":    2,
+			"person": 3,
 		},
-		Labels:        []string{"bus", "person"},
+		Labels: []string{"bus", "person"},
 		Img: &pb.Image{
 			Image: nil,
 			Rows:  0,
@@ -211,12 +211,12 @@ func TestSet_GetEvents(t *testing.T) {
 	}
 
 	cases := []struct {
-		description    string
-		eventFilters   *pb.EventFilters
-		expected       bool
+		description  string
+		eventFilters *pb.EventFilters
+		expected     bool
 	}{
 		{
-			description:    "or query",
+			description: "or query",
 			eventFilters: &pb.EventFilters{
 				EventFilters: []*pb.EventFilter{
 					{
@@ -249,11 +249,9 @@ func TestSet_GetEvents(t *testing.T) {
 
 	events := eSet.GetEvents(dr)
 
-	for _, e := range events {
+	for _, e := range events.GetEvents() {
 		if e.Name == "OrQuery" {
 			log.Fatal()
 		}
 	}
 }
-
-
