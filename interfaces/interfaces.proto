@@ -30,17 +30,38 @@ message ImageResponse {
 // EventOnDetect service provides the application an interface for setting the event filters in order for
 // the application to receive event notifications in real time
 service EventOnDetect {
-    // RegisterEvents is an rpc implemented by the application server that allows
-    // the application to create custom event filters used to detect Events on the Edge
-    rpc RegisterEventFilters (Labels) returns (EventFilters) {}
+    // GetLabels returns the labels that the Edge can detect
+    rpc GetLabels(google.protobuf.Empty) returns (GetLabelsResponse) {}
 
-    // SendEvents sends the detected events from the Edge to the Application
-    rpc SendEvents (Events) returns (google.protobuf.Empty) {}
+    // RegisterApp allows the Application to register with the Edge
+    rpc RegisterApp(RegisterAppRequest) returns (RegisterAppResponse) {}
 
-    // StreamEvents streams Actions from the Edge to the Client
-    rpc StreamEvents (stream Event) returns (google.protobuf.Empty) {}
+    // StreamEvents streams Events from the Edge to the Application
+    // server-side streaming RPC where the client sends a request to the server and gets a stream to read a sequence of messages back
+    rpc StreamEvents (StreamEventsRequest) returns (stream StreamEventsResponse) {}
+}
 
-    // TODO need to handle batching actions
+message GetLabelsResponse {
+    Labels labels = 1;
+}
+
+// RegisterAppRequest allows the application to register with the Edge
+message RegisterAppRequest {
+    EventFilters event_filters = 2;
+}
+
+// RegisterAppResponse returns the uid assigned to the application, which is used
+// in StreamEvents
+message RegisterAppResponse {
+    string uuid = 1;
+}
+
+message StreamEventsRequest {
+    string uuid = 1;
+}
+
+message StreamEventsResponse {
+    repeated Event events = 1;
 }
 
 // Labels are the labels detected by the object detection model on the Edge

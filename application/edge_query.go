@@ -7,6 +7,7 @@ import (
 	"google.golang.org/grpc"
 	"log"
 	"math"
+	"sync"
 	"time"
 )
 
@@ -42,7 +43,14 @@ func (eQuery *EdgeQuery) Find(eFilter *pb.EventFilter) (*pb.Events, error) {
 	return events, nil
 }
 
-func (eQuery *EdgeQuery) TestQuery() {
+func TestQuery(group *sync.WaitGroup) {
+	defer group.Done()
+
+	eQuery, err := NewEdgeQuery(*appQueryServerAddr)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	log.Println("TestQuery")
 	// Test query
 	time.Sleep(30 * time.Second)

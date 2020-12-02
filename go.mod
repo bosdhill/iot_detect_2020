@@ -12,6 +12,7 @@ require (
 	github.com/golang/protobuf v1.4.3
 	github.com/golang/snappy v0.0.2 // indirect
 	github.com/google/flatbuffers v1.12.0 // indirect
+	github.com/google/uuid v1.1.2
 	github.com/hashicorp/go-memdb v1.2.1
 	github.com/joho/godotenv v1.3.0
 	github.com/klauspost/compress v1.11.2 // indirect

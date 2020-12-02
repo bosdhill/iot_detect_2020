@@ -25,8 +25,8 @@ const (
 
 var (
 	cpuprofile         = flag.String("cpuprofile", "", "write cpu profile to file")
-	serverAddr         = flag.String("server-addr", "192.168.1.121:10000", "The edge server address in the format of host:port")
-	appServerAddr      = flag.String("app-server-addr", "localhost:4200", "The app server address in the format of host:port")
+	serverAddr         = flag.String("server-addr", "localhost:4200", "The edge server address in the format of host:port")
+	eodServerAddr      = flag.String("eod-server-addr", "localhost:4201", "The app server address in the format of host:port")
 	appQueryServerAddr = flag.String("app-query-addr", "localhost:4204", "The app query server address in the format of host:port")
 	withCuda           = flag.Bool("with-cuda", false, "Determines whether cuda is enabled or not")
 	matprofile         = flag.Bool("matprofile", false, "displays profile count of gocv.Mat")
@@ -73,12 +73,7 @@ func main() {
 		panic(err)
 	}
 
-	eod, err := eventondetect.New(ctx, *appServerAddr)
-	if err != nil {
-		panic(err)
-	}
-
-	_, err = eod.RegisterEventFilters(detection.ClassNames)
+	eod, err := eventondetect.New(*eodServerAddr, detection.ClassNames)
 	if err != nil {
 		panic(err)
 	}
@@ -88,7 +83,7 @@ func main() {
 		panic(err)
 	}
 
-	clientComm, err := communication.NewClientCommunication(ctx, *serverAddr, ds, od)
+	clientComm, err := communication.NewClientCommunication(ctx, *serverAddr, ds, od, eod)
 	if err != nil {
 		panic(err)
 	}
@@ -110,7 +105,7 @@ func main() {
 	}
 
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(3)
 
 	go func() {
 		defer wg.Done()
@@ -125,6 +120,16 @@ func main() {
 		defer wg.Done()
 
 		err = appComm.ServeApp()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+
+	go func() {
+		defer wg.Done()
+
+		err = eod.ServeEODApp()
 		if err != nil {
 			panic(err)
 		}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/bosdhill/iot_detect_2020/edge/datastore"
 	od "github.com/bosdhill/iot_detect_2020/edge/detection"
+	eod "github.com/bosdhill/iot_detect_2020/edge/eventondetect"
 	"io"
 	"log"
 	"math"
@@ -20,6 +21,7 @@ type ClientComm struct {
 	server pb.UploaderServer
 	ds     *datastore.MongoDataStore
 	od     *od.ObjectDetect
+	eod    *eod.EventOnDetect
 	lis    net.Listener
 	eCtx   context.Context
 	cancel context.CancelFunc
@@ -33,8 +35,10 @@ func (comm *ClientComm) UploadImage(stream pb.Uploader_UploadImageServer) error 
 	log.Println("UploadImage")
 	count := 0
 	drCh := make(chan pb.DetectionResult)
+	drFilterCh := make(chan pb.DetectionResult)
 	imgCh := make(chan *pb.Image)
-	go comm.od.CaffeWorker(imgCh, drCh)
+	go comm.od.CaffeWorker(imgCh, drCh, drFilterCh)
+	go comm.eod.FilterEventsWorker(drFilterCh)
 	go comm.ds.InsertWorker(drCh)
 	for {
 		img, err := stream.Recv()
@@ -53,13 +57,13 @@ func (comm *ClientComm) UploadImage(stream pb.Uploader_UploadImageServer) error 
 
 // NewClientCommunication returns a new client communication, which wraps around
 // a gRPC server to serve the client's image frame upload requests.
-func NewClientCommunication(eCtx context.Context, addr string, ds *datastore.MongoDataStore, od *od.ObjectDetect) (*ClientComm, error) {
+func NewClientCommunication(eCtx context.Context, addr string, ds *datastore.MongoDataStore, od *od.ObjectDetect, eod *eod.EventOnDetect) (*ClientComm, error) {
 	log.Println("NewClientCommunication")
 	lis, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, err
 	}
-	cComm := &ClientComm{ds: ds, od: od, lis: lis, eCtx: eCtx}
+	cComm := &ClientComm{ds: ds, od: od, lis: lis, eCtx: eCtx, eod: eod}
 	return cComm, nil
 }
 

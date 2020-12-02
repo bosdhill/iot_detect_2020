@@ -2,64 +2,139 @@ package eventondetect
 
 import (
 	"context"
+	"flag"
+	"fmt"
 	"github.com/bosdhill/iot_detect_2020/edge/realtimefilter"
-	pb "github.com/bosdhill/iot_detect_2020/interfaces"
-	"google.golang.org/grpc"
+	"github.com/golang/protobuf/ptypes/empty"
 	"log"
 	"math"
+	"net"
+
+	pb "github.com/bosdhill/iot_detect_2020/interfaces"
+	"github.com/google/uuid"
+	"google.golang.org/grpc"
 )
 
-// EventOnDetect is used to serve the application's requests
+var (
+	tls                = flag.Bool("tls", false, "Connection uses TLS if true, else plain TCP")
+	caFile             = flag.String("ca_file", "", "The file containing the CA root cert file")
+	serverHostOverride = flag.String("server_host_override", "x.test.youtube.com", "The server name used to verify the hostname returned by the TLS handshake")
+)
+
+// AppComm stores the events channel and real time filter to be used with a specific application
+type AppComm struct {
+	eventsChan chan *pb.Events
+	rtFilter   *realtimefilter.Set
+}
+
+// EventOnDetect is used to wrap the server for serving actions issued by the Edge
 type EventOnDetect struct {
-	client       pb.EventOnDetectClient
-	ctx          context.Context
-	eventFilters *pb.EventFilters
-	rtFilter     *realtimefilter.Set
+	server  pb.EventOnDetectServer
+	lis     net.Listener
+	appComm map[string]AppComm
+	labels  *pb.Labels
 }
 
-// New creates an event on detect client
-func New(ctx context.Context, addr string) (*EventOnDetect, error) {
+// GetLabels returns the labels for objects that the object detection model can detect
+func (eod *EventOnDetect) GetLabels(context.Context, *empty.Empty) (*pb.GetLabelsResponse, error) {
+	log.Println("GetLabels")
+	return &pb.GetLabelsResponse{
+		Labels: eod.labels,
+	}, nil
+}
+
+// RegisterApp implements the register app rpc which accepts event filters for an app and assigns it a uuid
+func (eod *EventOnDetect) RegisterApp(ctx context.Context, req *pb.RegisterAppRequest) (*pb.RegisterAppResponse, error) {
+	log.Println("RegisterApp")
+	rtFilter, err := realtimefilter.New(req.EventFilters)
+	if err != nil {
+		return nil, err
+	}
+
+	// create new uuid for application
+	uuidWithHyphen := uuid.New()
+	appId := fmt.Sprint(uuidWithHyphen)
+
+	// create new channel for this app
+	eod.appComm[appId] = AppComm{eventsChan: make(chan *pb.Events), rtFilter: rtFilter}
+
+	return &pb.RegisterAppResponse{
+		Uuid: appId,
+	}, nil
+}
+
+// StreamEvents streams any events detected in real time to the application that calls this rpc if their uuid exists
+func (eod *EventOnDetect) StreamEvents(req *pb.StreamEventsRequest, stream pb.EventOnDetect_StreamEventsServer) error {
+	log.Println("StreamEvents")
+	appComm, ok := eod.appComm[req.Uuid]
+	if !ok {
+		return fmt.Errorf("app with uuid %v not found", req.Uuid)
+	}
+
+	for events := range appComm.eventsChan {
+		resp := &pb.StreamEventsResponse{
+			Events: events.GetEvents(),
+		}
+
+		if err := stream.Send(resp); err != nil {
+			return err
+		}
+	}
+
+	close(appComm.eventsChan)
+	return nil
+}
+
+// SendEvent receives the Events sent by the Edge
+func (eod *EventOnDetect) SendEvents(ctx context.Context, events *pb.Events) (*empty.Empty, error) {
+	log.Println("SendEvent")
+	for _, e := range events.GetEvents() {
+		log.Println(e.Name)
+		log.Println(e.GetDetectionResult().GetDetectionTime())
+		log.Println(e.GetDetectionResult().GetLabelNumber())
+	}
+	return &empty.Empty{}, nil
+}
+
+// New returns a new event on detect component
+func New(addr string, labels map[string]bool) (*EventOnDetect, error) {
 	log.Println("NewEventOnDetect")
-	var opts []grpc.DialOption
-	opts = append(opts, grpc.WithBlock(), grpc.WithInsecure(), grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(math.MaxInt32)))
-	conn, err := grpc.DialContext(ctx, addr, opts...)
-	if err != nil {
-		log.Fatalf("Error while dialing. Err: %v", err)
-	}
-	client := pb.NewEventOnDetectClient(conn)
-	return &EventOnDetect{client: client, ctx: ctx}, nil
-}
-
-// RegisterEventFilters is used to register the application's eventFilters
-func (eod *EventOnDetect) RegisterEventFilters(labels map[string]bool) (*realtimefilter.Set, error) {
-	log.Println("RegisterEventFilters")
-	var err error
-	eod.eventFilters, err = eod.client.RegisterEventFilters(eod.ctx, &pb.Labels{Labels: labels})
+	flag.Parse()
+	lis, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, err
 	}
-
-	eod.rtFilter, err = realtimefilter.New(eod.eventFilters)
-	if err != nil {
-		return nil, err
-	}
-
-	return eod.rtFilter, nil
+	EdgeComm := &EventOnDetect{lis: lis, appComm: make(map[string]AppComm), labels: &pb.Labels{Labels: labels}}
+	return EdgeComm, nil
 }
 
-// FilterEvents checks whether the detection result satisfies any event conditions set by the application. If it does,
+// FilterEventsWorker checks whether the detection result satisfies any event conditions set by the application. If it does,
 // it creates an event and sends it to the application.
-func (eod *EventOnDetect) FilterEvents(dr *pb.DetectionResult) {
-	log.Println("FilterEvents")
-	events := eod.rtFilter.GetEvents(dr)
-	log.Printf("Found %v events", len(events.GetEvents()))
-
-	if events != nil {
-		go func() {
-			_, err := eod.client.SendEvents(eod.ctx, events)
-			if err != nil {
-				log.Printf("Error while sending action: %v", err)
+func (eod *EventOnDetect) FilterEventsWorker(drFilterCh chan pb.DetectionResult) {
+	log.Println("FilterEventsWorker")
+	for dr := range drFilterCh {
+		if !dr.Empty {
+			for _, appComm := range eod.appComm {
+				events := appComm.rtFilter.GetEvents(&dr)
+				if events != nil {
+					appComm.eventsChan <- events
+				}
 			}
-		}()
+		}
 	}
+	close(drFilterCh)
+}
+
+// ServeEODApp serves EventOnDetect rpc calls from the App
+func (eod *EventOnDetect) ServeEODApp() error {
+	log.Println("ServeEODApp")
+	var opts []grpc.ServerOption
+	opts = append(opts, grpc.MaxRecvMsgSize(math.MaxInt32), grpc.MaxSendMsgSize(math.MaxInt32))
+	grpcServer := grpc.NewServer(opts...)
+	pb.RegisterEventOnDetectServer(grpcServer, eod)
+	err := grpcServer.Serve(eod.lis)
+	if err != nil {
+		return err
+	}
+	return nil
 }

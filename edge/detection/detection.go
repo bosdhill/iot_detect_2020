@@ -461,7 +461,7 @@ func New(ctx context.Context, eod *eod.EventOnDetect, withCuda bool, proto, mode
 	return &ObjectDetect{net: &caffeNet, ctx: ctx, eod: eod}, nil
 }
 
-func (od *ObjectDetect) CaffeWorker(imgChan chan *pb.Image, drCh chan pb.DetectionResult) {
+func (od *ObjectDetect) CaffeWorker(imgChan chan *pb.Image, drCh chan pb.DetectionResult, drFilterCh chan pb.DetectionResult) {
 	log.Println("caffeWorker")
 	sec := time.Duration(0)
 	count := 0
@@ -517,7 +517,7 @@ func (od *ObjectDetect) CaffeWorker(imgChan chan *pb.Image, drCh chan pb.Detecti
 			log.Println("mat close error: ", err)
 		}
 		runtime.GC()
-		go od.eod.FilterEvents(&dr)
+		drFilterCh <- dr
 		drCh <- dr
 
 		//if *matprofile {
