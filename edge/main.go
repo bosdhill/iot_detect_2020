@@ -98,10 +98,10 @@ func main() {
 
 		cloudComm, err := communication.NewCloudUpload(ctx, ds, mongoAtlasUri)
 		if err != nil {
-			panic(err)
+			log.Printf("cannot connect to remote mongodb instance: %v", err)
+		} else {
+			cloudComm.CloudUpload(*batchSize, *uploadTTL, *deleteTTL)
 		}
-
-		cloudComm.CloudUpload(*batchSize, *uploadTTL, *deleteTTL)
 	}
 
 	var wg sync.WaitGroup

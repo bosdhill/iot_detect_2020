@@ -40,6 +40,7 @@ func New(events *pb.EventFilters) (*Set, error) {
 	for _, event := range events.GetEventFilters() {
 		bFilter := event.GetFilter()
 
+		// FIXME should be unmarshalled as bson.Raw for easy parsing.
 		filter, err := UnmarshallBsonDFilter(bFilter)
 		if err != nil {
 			return nil, err
