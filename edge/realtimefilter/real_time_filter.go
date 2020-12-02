@@ -211,26 +211,26 @@ func NewEvent(eventFilter *pb.EventFilter, dr pb.DetectionResult) *pb.Event {
 }
 
 // NewEvents returns a set of Events for an EventFilter
-func NewEvents(eventFilter *pb.EventFilter, drSl []pb.DetectionResult) *pb.Events {
+func NewEvents(eventFilter *pb.EventFilter, drSl []pb.DetectionResult) []*pb.Event {
 	log.Println("NewEvents")
-	var events = &pb.Events{}
+	var events []*pb.Event
 	for _, dr := range drSl {
 		log.Println("Adding: ", dr.LabelNumber, dr.DetectionTime)
-		events.Events = append(events.Events, NewEvent(eventFilter, dr))
+		events = append(events, NewEvent(eventFilter, dr))
 	}
 	return events
 }
 
 // GetEvents returns the all the Events for the EventFilters that the DetectionResult satisfies
-func (rtSet *Set) GetEvents(dr *pb.DetectionResult) *pb.Events {
+func (rtSet *Set) GetEvents(dr *pb.DetectionResult) []*pb.Event {
 	log.Println("GetEvents")
-	events := &pb.Events{}
+	var events []*pb.Event
 	for _, realTimeFilter := range *rtSet {
 		// check whether its an array query
 		aSl, ok := realTimeFilter.query.(bson.A)
 		if ok {
 			if containsAll(dr.LabelNumber, aSl) {
-				events.Events = append(events.Events, NewEvent(realTimeFilter.eventFilter, *dr))
+				events = append(events, NewEvent(realTimeFilter.eventFilter, *dr))
 			}
 		} else {
 			// check whether its a logicalQuery
@@ -238,13 +238,13 @@ func (rtSet *Set) GetEvents(dr *pb.DetectionResult) *pb.Events {
 			m, ok := f[OrOp]
 			if ok {
 				if compareOr(dr.LabelNumber, m) {
-					events.Events = append(events.Events, NewEvent(realTimeFilter.eventFilter, *dr))
+					events = append(events, NewEvent(realTimeFilter.eventFilter, *dr))
 				}
 			} else {
 				// if not "or", then its "and"
 				m = f[AndOp]
 				if compareAnd(dr.LabelNumber, m) {
-					events.Events = append(events.Events, NewEvent(realTimeFilter.eventFilter, *dr))
+					events = append(events, NewEvent(realTimeFilter.eventFilter, *dr))
 				}
 			}
 		}

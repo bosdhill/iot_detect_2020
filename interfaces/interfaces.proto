@@ -11,7 +11,11 @@ service Uploader {
     //
     // Streams image frames from the data source in the client to the server
     // in the edge.
-    rpc UploadImage(stream Image) returns (ImageResponse) {}
+    rpc UploadImage(stream UploadImageRequest) returns (UploadImageResponse) {}
+}
+
+message UploadImageRequest {
+    Image image = 1;
 }
 
 // Image is a gocv.Mat representation of an image frame
@@ -22,8 +26,8 @@ message Image {
     int32 type = 4;
 }
 
-// ImageResponse is a message that has a boolean that tells whether upload was successful
-message ImageResponse {
+// UploadImageResponse is a message that has a boolean that tells whether upload was successful
+message UploadImageResponse {
     bool success = 1;
 }
 
@@ -113,10 +117,6 @@ message EventFilter {
     }
 }
 
-message Events {
-    repeated Event events = 1;
-}
-
 // Event message corresponds to the detection of an Event with an EventFilter
 message Event {
     // name of this event, which is determined by the EventFilter
@@ -165,7 +165,22 @@ message BoundingBox {
 }
 
 service EdgeQuery {
-    rpc Find (EventFilter) returns (Events) {}
-    rpc EventStream(EventFilter) returns (stream Event) {}
+    rpc Find (FindRequest) returns (FindResponse) {}
+    rpc EventStream(EventStreamRequest) returns (stream EventStreamResponse) {}
 }
 
+message FindRequest {
+    EventFilter event_filter = 1;
+}
+
+message FindResponse {
+    repeated Event events = 1;
+}
+
+message EventStreamRequest {
+    EventFilter event_filter = 1;
+}
+
+message EventStreamResponse {
+    Event event = 1;
+}

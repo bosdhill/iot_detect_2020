@@ -33,14 +33,14 @@ func NewEdgeQuery(addr string) (*EdgeQuery, error) {
 }
 
 // Find makees a Find event filter query request to the EdgeQuery server on the Edge
-func (eQuery *EdgeQuery) Find(eFilter *pb.EventFilter) (*pb.Events, error) {
+func (eQuery *EdgeQuery) Find(eFilter *pb.EventFilter) ([]*pb.Event, error) {
 	log.Printf("Find")
 	ctx, _ := context.WithCancel(context.Background())
-	events, err := eQuery.client.Find(ctx, eFilter)
+	resp, err := eQuery.client.Find(ctx, &pb.FindRequest{EventFilter: eFilter})
 	if err != nil {
 		return nil, err
 	}
-	return events, nil
+	return resp.GetEvents(), nil
 }
 
 func TestQuery(group *sync.WaitGroup) {
@@ -93,7 +93,7 @@ func TestQuery(group *sync.WaitGroup) {
 		log.Fatal(err)
 	}
 
-	for _, e := range events.GetEvents() {
+	for _, e := range events {
 		log.Println(e.GetName())
 		log.Println(e.GetDetectionResult().GetDetectionTime())
 		log.Println(e.GetDetectionResult().GetLabelNumber())

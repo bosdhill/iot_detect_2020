@@ -23,7 +23,7 @@ var (
 
 // AppComm stores the events channel and real time filter to be used with a specific application
 type AppComm struct {
-	eventsChan chan *pb.Events
+	eventsChan chan []*pb.Event
 	rtFilter   *realtimefilter.Set
 }
 
@@ -56,7 +56,7 @@ func (eod *EventOnDetect) RegisterApp(ctx context.Context, req *pb.RegisterAppRe
 	appId := fmt.Sprint(uuidWithHyphen)
 
 	// create new channel for this app
-	eod.appComm[appId] = AppComm{eventsChan: make(chan *pb.Events), rtFilter: rtFilter}
+	eod.appComm[appId] = AppComm{eventsChan: make(chan []*pb.Event), rtFilter: rtFilter}
 
 	return &pb.RegisterAppResponse{
 		Uuid: appId,
@@ -73,7 +73,7 @@ func (eod *EventOnDetect) StreamEvents(req *pb.StreamEventsRequest, stream pb.Ev
 
 	for events := range appComm.eventsChan {
 		resp := &pb.StreamEventsResponse{
-			Events: events.GetEvents(),
+			Events: events,
 		}
 
 		if err := stream.Send(resp); err != nil {
@@ -83,17 +83,6 @@ func (eod *EventOnDetect) StreamEvents(req *pb.StreamEventsRequest, stream pb.Ev
 
 	close(appComm.eventsChan)
 	return nil
-}
-
-// SendEvent receives the Events sent by the Edge
-func (eod *EventOnDetect) SendEvents(ctx context.Context, events *pb.Events) (*empty.Empty, error) {
-	log.Println("SendEvent")
-	for _, e := range events.GetEvents() {
-		log.Println(e.Name)
-		log.Println(e.GetDetectionResult().GetDetectionTime())
-		log.Println(e.GetDetectionResult().GetLabelNumber())
-	}
-	return &empty.Empty{}, nil
 }
 
 // New returns a new event on detect component

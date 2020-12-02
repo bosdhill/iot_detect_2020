@@ -83,7 +83,7 @@ func TestNew(t *testing.T) {
 			eventFilters: &pb.EventFilters{
 				EventFilters: []*pb.EventFilter{
 					{
-						TimeFilter: 0,
+						Seconds: 0,
 						Name:       "OrQuery",
 						Filter:     mOrQuery,
 						Flags:      0,
@@ -97,7 +97,7 @@ func TestNew(t *testing.T) {
 			eventFilters: &pb.EventFilters{
 				EventFilters: []*pb.EventFilter{
 					{
-						TimeFilter: 0,
+						Seconds: 0,
 						Name:       "AndQuery",
 						Filter:     mAndQuery,
 						Flags:      0,
@@ -111,7 +111,7 @@ func TestNew(t *testing.T) {
 			eventFilters: &pb.EventFilters{
 				EventFilters: []*pb.EventFilter{
 					{
-						TimeFilter: 0,
+						Seconds: 0,
 						Name:       "ArrayQuery",
 						Filter:     mArrayQuery,
 						Flags:      0,
@@ -220,19 +220,19 @@ func TestSet_GetEvents(t *testing.T) {
 			eventFilters: &pb.EventFilters{
 				EventFilters: []*pb.EventFilter{
 					{
-						TimeFilter: 0,
+						Seconds: 0,
 						Name:       "OrQuery",
 						Filter:     mOrQuery,
 						Flags:      0,
 					},
 					{
-						TimeFilter: 0,
+						Seconds: 0,
 						Name:       "AndQuery",
 						Filter:     mAndQuery,
 						Flags:      0,
 					},
 					{
-						TimeFilter: 0,
+						Seconds: 0,
 						Name:       "ArrayQuery",
 						Filter:     mArrayQuery,
 						Flags:      0,
@@ -249,7 +249,7 @@ func TestSet_GetEvents(t *testing.T) {
 
 	events := eSet.GetEvents(dr)
 
-	for _, e := range events.GetEvents() {
+	for _, e := range events {
 		if e.Name == "OrQuery" {
 			log.Fatal()
 		}

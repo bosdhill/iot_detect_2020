@@ -45,13 +45,13 @@ func (comm *ClientComm) UploadImage(stream pb.Uploader_UploadImageServer) error 
 		count++
 		if err == io.EOF {
 			log.Println("EOF")
-			return stream.SendAndClose(&pb.ImageResponse{Success: true})
+			return stream.SendAndClose(&pb.UploadImageResponse{Success: true})
 		}
 		if err != nil {
 			log.Println("err=", err)
 			return err
 		}
-		imgCh <- img
+		imgCh <- img.GetImage()
 	}
 }
 

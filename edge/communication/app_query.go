@@ -24,13 +24,13 @@ type AppComm struct {
 
 // Find extracts the filter from EventFilter and queries the local mongodb instance a given number of seconds back.
 // If there are detection results returned, it creates and returns the corresponding Events.
-func (comm *AppComm) Find(ctx context.Context, eFilter *pb.EventFilter) (*pb.Events, error) {
+func (comm *AppComm) Find(ctx context.Context, req *pb.FindRequest) (*pb.FindResponse, error) {
 	log.Println("Find")
-	filter, err := realtimefilter.UnmarshallBsonEFilter(eFilter.GetFilter())
+	filter, err := realtimefilter.UnmarshallBsonEFilter(req.GetEventFilter().GetFilter())
 	if err != nil {
 		return nil, err
 	}
-	secondsNano := (time.Duration(eFilter.GetSeconds()) * time.Second).Nanoseconds()
+	secondsNano := (time.Duration(req.GetEventFilter().GetSeconds()) * time.Second).Nanoseconds()
 
 	log.Printf("Querying from last %v nano seconds\n", secondsNano)
 
@@ -50,11 +50,13 @@ func (comm *AppComm) Find(ctx context.Context, eFilter *pb.EventFilter) (*pb.Eve
 
 	log.Printf("Found %v detection results for filter %v\n", len(drSl), filter)
 
-	events := realtimefilter.NewEvents(eFilter, drSl)
-	return events, nil
+	events := realtimefilter.NewEvents(req.GetEventFilter(), drSl)
+	return &pb.FindResponse{
+		Events: events,
+	}, nil
 }
 
-func (comm *AppComm) EventStream(*pb.EventFilter, pb.EdgeQuery_EventStreamServer) error {
+func (comm *AppComm) EventStream(*pb.EventStreamRequest, pb.EdgeQuery_EventStreamServer) error {
 	panic("implement me")
 }
 

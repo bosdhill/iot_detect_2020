@@ -27,7 +27,8 @@ type EdgeComm struct {
 func NewEdgeComm(addr string) (*EdgeComm, error) {
 	log.Println("NewEdgeComm")
 	var opts []grpc.DialOption
-	opts = append(opts, grpc.WithBlock(), grpc.WithInsecure(), grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(math.MaxInt32)))
+	opts = append(opts, grpc.WithBlock(), grpc.WithInsecure(),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(math.MaxInt32)))
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 
 	conn, err := grpc.DialContext(ctx, addr, opts...)
@@ -39,13 +40,13 @@ func NewEdgeComm(addr string) (*EdgeComm, error) {
 	return &EdgeComm{client}, nil
 }
 
-func imgToUploadReq(img gocv.Mat) *pb.Image {
+func imgToUploadReq(img gocv.Mat) *pb.UploadImageRequest {
 	bImg := img.ToBytes()
 	rows := int32(img.Rows())
 	cols := int32(img.Cols())
 	mType := img.Type()
 	log.Println("dimensions:", rows, cols)
-	return &pb.Image{Image: bImg, Rows: rows, Cols: cols, Type: int32(mType)}
+	return &pb.UploadImageRequest{Image: &pb.Image{Image: bImg, Rows: rows, Cols: cols, Type: int32(mType)}}
 }
 
 // UploadImage streams image frames to the Edge
@@ -59,7 +60,8 @@ func (e *EdgeComm) UploadImage(c chan gocv.Mat) {
 	for img := range c {
 		req := imgToUploadReq(img)
 		if err := stream.Send(req); err != nil {
-			log.Fatalf("UploadImage: Send: could not send to stream with error = %v and dimensions = %v, %v", err, req.GetCols(), req.GetRows())
+			log.Fatalf("UploadImage: Send: could not send to stream with error = %v and dimensions = %v, %v",
+				err, req.Image.GetCols(), req.Image.GetRows())
 		}
 		// prevent memory leak
 		if err := img.Close(); err != nil {
@@ -71,5 +73,5 @@ func (e *EdgeComm) UploadImage(c chan gocv.Mat) {
 	if err != nil {
 		log.Fatalf("UploadImage: could not CloseAndRecv() got error %v, want %v", err, nil)
 	}
-	log.Printf("ImageResponse: %v", reply.String())
+	log.Printf("UploadImageResponse: %v", reply.String())
 }
