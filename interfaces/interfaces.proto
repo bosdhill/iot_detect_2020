@@ -38,7 +38,7 @@ service EventOnDetect {
 
     // StreamEvents streams Events from the Edge to the Application
     // server-side streaming RPC where the client sends a request to the server and gets a stream to read a sequence of messages back
-    rpc StreamEvents (StreamEventsRequest) returns (stream StreamEventsResponse) {}
+    rpc StreamEvents(StreamEventsRequest) returns (stream StreamEventsResponse) {}
 }
 
 message GetLabelsResponse {

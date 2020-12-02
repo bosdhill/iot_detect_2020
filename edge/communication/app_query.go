@@ -58,8 +58,8 @@ func (comm *AppComm) EventStream(*pb.EventFilter, pb.EdgeQuery_EventStreamServer
 	panic("implement me")
 }
 
-func NewAppCommunication(eCtx context.Context, ds *datastore.MongoDataStore, addr string) (*AppComm, error) {
-	log.Println("NewAppCommunication")
+func NewAppQuery(eCtx context.Context, ds *datastore.MongoDataStore, addr string) (*AppComm, error) {
+	log.Println("NewAppQuery")
 	lis, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, err
@@ -71,9 +71,9 @@ func NewAppCommunication(eCtx context.Context, ds *datastore.MongoDataStore, add
 	}, nil
 }
 
-// ServeApp creates a new EdgeQueryServer to serve the application's query requests
-func (comm *AppComm) ServeApp() error {
-	log.Println("ServeApp")
+// ServeAppQuery creates a new EdgeQueryServer to serve the application's query requests
+func (comm *AppComm) ServeAppQuery() error {
+	log.Println("ServeAppQuery")
 	var opts []grpc.ServerOption
 	opts = append(opts, grpc.MaxRecvMsgSize(math.MaxInt32), grpc.MaxSendMsgSize(math.MaxInt32))
 	grpcServer := grpc.NewServer(opts...)

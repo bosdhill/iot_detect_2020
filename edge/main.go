@@ -83,12 +83,12 @@ func main() {
 		panic(err)
 	}
 
-	clientComm, err := communication.NewClientCommunication(ctx, *serverAddr, ds, od, eod)
+	clientComm, err := communication.NewClientUpload(ctx, *serverAddr, ds, od, eod)
 	if err != nil {
 		panic(err)
 	}
 
-	appComm, err := communication.NewAppCommunication(ctx, ds, *appQueryServerAddr)
+	appComm, err := communication.NewAppQuery(ctx, ds, *appQueryServerAddr)
 	if err != nil {
 		panic(err)
 	}
@@ -96,7 +96,7 @@ func main() {
 	if *withCloud {
 		mongoAtlasUri := os.Getenv("MONGO_ATLAS_URI")
 
-		cloudComm, err := communication.NewCloudCommunication(ctx, ds, mongoAtlasUri)
+		cloudComm, err := communication.NewCloudUpload(ctx, ds, mongoAtlasUri)
 		if err != nil {
 			panic(err)
 		}
@@ -119,7 +119,7 @@ func main() {
 	go func() {
 		defer wg.Done()
 
-		err = appComm.ServeApp()
+		err = appComm.ServeAppQuery()
 		if err != nil {
 			panic(err)
 		}

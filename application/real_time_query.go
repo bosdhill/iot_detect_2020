@@ -35,6 +35,7 @@ func NewEventOnDetect(ctx context.Context, addr string) (*EventOnDetect, error) 
 	return &EventOnDetect{client: client, ctx: ctx}, nil
 }
 
+// GetLabels fetches the object labels that the model on the edge can detect
 func (eod *EventOnDetect) GetLabels() (*pb.Labels, error) {
 	log.Println("GetLabels")
 	var err error
@@ -149,7 +150,7 @@ func (eod *EventOnDetect) RegisterApp(labels *pb.Labels) error {
 	}
 
 	eod.uuid = resp.Uuid
-	log.Println("received uuid: ", eod.uuid)
+	log.Println("received uuid:", eod.uuid)
 
 	return nil
 }

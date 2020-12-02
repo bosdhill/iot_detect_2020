@@ -55,10 +55,10 @@ func (comm *ClientComm) UploadImage(stream pb.Uploader_UploadImageServer) error 
 	}
 }
 
-// NewClientCommunication returns a new client communication, which wraps around
+// NewClientUpload returns a new client communication, which wraps around
 // a gRPC server to serve the client's image frame upload requests.
-func NewClientCommunication(eCtx context.Context, addr string, ds *datastore.MongoDataStore, od *od.ObjectDetect, eod *eod.EventOnDetect) (*ClientComm, error) {
-	log.Println("NewClientCommunication")
+func NewClientUpload(eCtx context.Context, addr string, ds *datastore.MongoDataStore, od *od.ObjectDetect, eod *eod.EventOnDetect) (*ClientComm, error) {
+	log.Println("NewClientUpload")
 	lis, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, err

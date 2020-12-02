@@ -25,10 +25,10 @@ const (
 	drColName = "detection_result"
 )
 
-// NewCloudCommunication returns a new CloudComm component, used to upload detection results from the cloud and remove
+// NewCloudUpload returns a new CloudComm component, used to upload detection results from the cloud and remove
 // detection results from the Edge
-func NewCloudCommunication(ctx context.Context, ds *datastore.MongoDataStore, mongoAtlasUri string) (*CloudComm, error) {
-	log.Println("NewCloudCommunication")
+func NewCloudUpload(ctx context.Context, ds *datastore.MongoDataStore, mongoAtlasUri string) (*CloudComm, error) {
+	log.Println("NewCloudUpload")
 	client, err := connection.New(ctx, mongoAtlasUri)
 	if err != nil {
 		return nil, err
