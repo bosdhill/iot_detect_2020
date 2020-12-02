@@ -88,7 +88,7 @@ func (cComm *CloudComm) CloudUpload(batchSize int64, uploadTTL, deleteTTL int64)
 		defer mtx.Unlock()
 
 		filter := bson.D{{"img.image", nil}}
-		delRes, err := cComm.ds.DeleteMany(filter)
+		delRes, err := cComm.ds.Delete(filter)
 		if err != nil {
 			log.Printf("Error while locally deleting: %v", err)
 		} else {
@@ -146,7 +146,7 @@ func (cComm *CloudComm) localFind(batchSize int64) ([]pb.DetectionResult, error)
 func (cComm *CloudComm) localDelete(lastDetectionTime int64) (*mongo.DeleteResult, error) {
 	log.Println("localDelete")
 	filter := bson.D{{"detectiontime", bson.D{{datastore.LessThanOrEqual, lastDetectionTime}}}}
-	return cComm.ds.DeleteMany(filter)
+	return cComm.ds.Delete(filter)
 }
 
 // localUpdate updates the local detection results up to the last detection time that was uploaded in order to remove
@@ -155,5 +155,5 @@ func (cComm *CloudComm) localUpdate(lastDetectionTime int64) (*mongo.UpdateResul
 	log.Println("localUpdate")
 	filter := bson.D{{"detectiontime", bson.D{{datastore.LessThanOrEqual, lastDetectionTime}}}}
 	update := bson.D{{"$set", bson.D{{"img.image", nil}}}}
-	return cComm.ds.UpdateMany(filter, update)
+	return cComm.ds.Update(filter, update)
 }

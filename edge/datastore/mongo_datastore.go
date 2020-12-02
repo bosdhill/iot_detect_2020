@@ -70,8 +70,8 @@ func (ds *MongoDataStore) insert(dr pb.DetectionResult) error {
 	return nil
 }
 
-// DeleteMany serves a delete filter query locally
-func (ds *MongoDataStore) DeleteMany(filter bson.D) (*mongo.DeleteResult, error) {
+// Delete serves a delete filter query locally
+func (ds *MongoDataStore) Delete(filter bson.D) (*mongo.DeleteResult, error) {
 	deleteRes, err := ds.client.Database(dbName).Collection(drColName).DeleteMany(ds.ctx, filter)
 
 	if err != nil {
@@ -80,8 +80,8 @@ func (ds *MongoDataStore) DeleteMany(filter bson.D) (*mongo.DeleteResult, error)
 	return deleteRes, nil
 }
 
-// UpdateMany serves a update many filter query locally
-func (ds *MongoDataStore) UpdateMany(filter bson.D, update bson.D) (*mongo.UpdateResult, error) {
+// Update serves a update many filter query locally
+func (ds *MongoDataStore) Update(filter bson.D, update bson.D) (*mongo.UpdateResult, error) {
 	deleteRes, err := ds.client.Database(dbName).Collection(drColName).UpdateMany(ds.ctx, filter, update)
 
 	if err != nil {

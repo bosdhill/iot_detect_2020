@@ -17,15 +17,17 @@ import (
 )
 
 // NumClasses used in object detection
-const NumClasses = 80
-const n = 5
-const size = NumClasses + n
-const w = 12
-const h = 12
-const blockwd float32 = 13
-const numBoxes = h * w * n
-const thresh = 0.2
-const nmsThreshold = 0.4
+const (
+	NumClasses           = 80
+	n                    = 5
+	size                 = NumClasses + n
+	w                    = 12
+	h                    = 12
+	blockwd      float32 = 13
+	numBoxes             = h * w * n
+	thresh               = 0.2
+	nmsThreshold         = 0.4
+)
 
 var (
 	classNames = [NumClasses]string{"person", "bicycle", "car", "motorcycle", "airplane", "bus", "train",

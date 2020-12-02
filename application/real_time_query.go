@@ -19,7 +19,7 @@ type EventOnDetect struct {
 	ctx          context.Context
 	eventFilters *pb.EventFilters
 	rtFilter     *realtimefilter.Set
-	uuid 		string
+	uuid         string
 }
 
 // New creates an event on detect client
