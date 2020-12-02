@@ -155,13 +155,13 @@ func (eod *EventOnDetect) RegisterApp(labels *pb.Labels) error {
 	return nil
 }
 
-func (eod *EventOnDetect) StreamEvents() {
-	log.Println("StreamEvents")
-	req := &pb.StreamEventsRequest{
+func (eod *EventOnDetect) GetEvents() {
+	log.Println("GetEvents")
+	req := &pb.GetEventsRequest{
 		Uuid: eod.uuid,
 	}
 
-	stream, err := eod.client.StreamEvents(eod.ctx, req)
+	stream, err := eod.client.GetEvents(eod.ctx, req)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -208,5 +208,5 @@ func TestEventOnDetect(group *sync.WaitGroup) {
 		log.Fatal(err)
 	}
 
-	ec.StreamEvents()
+	ec.GetEvents()
 }

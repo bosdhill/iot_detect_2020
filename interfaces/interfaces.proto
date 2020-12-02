@@ -42,7 +42,7 @@ service EventOnDetect {
 
     // StreamEvents streams Events from the Edge to the Application
     // server-side streaming RPC where the client sends a request to the server and gets a stream to read a sequence of messages back
-    rpc StreamEvents(StreamEventsRequest) returns (stream StreamEventsResponse) {}
+    rpc GetEvents(GetEventsRequest) returns (stream GetEventsResponse) {}
 }
 
 message GetLabelsResponse {
@@ -60,11 +60,11 @@ message RegisterAppResponse {
     string uuid = 1;
 }
 
-message StreamEventsRequest {
+message GetEventsRequest {
     string uuid = 1;
 }
 
-message StreamEventsResponse {
+message GetEventsResponse {
     repeated Event events = 1;
 }
 
@@ -164,7 +164,7 @@ message BoundingBox {
     float confidence = 5;
 }
 
-service EdgeQuery {
+service EventQuery {
     rpc Find (FindRequest) returns (FindResponse) {}
     rpc EventStream(EventStreamRequest) returns (stream EventStreamResponse) {}
 }

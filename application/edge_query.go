@@ -11,14 +11,14 @@ import (
 	"time"
 )
 
-// EdgeComm contains an EdgeQuery client stub
-type EdgeQuery struct {
-	client pb.EdgeQueryClient
+// EdgeComm contains an EventQuery client stub
+type EventQuery struct {
+	client pb.EventQueryClient
 }
 
-// NewEdgeQuery returns an NewEdgeQueryClient
-func NewEdgeQuery(addr string) (*EdgeQuery, error) {
-	log.Println("NewEdgeQuery")
+// NewEventQueryClient returns an NewEventQueryClient
+func NewEventQueryClient(addr string) (*EventQuery, error) {
+	log.Println("NewEventQueryClient")
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithBlock(), grpc.WithInsecure(), grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(math.MaxInt32)))
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
@@ -28,12 +28,12 @@ func NewEdgeQuery(addr string) (*EdgeQuery, error) {
 		log.Fatalf("Error while dialing. Err: %v", err)
 	}
 
-	client := pb.NewEdgeQueryClient(conn)
-	return &EdgeQuery{client}, nil
+	client := pb.NewEventQueryClient(conn)
+	return &EventQuery{client}, nil
 }
 
-// Find makees a Find event filter query request to the EdgeQuery server on the Edge
-func (eQuery *EdgeQuery) Find(eFilter *pb.EventFilter) ([]*pb.Event, error) {
+// Find makees a Find event filter query request to the EventQuery server on the Edge
+func (eQuery *EventQuery) Find(eFilter *pb.EventFilter) ([]*pb.Event, error) {
 	log.Printf("Find")
 	ctx, _ := context.WithCancel(context.Background())
 	resp, err := eQuery.client.Find(ctx, &pb.FindRequest{EventFilter: eFilter})
@@ -46,7 +46,7 @@ func (eQuery *EdgeQuery) Find(eFilter *pb.EventFilter) ([]*pb.Event, error) {
 func TestQuery(group *sync.WaitGroup) {
 	defer group.Done()
 
-	eQuery, err := NewEdgeQuery(*appQueryServerAddr)
+	eQuery, err := NewEventQueryClient(*appQueryServerAddr)
 	if err != nil {
 		log.Fatal(err)
 	}

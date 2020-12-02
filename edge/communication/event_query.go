@@ -16,7 +16,7 @@ import (
 // AppComm is a wrapper around the EdgeQuery server which is used to serve query requests
 // from an application
 type AppComm struct {
-	server pb.EdgeQueryServer
+	server pb.EventQueryServer
 	ds     *datastore.MongoDataStore
 	lis    net.Listener
 	eCtx   context.Context
@@ -56,12 +56,12 @@ func (comm *AppComm) Find(ctx context.Context, req *pb.FindRequest) (*pb.FindRes
 	}, nil
 }
 
-func (comm *AppComm) EventStream(*pb.EventStreamRequest, pb.EdgeQuery_EventStreamServer) error {
+func (comm *AppComm) EventStream(*pb.EventStreamRequest, pb.EventQuery_EventStreamServer) error {
 	panic("implement me")
 }
 
-func NewAppQuery(eCtx context.Context, ds *datastore.MongoDataStore, addr string) (*AppComm, error) {
-	log.Println("NewAppQuery")
+func NewEventQuery(eCtx context.Context, ds *datastore.MongoDataStore, addr string) (*AppComm, error) {
+	log.Println("NewEventQuery")
 	lis, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, err
@@ -73,13 +73,13 @@ func NewAppQuery(eCtx context.Context, ds *datastore.MongoDataStore, addr string
 	}, nil
 }
 
-// ServeAppQuery creates a new EdgeQueryServer to serve the application's query requests
-func (comm *AppComm) ServeAppQuery() error {
-	log.Println("ServeAppQuery")
+// ServeEventQuery creates a new EdgeQueryServer to serve the application's query requests
+func (comm *AppComm) ServeEventQuery() error {
+	log.Println("ServeEventQuery")
 	var opts []grpc.ServerOption
 	opts = append(opts, grpc.MaxRecvMsgSize(math.MaxInt32), grpc.MaxSendMsgSize(math.MaxInt32))
 	grpcServer := grpc.NewServer(opts...)
-	pb.RegisterEdgeQueryServer(grpcServer, comm)
+	pb.RegisterEventQueryServer(grpcServer, comm)
 	err := grpcServer.Serve(comm.lis)
 	if err != nil {
 		return err

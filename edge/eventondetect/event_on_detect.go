@@ -63,16 +63,16 @@ func (eod *EventOnDetect) RegisterApp(ctx context.Context, req *pb.RegisterAppRe
 	}, nil
 }
 
-// StreamEvents streams any events detected in real time to the application that calls this rpc if their uuid exists
-func (eod *EventOnDetect) StreamEvents(req *pb.StreamEventsRequest, stream pb.EventOnDetect_StreamEventsServer) error {
-	log.Println("StreamEvents")
+// GetEvents streams any events detected in real time to the application that calls this rpc if their uuid exists
+func (eod *EventOnDetect) GetEvents(req *pb.GetEventsRequest, stream pb.EventOnDetect_GetEventsServer) error {
+	log.Println("GetEvents")
 	appComm, ok := eod.appComm[req.Uuid]
 	if !ok {
 		return fmt.Errorf("app with uuid %v not found", req.Uuid)
 	}
 
 	for events := range appComm.eventsChan {
-		resp := &pb.StreamEventsResponse{
+		resp := &pb.GetEventsResponse{
 			Events: events,
 		}
 
@@ -114,9 +114,9 @@ func (eod *EventOnDetect) FilterEventsWorker(drFilterCh chan pb.DetectionResult)
 	close(drFilterCh)
 }
 
-// ServeEODApp serves EventOnDetect rpc calls from the App
-func (eod *EventOnDetect) ServeEODApp() error {
-	log.Println("ServeEODApp")
+// ServeEventOnDetect serves EventOnDetect rpc calls from the App
+func (eod *EventOnDetect) ServeEventOnDetect() error {
+	log.Println("ServeEventOnDetect")
 	var opts []grpc.ServerOption
 	opts = append(opts, grpc.MaxRecvMsgSize(math.MaxInt32), grpc.MaxSendMsgSize(math.MaxInt32))
 	grpcServer := grpc.NewServer(opts...)

@@ -88,7 +88,7 @@ func main() {
 		panic(err)
 	}
 
-	appComm, err := communication.NewAppQuery(ctx, ds, *appQueryServerAddr)
+	appComm, err := communication.NewEventQuery(ctx, ds, *appQueryServerAddr)
 	if err != nil {
 		panic(err)
 	}
@@ -119,7 +119,7 @@ func main() {
 	go func() {
 		defer wg.Done()
 
-		err = appComm.ServeAppQuery()
+		err = appComm.ServeEventQuery()
 		if err != nil {
 			panic(err)
 		}
@@ -129,7 +129,7 @@ func main() {
 	go func() {
 		defer wg.Done()
 
-		err = eod.ServeEODApp()
+		err = eod.ServeEventOnDetect()
 		if err != nil {
 			panic(err)
 		}
