@@ -10,6 +10,7 @@ import (
 	"log"
 	"math"
 	"net"
+	"sync"
 
 	pb "github.com/bosdhill/iot_detect_2020/interfaces"
 	"github.com/google/uuid"
@@ -22,9 +23,30 @@ var (
 	serverHostOverride = flag.String("server_host_override", "x.test.youtube.com", "The server name used to verify the hostname returned by the TLS handshake")
 )
 
+type EventsChannel struct {
+	C chan []*pb.Event
+	once sync.Once
+}
+
+func NewEventsChannel() *EventsChannel {
+	return &EventsChannel{C: make(chan []*pb.Event)}
+}
+
+func (mc *EventsChannel) SafeClose() {
+	mc.once.Do(func() {
+		close(mc.C)
+	})
+}
+
+type AppContext struct {
+	ctx   context.Context
+	cancel context.CancelFunc
+}
+
 // AppComm stores the events channel and real time filter to be used with a specific application
 type AppComm struct {
-	eventsChan chan []*pb.Event
+	appCtx     AppContext
+	eventsChan *EventsChannel
 	rtFilter   *realtimefilter.Set
 }
 
@@ -56,8 +78,9 @@ func (eod *EventOnDetect) RegisterApp(ctx context.Context, req *pb.RegisterAppRe
 	uuidWithHyphen := uuid.New()
 	appId := fmt.Sprint(uuidWithHyphen)
 
-	// create new channel for this app
-	eod.appComm[appId] = AppComm{eventsChan: make(chan []*pb.Event), rtFilter: rtFilter}
+	// create new channel and appCtx for this app
+	ctx, cancel := context.WithCancel(context.Background())
+	eod.appComm[appId] = AppComm{eventsChan: NewEventsChannel(), rtFilter: rtFilter, appCtx: AppContext{ctx, cancel}}
 
 	return &pb.RegisterAppResponse{
 		Uuid: appId,
@@ -65,6 +88,7 @@ func (eod *EventOnDetect) RegisterApp(ctx context.Context, req *pb.RegisterAppRe
 }
 
 // GetEvents streams any events detected in real time to the application that calls this rpc if their uuid exists
+// TODO clean up apps on stream end
 func (eod *EventOnDetect) GetEvents(req *pb.GetEventsRequest, stream pb.EventOnDetect_GetEventsServer) error {
 	log.Println("GetEvents")
 	appComm, ok := eod.appComm[req.Uuid]
@@ -72,25 +96,30 @@ func (eod *EventOnDetect) GetEvents(req *pb.GetEventsRequest, stream pb.EventOnD
 		return fmt.Errorf("app with uuid %v not found", req.Uuid)
 	}
 
-	for events := range appComm.eventsChan {
-		resp := &pb.GetEventsResponse{
-			Events: events,
-		}
+	ctx := stream.Context()
 
-		err := stream.Send(resp)
+	for {
+		select {
+		case <-ctx.Done():
+			appComm.appCtx.cancel()
+			return nil
+		case events := <- appComm.eventsChan.C:
+			resp := &pb.GetEventsResponse{
+				Events: events,
+			}
 
-		if err == io.EOF {
-			log.Println("EOF")
-			break
-		}
+			err := stream.Send(resp)
 
-		if err != nil {
-			return err
+			if err == io.EOF {
+				log.Println("EOF")
+				break
+			}
+
+			if err != nil {
+				return err
+			}
 		}
 	}
-
-	close(appComm.eventsChan)
-	return nil
 }
 
 // New returns a new event on detect component
@@ -114,12 +143,19 @@ func (eod *EventOnDetect) FilterEventsWorker(drFilterCh chan pb.DetectionResult)
 			for _, appComm := range eod.appComm {
 				events := appComm.rtFilter.GetEvents(&dr)
 				if events != nil {
-					appComm.eventsChan <- events
+					go func() {
+						select {
+						case <-appComm.appCtx.ctx.Done():
+							appComm.eventsChan.SafeClose()
+							break
+						default:
+							appComm.eventsChan.C <- events
+						}
+					}()
 				}
 			}
 		}
 	}
-	close(drFilterCh)
 }
 
 // ServeEventOnDetect serves EventOnDetect rpc calls from the App

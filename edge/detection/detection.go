@@ -498,6 +498,7 @@ func (od *ObjectDetect) CaffeWorker(imgChan chan *pb.Image, drCh chan pb.Detecti
 		sec += e
 		count++
 		log.Println("Total Moving AVG", sec/time.Duration(count))
+		fmt.Println("Detection time AVG", sec/time.Duration(count))
 		log.Println("Moving AVG", ma.Avg())
 
 		dr := pb.DetectionResult{

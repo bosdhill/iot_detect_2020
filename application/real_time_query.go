@@ -25,6 +25,7 @@ type EventOnDetect struct {
 	eventFilters *pb.EventFilters
 	rtFilter     *realtimefilter.Set
 	uuid         string
+	conn 		*grpc.ClientConn
 }
 
 // New creates an event on detect client
@@ -37,7 +38,7 @@ func NewEventOnDetect(ctx context.Context, addr string) (*EventOnDetect, error) 
 		log.Fatalf("Error while dialing. Err: %v", err)
 	}
 	client := pb.NewEventOnDetectClient(conn)
-	return &EventOnDetect{client: client, ctx: ctx}, nil
+	return &EventOnDetect{client: client, ctx: ctx, conn: conn}, nil
 }
 
 // GetLabels fetches the object labels that the model on the edge can detect
@@ -176,7 +177,7 @@ func TimedTestEventOnDetect(group *sync.WaitGroup) {
 	defer group.Done()
 	log.Println("TimedTestEventOnDetect")
 	timer := time.NewTimer(*testTimeout)
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
 	eod, err := NewEventOnDetect(ctx, *eodServerAddr)
 	if err != nil {
 		log.Fatal(err)
@@ -230,13 +231,18 @@ func TimedTestEventOnDetect(group *sync.WaitGroup) {
 		for {
 			select {
 			case <- timer.C:
+				fmt.Println("closing conn")
+				if err := eod.conn.Close(); err != nil {
+					log.Println("error closing connection:", err)
+				}
+				cancel()
 				table := tablewriter.NewWriter(os.Stdout)
-				table.SetHeader([]string{"Event Recv AVG", "Latency AVG (msec/resp)", "Event Recv TOTAL", "Response Recv TOTAL",
-					"Response RATE (resp/sec)", "Timeout PERIOD (sec)"})
+				table.SetHeader([]string{"AVG Events Recv", "AVG Latency (msec/resp)", "TOTAL Events Recv", "TOTAL Response Recv",
+					"RATE Response (resp/sec)", "PERIOD Timeout (sec)"})
 				table.SetBorder(false)
 				data := [][]string{
 					{
-						fmt.Sprintf("%.2f events/resp", avgEvents),
+						fmt.Sprintf("%.2f", avgEvents),
 						avgRespLatency.String(),
 						strconv.Itoa(totalEvents),
 						strconv.Itoa(totalResp),
@@ -248,12 +254,14 @@ func TimedTestEventOnDetect(group *sync.WaitGroup) {
 				table.Render()
 				break recvLoop
 			default:
+				fmt.Println("default")
 				latency, numEvents := recvEvents()
 				totalResp++
 				totalRespLatency += *latency
 				totalEvents += numEvents
 				avgEvents = float64(totalEvents) / float64(totalResp)
 				avgRespLatency = totalRespLatency / time.Duration(totalResp)
+				fmt.Println("end default")
 			}
 		}
 }

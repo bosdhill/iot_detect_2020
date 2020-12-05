@@ -70,7 +70,7 @@ func New(events *pb.EventFilters) (*Set, error) {
 
 // createLogicalQuery takes the unmarshalled bson.D query from a pb.EventFilter and creates a query
 func createLogicalQuery(filter bson.D, operator string) (logicalQuery, error) {
-	log.Println("createLogicalQuery")
+	//log.Println("createLogicalQuery")
 	f := make(logicalQuery)
 	m, ok := filter.Map()[operator]
 	if !ok {
@@ -88,14 +88,14 @@ func createLogicalQuery(filter bson.D, operator string) (logicalQuery, error) {
 		}
 		f[operator][label] = b
 	}
-	log.Println("Created logicalQuery:", f)
+	//log.Println("Created logicalQuery:", f)
 	return f, nil
 }
 
 // createArrayQuery takes the unmarshalled bson.D query from a pb.EventFilter and creates a bson.A for subset
 // querying
 func createArrayQuery(filter bson.D, array string, operator string) (bson.A, error) {
-	log.Println("createArrayQuery")
+	//log.Println("createArrayQuery")
 	m, ok := filter.Map()[array]
 	if !ok {
 		return nil, fmt.Errorf(notWrappedError)
@@ -112,7 +112,7 @@ func createArrayQuery(filter bson.D, array string, operator string) (bson.A, err
 	if !ok {
 		return nil, fmt.Errorf(notBsonAError)
 	}
-	log.Println("Created arrayQuery:", aSl)
+	//log.Println("Created arrayQuery:", aSl)
 	return aSl, nil
 }
 
@@ -158,7 +158,7 @@ func compare(n int32, compareQuery bson.D) bool {
 
 // containsAll checks whether the keys of detectedLabels contains all labels
 func containsAll(detectedLabels map[string]int32, labels bson.A) bool {
-	log.Println("containsAll")
+	//log.Println("containsAll")
 	for _, label := range labels {
 		_, ok := detectedLabels[label.(string)]
 		if !ok {
@@ -170,12 +170,12 @@ func containsAll(detectedLabels map[string]int32, labels bson.A) bool {
 
 // compareOr returns the "or" of the results of each compare query
 func compareOr(detectedLabels map[string]int32, labelQuery map[string]bson.D) bool {
-	log.Println("compareOr")
+	//log.Println("compareOr")
 	ret := false
 	for label, compareQuery := range labelQuery {
 		n, ok := detectedLabels[label]
 		if ok {
-			log.Println("compare", n, compareQuery, compare(n, compareQuery))
+			//log.Println("compare", n, compareQuery, compare(n, compareQuery))
 			ret = ret || compare(n, compareQuery)
 		}
 	}
@@ -185,14 +185,14 @@ func compareOr(detectedLabels map[string]int32, labelQuery map[string]bson.D) bo
 
 // compareAnd returns the "and" of the results of each compare query
 func compareAnd(detectedLabels map[string]int32, labelQuery map[string]bson.D) bool {
-	log.Println("compareAnd")
+	//log.Println("compareAnd")
 	ret := true
 	for label, compareQuery := range labelQuery {
 		n, ok := detectedLabels[label]
 		if !ok {
 			return false
 		}
-		log.Println("compare", n, compareQuery, compare(n, compareQuery))
+		//log.Println("compare", n, compareQuery, compare(n, compareQuery))
 		ret = ret && compare(n, compareQuery)
 	}
 	log.Println("ret", ret)

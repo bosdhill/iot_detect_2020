@@ -10,6 +10,7 @@ import (
 type DataSource struct {
 	capt *gocv.VideoCapture
 	fc   int
+	filePath 	 string
 }
 
 // NewDataSource returns a new data source component.
@@ -20,12 +21,30 @@ func NewDataSource(filePath string) (*DataSource, error) {
 		return nil, err
 	}
 	fc := int(capt.Get(gocv.VideoCaptureFrameCount))
-	ds := DataSource{capt, fc}
+	ds := DataSource{capt, fc, filePath}
 	return &ds, nil
 }
 
 func (ds *DataSource) GetFramesContinuous(c chan<- gocv.Mat) {
-
+	log.Println("GetFramesContinuous")
+	var err error
+	count := 0
+	if ds.fc != 0 {
+		for {
+			for i := 0; i < ds.fc; i++ {
+				img := gocv.NewMat()
+				ds.capt.Read(&img)
+				c <- img
+				count++
+			}
+			log.Println("frames read", count)
+			ds.capt, err = gocv.OpenVideoCapture(ds.filePath)
+			if err != nil {
+				log.Fatal(err)
+			}
+			count = 0
+		}
+	}
 }
 
 // GetFrames reads frames into a channel
