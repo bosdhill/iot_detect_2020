@@ -209,6 +209,7 @@ func TimedTestEventOnDetect(group *sync.WaitGroup) {
 		if err != nil {
 			log.Fatal(err)
 		}
+
 		latency := time.Since(t)
 		numEvents := len(resp.GetEvents())
 
@@ -231,14 +232,13 @@ func TimedTestEventOnDetect(group *sync.WaitGroup) {
 		for {
 			select {
 			case <- timer.C:
-				fmt.Println("closing conn")
 				if err := eod.conn.Close(); err != nil {
 					log.Println("error closing connection:", err)
 				}
 				cancel()
 				table := tablewriter.NewWriter(os.Stdout)
-				table.SetHeader([]string{"AVG Events Recv", "AVG Latency (msec/resp)", "TOTAL Events Recv", "TOTAL Response Recv",
-					"RATE Response (resp/sec)", "PERIOD Timeout (sec)"})
+				table.SetHeader([]string{"AVG Events Recv", "AVG Latency (msec/resp)", "TOTAL Events Recv", "TOTAL Responses Recv",
+					"RATE Responses (resp/sec)", "PERIOD Timeout (sec)"})
 				table.SetBorder(false)
 				data := [][]string{
 					{
@@ -254,14 +254,12 @@ func TimedTestEventOnDetect(group *sync.WaitGroup) {
 				table.Render()
 				break recvLoop
 			default:
-				fmt.Println("default")
 				latency, numEvents := recvEvents()
 				totalResp++
 				totalRespLatency += *latency
 				totalEvents += numEvents
 				avgEvents = float64(totalEvents) / float64(totalResp)
 				avgRespLatency = totalRespLatency / time.Duration(totalResp)
-				fmt.Println("end default")
 			}
 		}
 }

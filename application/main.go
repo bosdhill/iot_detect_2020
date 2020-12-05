@@ -2,6 +2,8 @@ package main
 
 import (
 	"flag"
+	"log"
+	"os"
 	"sync"
 	"time"
 )
@@ -15,17 +17,17 @@ var (
 	eventQuerySeconds = flag.Int64("seconds", 6000, "filter events from last number of seconds in event filter")
 	testTimeout       = flag.Duration("timeout", 30 * time.Second, "test timeout in seconds")
 	logEvents         = flag.Bool("print", false, "print events received")
-	//logsPath		  = flag.String("logs-path", "logs/", "path to logs directory")
+	logsPath		  = flag.String("logs-path", "logs/", "path to logs directory")
 )
 
 func main() {
 	flag.Parse()
 
-	//file, err := os.OpenFile(*logsPath + "logs.txt", os.O_CREATE|os.O_WRONLY, 0666)
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//log.SetOutput(file)
+	file, err := os.OpenFile(*logsPath + "logs.txt", os.O_CREATE|os.O_WRONLY, 0666)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.SetOutput(file)
 
 	var wg = &sync.WaitGroup{}
 

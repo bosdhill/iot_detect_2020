@@ -497,9 +497,7 @@ func (od *ObjectDetect) CaffeWorker(imgChan chan *pb.Image, drCh chan pb.Detecti
 		log.Println("detect time", e)
 		sec += e
 		count++
-		log.Println("Total Moving AVG", sec/time.Duration(count))
-		fmt.Println("Detection time AVG", sec/time.Duration(count))
-		log.Println("Moving AVG", ma.Avg())
+		log.Println("Object_Detection_Time_AVG:", sec/time.Duration(count))
 
 		dr := pb.DetectionResult{
 			Empty:         len(labels) == 0,
@@ -525,8 +523,13 @@ func (od *ObjectDetect) CaffeWorker(imgChan chan *pb.Image, drCh chan pb.Detecti
 			log.Println("mat close error: ", err)
 		}
 		runtime.GC()
-		drFilterCh <- dr
-		drCh <- dr
+
+		go func() {
+			select {
+			case drFilterCh <- dr:
+			case drCh <- dr:
+			}
+		}()
 
 		//if *matprofile {
 		//	log.Println("profile count:", gocv.MatProfile.Count())
@@ -535,5 +538,4 @@ func (od *ObjectDetect) CaffeWorker(imgChan chan *pb.Image, drCh chan pb.Detecti
 		//	log.Println("Mat frames", b.String())
 		//}
 	}
-	close(imgChan)
 }

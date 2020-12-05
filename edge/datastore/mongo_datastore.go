@@ -53,7 +53,6 @@ func (ds *MongoDataStore) InsertWorker(drCh chan pb.DetectionResult) {
 			}
 		}
 	}
-	close(drCh)
 }
 
 // insert inserts the detection results into the detection_result collection

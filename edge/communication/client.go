@@ -36,7 +36,8 @@ func (comm *ClientComm) UploadImage(stream pb.Uploader_UploadImageServer) error 
 	count := 0
 	drCh := make(chan pb.DetectionResult)
 	drFilterCh := make(chan pb.DetectionResult)
-	imgCh := make(chan *pb.Image)
+	// Buffered channel might greatly affect memory on Raspberry Pi and Nano
+	imgCh := make(chan *pb.Image, 100)
 	go comm.od.CaffeWorker(imgCh, drCh, drFilterCh)
 	go comm.eod.FilterEventsWorker(drFilterCh)
 	go comm.ds.InsertWorker(drCh)

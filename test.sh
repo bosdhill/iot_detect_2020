@@ -1,38 +1,77 @@
 #!/usr/bin/env bash
-if [[ $1 == "query" ]]; then
-    echo "$1"
-    echo -e "use detections\ndb.dropDatabase()" | mongo
-    pushd edge
-    go build
-    ./edge --with-cloud=false &
-    EDGE_PID=$!
-    pushd ../application
-    go build
-    pushd ../client/
-    go build
-    ./client &
-    CLIENT_PID=$!
-    popd
-    ./application --query=true --timeout 60s --seconds=600
-    kill ${EDGE_PID}
-    kill ${CLIENT_PID}
-fi
+NUM_TEST_RUNS=10
 
-if [[ $1 == "realtime" ]]; then
-    echo "$1"
-    echo -e "use detections\ndb.dropDatabase()" | mongo
-    pushd edge
+function test_base {
+    pushd edge &> /dev/null
     go build
-    ./edge --with-cloud=false &
+    ./edge $1 &
     EDGE_PID=$!
-    pushd ../application
+    pushd ../application &> /dev/null
     go build
-    pushd ../client/
+    pushd ../client/ &> /dev/null
     go build
-    ./client --cont-stream=true --datapath=data/traffic-mini.mp4 &
+    ./client $2 &
     CLIENT_PID=$!
-    popd
-    ./application --realtime=true --timeout 60s
-    kill ${EDGE_PID}
-    kill ${CLIENT_PID}
-fi
+    popd  &> /dev/null
+    ./application $3
+    popd &> /dev/null
+    tac logs/logs.txt | awk '/Object_Detection_Time_AVG/ {print;exit}'
+    disown ${EDGE_PID}
+    kill -9 ${EDGE_PID} &> /dev/null
+    disown ${CLIENT_PID}
+    kill -9 ${CLIENT_PID} &> /dev/null
+    popd &> /dev/null
+}
+
+function test_query_db_delete {
+    echo "TEST_QUERY_DB_DELETE"
+    echo -e "use detections\ndb.dropDatabase()" | mongo
+    for (( c=1; c<=$NUM_TEST_RUNS; c++ ))
+    do
+        test_base "-with-cloud=false" "--cont-stream=true" \
+                  "--query=true --timeout 60s --seconds=600"
+    done
+}
+
+function test_realtime_db_delete {
+    echo "TEST_REALTIME_DB_DELETE"
+    echo -e "use detections\ndb.dropDatabase()" | mongo
+    for (( c=1; c<=$NUM_TEST_RUNS; c++ ))
+    do
+        test_base "-with-cloud=false" "--cont-stream=true" \
+                  "--realtime=true --timeout 60s"
+    done
+}
+
+function test_query_db_persist {
+    echo "TEST_QUERY_DB_PERSIST"
+    for (( c=1; c<=$NUM_TEST_RUNS; c++ ))
+    do
+        test_base "-with-cloud=false" "--cont-stream=true" \
+                  "--query=true --timeout 60s --seconds=600"
+    done
+}
+
+function test_realtime_db_persist {
+    echo "TEST_REALTIME_DB_PERSIST"
+    for (( c=1; c<=$NUM_TEST_RUNS; c++ ))
+    do
+        test_base "-with-cloud=false" "--cont-stream=true" \
+                  "--query=true --timeout 60s --seconds=600"
+    done
+}
+
+case "$1" in
+    "query_db_delete")
+        test_query_db_delete
+        ;;
+     "query_db_persist")
+        test_query_db_persist
+        ;;
+     "realtime_db_persist")
+        test_realtime_db_persist
+        ;;
+     "realtime_db_delete")
+        test_realtime_db_delete
+        ;;
+esac

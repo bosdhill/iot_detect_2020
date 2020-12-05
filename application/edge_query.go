@@ -69,10 +69,9 @@ func TimedTestQuery(group *sync.WaitGroup) {
 		for {
 			select {
 			case <- timer.C:
-				// print metrics
 				table := tablewriter.NewWriter(os.Stdout)
-				table.SetHeader([]string{"AVG Event Recv (events/req)", "AVG Latency (msec/req)", "TOTAL Event Recv", "TOTAL Request Sent",
-					"RATE Request (req/sec)", "PERIOD Timeout (sec)", "EVENTFILTER SECONDS (sec)"})
+				table.SetHeader([]string{"AVG Events Recv (events/req)", "AVG Latency (msec/req)", "TOTAL Events Recv", "TOTAL Requests Sent",
+					"RATE Requests (req/sec)", "PERIOD Timeout (sec)", "EVENTFILTER SECONDS (sec)"})
 				table.SetBorder(false)
 				data := [][]string{
 					{
