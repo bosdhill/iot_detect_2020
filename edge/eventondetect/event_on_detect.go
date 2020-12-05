@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/bosdhill/iot_detect_2020/edge/realtimefilter"
 	"github.com/golang/protobuf/ptypes/empty"
+	"io"
 	"log"
 	"math"
 	"net"
@@ -76,7 +77,14 @@ func (eod *EventOnDetect) GetEvents(req *pb.GetEventsRequest, stream pb.EventOnD
 			Events: events,
 		}
 
-		if err := stream.Send(resp); err != nil {
+		err := stream.Send(resp)
+
+		if err == io.EOF {
+			log.Println("EOF")
+			break
+		}
+
+		if err != nil {
 			return err
 		}
 	}

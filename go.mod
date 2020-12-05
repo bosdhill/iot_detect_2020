@@ -3,6 +3,7 @@ module github.com/bosdhill/iot_detect_2020
 go 1.14
 
 require (
+	github.com/RobinUS2/golang-moving-average v1.0.0
 	github.com/apache/arrow/go/arrow v0.0.0-20201022184930-39a7539b50fe // indirect
 	github.com/awalterschulze/gographviz v2.0.1+incompatible // indirect
 	github.com/aws/aws-sdk-go v1.35.24 // indirect
@@ -19,6 +20,7 @@ require (
 	github.com/leesper/go_rng v0.0.0-20190531154944-a612b043e353 // indirect
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/mitchellh/hashstructure v1.0.0
+	github.com/olekukonko/tablewriter v0.0.4
 	github.com/stretchr/testify v1.6.1
 	go.mongodb.org/mongo-driver v1.4.3
 	gocv.io/x/gocv v0.25.0

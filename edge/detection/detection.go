@@ -14,6 +14,7 @@ import (
 	"runtime"
 	"sort"
 	"time"
+	"github.com/RobinUS2/golang-moving-average"
 )
 
 // NumClasses used in object detection
@@ -466,6 +467,8 @@ func New(ctx context.Context, eod *eod.EventOnDetect, withCuda bool, proto, mode
 func (od *ObjectDetect) CaffeWorker(imgChan chan *pb.Image, drCh chan pb.DetectionResult, drFilterCh chan pb.DetectionResult) {
 	log.Println("caffeWorker")
 	sec := time.Duration(0)
+	// compute average of last 100 frames
+	ma := movingaverage.New(100)
 	count := 0
 	for img := range imgChan {
 		mat := imgToMat(img)
@@ -490,10 +493,12 @@ func (od *ObjectDetect) CaffeWorker(imgChan chan *pb.Image, drCh chan pb.Detecti
 		labels, labelMap, labelBoxes := regionLayer(&probMat, true, float32(mat.Rows()), float32(mat.Cols()))
 
 		e := time.Since(t)
+		ma.Add(float64(e.Milliseconds()))
 		log.Println("detect time", e)
 		sec += e
 		count++
-		log.Println("last AVG", sec/time.Duration(count))
+		log.Println("Total Moving AVG", sec/time.Duration(count))
+		log.Println("Moving AVG", ma.Avg())
 
 		dr := pb.DetectionResult{
 			Empty:         len(labels) == 0,

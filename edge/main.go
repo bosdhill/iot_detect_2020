@@ -34,8 +34,9 @@ var (
 	deleteTTL          = flag.Int64("deleteTTL", defaultDeleteTTL, "TTL for local mongodb instance")
 	batchSize          = flag.Int64("batchsize", defaultBatchSize, "Batchsize for cloud upload")
 	withCloud          = flag.Bool("with-cloud", true, "enable cloud backups")
-	proto              = "detection/model/tiny_yolo_deploy.prototxt"
-	model              = "detection/model/tiny_yolo.caffemodel"
+	proto              = flag.String("proto", "detection/model/tiny_yolo_deploy.prototxt", "path to model prototxt")
+	model              = flag.String("model", "detection/model/tiny_yolo.caffemodel", "path to model")
+	logsPath		   = flag.String("logs-path", "logs/", "path to logs directory")
 )
 
 func getEnvVars() {
@@ -48,6 +49,12 @@ func getEnvVars() {
 func main() {
 	getEnvVars()
 	flag.Parse()
+
+	file, err := os.OpenFile(*logsPath + "logs.txt", os.O_CREATE|os.O_WRONLY, 0666)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.SetOutput(file)
 
 	if *cpuprofile != "" {
 		f, err := os.Create(*cpuprofile)
@@ -78,7 +85,7 @@ func main() {
 		panic(err)
 	}
 
-	od, err := detection.New(ctx, eod, *withCuda, proto, model)
+	od, err := detection.New(ctx, eod, *withCuda, *proto, *model)
 	if err != nil {
 		panic(err)
 	}

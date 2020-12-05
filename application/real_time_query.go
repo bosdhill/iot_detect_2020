@@ -2,15 +2,20 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/bosdhill/iot_detect_2020/edge/realtimefilter"
 	pb "github.com/bosdhill/iot_detect_2020/interfaces"
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/olekukonko/tablewriter"
 	"go.mongodb.org/mongo-driver/bson"
 	"google.golang.org/grpc"
 	"io"
 	"log"
 	"math"
+	"os"
+	"strconv"
 	"sync"
+	"time"
 )
 
 // EventOnDetect is used to serve the application's requests
@@ -155,8 +160,7 @@ func (eod *EventOnDetect) RegisterApp(labels *pb.Labels) error {
 	return nil
 }
 
-func (eod *EventOnDetect) GetEvents() {
-	log.Println("GetEvents")
+func (eod *EventOnDetect) GetEvents() pb.EventOnDetect_GetEventsClient {
 	req := &pb.GetEventsRequest{
 		Uuid: eod.uuid,
 	}
@@ -165,48 +169,91 @@ func (eod *EventOnDetect) GetEvents() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	return stream
+}
 
-	for {
+func TimedTestEventOnDetect(group *sync.WaitGroup) {
+	defer group.Done()
+	log.Println("TimedTestEventOnDetect")
+	timer := time.NewTimer(*testTimeout)
+	ctx := context.Background()
+	eod, err := NewEventOnDetect(ctx, *eodServerAddr)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	labels, err := eod.GetLabels()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err = eod.RegisterApp(labels); err != nil {
+		log.Fatal(err)
+	}
+
+	stream := eod.GetEvents()
+
+	recvEvents := func() (*time.Duration, int) {
+		t := time.Now()
 		resp, err := stream.Recv()
 
 		if err == io.EOF {
 			log.Println("EOF")
 			if err = stream.CloseSend(); err != nil {
 				log.Printf("error when closing stream: %v", err)
-				break
+				return nil, 0
 			}
 		}
 
 		if err != nil {
 			log.Fatal(err)
 		}
+		latency := time.Since(t)
+		numEvents := len(resp.GetEvents())
 
 		for _, e := range resp.GetEvents() {
 			log.Println(e.Name)
 			log.Println(e.GetDetectionResult().GetDetectionTime())
 			log.Println(e.GetDetectionResult().GetLabelNumber())
 		}
-	}
-}
-
-func TestEventOnDetect(group *sync.WaitGroup) {
-	log.Println("TestEventOnDetect")
-	defer group.Done()
-
-	ctx := context.Background()
-	ec, err := NewEventOnDetect(ctx, *eodServerAddr)
-	if err != nil {
-		log.Fatal(err)
+		return &latency, numEvents
 	}
 
-	labels, err := ec.GetLabels()
-	if err != nil {
-		log.Fatal(err)
-	}
 
-	if err = ec.RegisterApp(labels); err != nil {
-		log.Fatal(err)
-	}
+	totalResp := 0
+	totalEvents := 0
+	totalRespLatency := time.Duration(0)
+	avgRespLatency := time.Duration(0)
+	avgEvents := 0.0
 
-	ec.GetEvents()
+	recvLoop:
+		for {
+			select {
+			case <- timer.C:
+				table := tablewriter.NewWriter(os.Stdout)
+				table.SetHeader([]string{"Event Recv AVG", "Latency AVG (msec/resp)", "Event Recv TOTAL", "Response Recv TOTAL",
+					"Response RATE (resp/sec)", "Timeout PERIOD (sec)"})
+				table.SetBorder(false)
+				data := [][]string{
+					{
+						fmt.Sprintf("%.2f events/resp", avgEvents),
+						avgRespLatency.String(),
+						strconv.Itoa(totalEvents),
+						strconv.Itoa(totalResp),
+						fmt.Sprintf("%.2f", float64(totalResp) / float64(testTimeout.Seconds())),
+						testTimeout.String(),
+					},
+				}
+				table.AppendBulk(data)
+				table.Render()
+				break recvLoop
+			default:
+				latency, numEvents := recvEvents()
+				totalResp++
+				totalRespLatency += *latency
+				totalEvents += numEvents
+				avgEvents = float64(totalEvents) / float64(totalResp)
+				avgRespLatency = totalRespLatency / time.Duration(totalResp)
+			}
+		}
 }

@@ -24,6 +24,10 @@ func NewDataSource(filePath string) (*DataSource, error) {
 	return &ds, nil
 }
 
+func (ds *DataSource) GetFramesContinuous(c chan<- gocv.Mat) {
+
+}
+
 // GetFrames reads frames into a channel
 func (ds *DataSource) GetFrames(c chan<- gocv.Mat) {
 	log.Println("GetFrames")
