@@ -136,10 +136,15 @@ func (eod *EventOnDetect) RegisterApp(labels *pb.Labels) error {
 				log.Fatal(err)
 			}
 
+			var flags uint32 = 0
+			if *metadata {
+				flags = uint32(pb.EventFilter_METADATA)
+			}
+
 			eFilter := &pb.EventFilter{
 				Name:   name,
 				Filter: mFilter,
-				Flags:  0,
+				Flags:  flags,
 			}
 
 			eventFilters.EventFilters = append(eventFilters.EventFilters, eFilter)
@@ -238,7 +243,7 @@ func TimedTestEventOnDetect(group *sync.WaitGroup) {
 				cancel()
 				table := tablewriter.NewWriter(os.Stdout)
 				table.SetHeader([]string{"AVG Events Recv", "AVG Latency (msec/resp)", "TOTAL Events Recv", "TOTAL Responses Recv",
-					"RATE Responses (resp/sec)", "PERIOD Timeout (sec)"})
+					"AVG THROUGHPUT (resp/sec)", "PERIOD Timeout (sec)"})
 				table.SetBorder(false)
 				data := [][]string{
 					{

@@ -16,6 +16,7 @@ function test_base {
     ./application $3
     popd &> /dev/null
     tac logs/logs.txt | awk '/Object_Detection_Time_AVG/ {print;exit}'
+    rm logs/logs.txt
     disown ${EDGE_PID}
     kill -9 ${EDGE_PID} &> /dev/null
     disown ${CLIENT_PID}
@@ -25,17 +26,27 @@ function test_base {
 
 function test_query_db_delete {
     echo "TEST_QUERY_DB_DELETE"
-    echo -e "use detections\ndb.dropDatabase()" | mongo
+    echo -e "use detections\ndb.dropDatabase()" | mongo &> /dev/null
     for (( c=1; c<=$NUM_TEST_RUNS; c++ ))
     do
         test_base "-with-cloud=false" "--cont-stream=true" \
-                  "--query=true --timeout 60s --seconds=600"
+                  "--query=true --timeout 60s --seconds=60"
+    done
+}
+
+function test_query_metadata_db_delete {
+    echo "TEST_QUERY_METADATA_DB_DELETE"
+    echo -e "use detections\ndb.dropDatabase()" | mongo &> /dev/null
+    for (( c=1; c<=$NUM_TEST_RUNS; c++ ))
+    do
+        test_base "-with-cloud=false" "--cont-stream=true" \
+                  "--query=true --timeout 60s --seconds=600 --metadata=true"
     done
 }
 
 function test_realtime_db_delete {
     echo "TEST_REALTIME_DB_DELETE"
-    echo -e "use detections\ndb.dropDatabase()" | mongo
+    echo -e "use detections\ndb.dropDatabase()" | mongo &> /dev/null
     for (( c=1; c<=$NUM_TEST_RUNS; c++ ))
     do
         test_base "-with-cloud=false" "--cont-stream=true" \
@@ -61,9 +72,22 @@ function test_realtime_db_persist {
     done
 }
 
+function test_query_realtime_db_delete {
+    echo "TEST_QUERY_REALTIME_DB_DELETE"
+    echo -e "use detections\ndb.dropDatabase()" | mongo &> /dev/null
+    for (( c=1; c<=$NUM_TEST_RUNS; c++ ))
+    do
+        test_base "-with-cloud=false" "--cont-stream=true" \
+                  "--realtime=true --query=true --timeout 60s --seconds=60"
+    done
+}
+
 case "$1" in
-    "query_db_delete")
+     "query_db_delete")
         test_query_db_delete
+        ;;
+     "query_metadata_db_delete")
+        test_query_metadata_db_delete
         ;;
      "query_db_persist")
         test_query_db_persist
@@ -73,5 +97,8 @@ case "$1" in
         ;;
      "realtime_db_delete")
         test_realtime_db_delete
+        ;;
+     "query_realtime_db_delete")
+        test_query_realtime_db_delete
         ;;
 esac

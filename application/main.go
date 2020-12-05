@@ -18,6 +18,7 @@ var (
 	testTimeout       = flag.Duration("timeout", 30 * time.Second, "test timeout in seconds")
 	logEvents         = flag.Bool("print", false, "print events received")
 	logsPath		  = flag.String("logs-path", "logs/", "path to logs directory")
+	metadata		  = flag.Bool("metadata", false, "request metadata only")
 )
 
 func main() {

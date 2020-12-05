@@ -46,10 +46,6 @@ func (eQuery *EventQuery) Find(eFilter *pb.EventFilter) ([]*pb.Event, error) {
 	}
 	return resp.GetEvents(), nil
 }
-//
-//func printMetrics(totalMsg, totalEvents int, avgEvents float64, avgMsgLatency, period time.Duration, header []string) {
-//
-//}
 
 func TimedTestQuery(group *sync.WaitGroup) {
 	defer group.Done()
@@ -71,7 +67,7 @@ func TimedTestQuery(group *sync.WaitGroup) {
 			case <- timer.C:
 				table := tablewriter.NewWriter(os.Stdout)
 				table.SetHeader([]string{"AVG Events Recv (events/req)", "AVG Latency (msec/req)", "TOTAL Events Recv", "TOTAL Requests Sent",
-					"RATE Requests (req/sec)", "PERIOD Timeout (sec)", "EVENTFILTER SECONDS (sec)"})
+					"AVG THROUGHPUT (req/sec)", "PERIOD Timeout (sec)", "EVENTFILTER SECONDS (sec)"})
 				table.SetBorder(false)
 				data := [][]string{
 					{
@@ -137,12 +133,17 @@ func (eQuery *EventQuery) TestEventQuery() (time.Duration, []*pb.Event) {
 		log.Fatal(err)
 	}
 
+	var flags uint32 = 0
+	if *metadata {
+		flags = uint32(pb.EventFilter_METADATA)
+	}
+
 	// Get Events from the last eventQuerySeconds that match filter
 	eFilter := &pb.EventFilter{
 		Seconds: *eventQuerySeconds,
 		Name:    "TestQueryEvent",
 		Filter:  filter,
-		Flags:   0,
+		Flags:   flags,
 	}
 
 	t := time.Now()
