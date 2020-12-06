@@ -129,6 +129,12 @@ message Event {
     bytes annotated_img = 3;
 }
 
+message Events {
+    repeated Event metadata = 1;
+
+    bytes img = 2;
+}
+
 // DetectionResult represents the result of the object detection model
 message DetectionResult {
     // Whether or not the result has any objects

@@ -201,6 +201,7 @@ func compareAnd(detectedLabels map[string]int32, labelQuery map[string]bson.D) b
 }
 
 // NewEvent returns a new Event based on the EventFilter and DetectionResult
+// FIXME if multiple events found by event filter for an image frame, only one image frame should be returned
 func NewEvent(eventFilter *pb.EventFilter, dr pb.DetectionResult) *pb.Event {
 	log.Println("NewEvent")
 	if eventFilter.Flags & uint32(pb.EventFilter_METADATA) == uint32(pb.EventFilter_METADATA) {
