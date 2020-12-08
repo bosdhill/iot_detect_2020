@@ -11,8 +11,8 @@ import (
 	"net"
 
 	pb "github.com/bosdhill/iot_detect_2020/interfaces"
-	"google.golang.org/grpc"
 	"github.com/hectane/go-nonblockingchan"
+	"google.golang.org/grpc"
 )
 
 // ClientComm is a wrapper around the uploader server which is used to serve

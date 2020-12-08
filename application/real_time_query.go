@@ -25,7 +25,7 @@ type EventOnDetect struct {
 	eventFilters *pb.EventQueryFilters
 	rtFilter     *realtimefilter.Set
 	uuid         string
-	conn 		*grpc.ClientConn
+	conn         *grpc.ClientConn
 }
 
 // New creates an event on detect client
@@ -150,7 +150,7 @@ func (eod *EventOnDetect) RegisterEventQueryFilters(labels *pb.Labels) error {
 			eventFilters.EventFilters = append(eventFilters.EventFilters, eFilter)
 		}
 	}
-	
+
 	req := &pb.RegisterEventQueryFiltersRequest{
 		EventFilters: eventFilters,
 	}
@@ -226,46 +226,45 @@ func TimedTestEventOnDetect(group *sync.WaitGroup) {
 		return &latency, numEvents
 	}
 
-
 	totalResp := 0
 	totalEvents := 0
 	totalRespLatency := time.Duration(0)
 	avgRespLatency := time.Duration(0)
 	avgEvents := 0.0
 
-	recvLoop:
-		for {
-			select {
-			case <- timer.C:
-				if err := eod.conn.Close(); err != nil {
-					log.Println("error closing connection:", err)
-				}
-				cancel()
-				table := tablewriter.NewWriter(os.Stdout)
-				table.SetHeader([]string{"AVG Events Recv", "AVG Latency (msec/resp)", "TOTAL Events Recv", "TOTAL Responses Recv",
-					"AVG RESPONSE THROUGHPUT (resp/sec)", "PERIOD Timeout (sec)", "AVG EVENTS THROUGHPUT (events/sec)"})
-				table.SetBorder(false)
-				data := [][]string{
-					{
-						fmt.Sprintf("%.2f", avgEvents),
-						avgRespLatency.String(),
-						strconv.Itoa(totalEvents),
-						strconv.Itoa(totalResp),
-						fmt.Sprintf("%.2f", float64(totalResp) / float64(testTimeout.Seconds())),
-						testTimeout.String(),
-						fmt.Sprintf("%0.2f", float64(totalEvents) / float64(totalRespLatency.Seconds())),
-					},
-				}
-				table.AppendBulk(data)
-				table.Render()
-				break recvLoop
-			default:
-				latency, numEvents := recvEvents()
-				totalResp++
-				totalRespLatency += *latency
-				totalEvents += numEvents
-				avgEvents = float64(totalEvents) / float64(totalResp)
-				avgRespLatency = totalRespLatency / time.Duration(totalResp)
+recvLoop:
+	for {
+		select {
+		case <-timer.C:
+			if err := eod.conn.Close(); err != nil {
+				log.Println("error closing connection:", err)
 			}
+			cancel()
+			table := tablewriter.NewWriter(os.Stdout)
+			table.SetHeader([]string{"AVG Events Recv", "AVG Latency (msec/resp)", "TOTAL Events Recv", "TOTAL Responses Recv",
+				"AVG RESPONSE THROUGHPUT (resp/sec)", "PERIOD Timeout (sec)", "AVG EVENTS THROUGHPUT (events/sec)"})
+			table.SetBorder(false)
+			data := [][]string{
+				{
+					fmt.Sprintf("%.2f", avgEvents),
+					avgRespLatency.String(),
+					strconv.Itoa(totalEvents),
+					strconv.Itoa(totalResp),
+					fmt.Sprintf("%.2f", float64(totalResp)/float64(testTimeout.Seconds())),
+					testTimeout.String(),
+					fmt.Sprintf("%0.2f", float64(totalEvents)/float64(totalRespLatency.Seconds())),
+				},
+			}
+			table.AppendBulk(data)
+			table.Render()
+			break recvLoop
+		default:
+			latency, numEvents := recvEvents()
+			totalResp++
+			totalRespLatency += *latency
+			totalEvents += numEvents
+			avgEvents = float64(totalEvents) / float64(totalResp)
+			avgRespLatency = totalRespLatency / time.Duration(totalResp)
 		}
+	}
 }

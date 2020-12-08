@@ -36,7 +36,7 @@ var (
 	withCloud          = flag.Bool("with-cloud", true, "enable cloud backups")
 	proto              = flag.String("proto", "detection/model/tiny_yolo_deploy.prototxt", "path to model prototxt")
 	model              = flag.String("model", "detection/model/tiny_yolo.caffemodel", "path to model")
-	logsPath		   = flag.String("logs-path", "logs/", "path to logs directory")
+	logsPath           = flag.String("logs-path", "logs/", "path to logs directory")
 )
 
 func getEnvVars() {
@@ -50,7 +50,7 @@ func main() {
 	getEnvVars()
 	flag.Parse()
 
-	file, err := os.OpenFile(*logsPath + "logs.txt", os.O_CREATE| os.O_WRONLY, 0666)
+	file, err := os.OpenFile(*logsPath+"logs.txt", os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
 		log.Fatal(err)
 	}

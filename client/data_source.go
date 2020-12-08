@@ -8,9 +8,9 @@ import (
 
 // DataSource used gocv for caputring image frames via a webcam.
 type DataSource struct {
-	capt *gocv.VideoCapture
-	fc   int
-	filePath 	 string
+	capt     *gocv.VideoCapture
+	fc       int
+	filePath string
 }
 
 // NewDataSource returns a new data source component.

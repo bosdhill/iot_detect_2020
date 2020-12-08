@@ -61,49 +61,49 @@ func TimedTestQuery(group *sync.WaitGroup) {
 	avgReqLatency := time.Duration(0)
 	avgEvents := 0.0
 
-	queryLoop:
-		for {
-			select {
-			case <- timer.C:
-				table := tablewriter.NewWriter(os.Stdout)
-				table.SetHeader([]string{"AVG Events Recv (events/req)", "AVG Latency (msec/req)", "TOTAL Events Recv", "TOTAL Requests Sent",
-					"AVG REQUEST THROUGHPUT (req/sec)", "PERIOD Timeout (sec)", "EVENTFILTER SECONDS (sec)", "AVG EVENTS THROUGHPUT (events/sec)"})
-				table.SetBorder(false)
-				data := [][]string{
-					{
-						fmt.Sprintf("%.2f", avgEvents),
-						avgReqLatency.String(),
-						strconv.Itoa(totalEvents),
-						strconv.Itoa(totalReq),
-						fmt.Sprintf("%.2f", float64(totalReq) / float64(testTimeout.Seconds())),
-						testTimeout.String(),
-						fmt.Sprintf("%v", *eventQuerySeconds),
-						fmt.Sprintf("%0.2f", float64(totalEvents) / float64(totalReqLatency.Seconds())),
-					},
-				}
-				table.AppendBulk(data)
-				table.Render()
-				break queryLoop
-			default:
-				time.Sleep(time.Duration(*eventQueryPeriod))
-				latency, events := eQuery.TestEventQuery()
-				numEvents := len(events)
+queryLoop:
+	for {
+		select {
+		case <-timer.C:
+			table := tablewriter.NewWriter(os.Stdout)
+			table.SetHeader([]string{"AVG Events Recv (events/req)", "AVG Latency (msec/req)", "TOTAL Events Recv", "TOTAL Requests Sent",
+				"AVG REQUEST THROUGHPUT (req/sec)", "PERIOD Timeout (sec)", "EVENTFILTER SECONDS (sec)", "AVG EVENTS THROUGHPUT (events/sec)"})
+			table.SetBorder(false)
+			data := [][]string{
+				{
+					fmt.Sprintf("%.2f", avgEvents),
+					avgReqLatency.String(),
+					strconv.Itoa(totalEvents),
+					strconv.Itoa(totalReq),
+					fmt.Sprintf("%.2f", float64(totalReq)/float64(testTimeout.Seconds())),
+					testTimeout.String(),
+					fmt.Sprintf("%v", *eventQuerySeconds),
+					fmt.Sprintf("%0.2f", float64(totalEvents)/float64(totalReqLatency.Seconds())),
+				},
+			}
+			table.AppendBulk(data)
+			table.Render()
+			break queryLoop
+		default:
+			time.Sleep(time.Duration(*eventQueryPeriod))
+			latency, events := eQuery.TestEventQuery()
+			numEvents := len(events)
 
-				totalReq++
-				totalReqLatency += latency
-				totalEvents += numEvents
-				avgEvents = float64(totalEvents) / float64(totalReq)
-				avgReqLatency = totalReqLatency / time.Duration(totalReq)
+			totalReq++
+			totalReqLatency += latency
+			totalEvents += numEvents
+			avgEvents = float64(totalEvents) / float64(totalReq)
+			avgReqLatency = totalReqLatency / time.Duration(totalReq)
 
-				if *logEvents {
-					for _, e := range events {
-						log.Println(e.GetName())
-						log.Println(e.GetDetectionResult().GetDetectionTime())
-						log.Println(e.GetDetectionResult().GetLabelNumber())
-					}
+			if *logEvents {
+				for _, e := range events {
+					log.Println(e.GetName())
+					log.Println(e.GetDetectionResult().GetDetectionTime())
+					log.Println(e.GetDetectionResult().GetLabelNumber())
 				}
 			}
 		}
+	}
 }
 
 func (eQuery *EventQuery) TestEventQuery() (time.Duration, []*pb.Event) {
@@ -142,9 +142,9 @@ func (eQuery *EventQuery) TestEventQuery() (time.Duration, []*pb.Event) {
 	// Get Events from the last eventQuerySeconds that match filter
 	eFilter := &pb.EventQueryFilter{
 		QuerySeconds: *eventQuerySeconds,
-		Name:    "AtLeast2People",
-		Filter:  filter,
-		Flags:   flags,
+		Name:         "AtLeast2People",
+		Filter:       filter,
+		Flags:        flags,
 	}
 
 	t := time.Now()

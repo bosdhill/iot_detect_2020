@@ -4,6 +4,7 @@ package detection
 import (
 	"context"
 	"fmt"
+	"github.com/RobinUS2/golang-moving-average"
 	eod "github.com/bosdhill/iot_detect_2020/edge/eventondetect"
 	pb "github.com/bosdhill/iot_detect_2020/interfaces"
 	"github.com/hectane/go-nonblockingchan"
@@ -15,7 +16,6 @@ import (
 	"runtime"
 	"sort"
 	"time"
-	"github.com/RobinUS2/golang-moving-average"
 )
 
 // NumClasses used in object detection
@@ -499,7 +499,7 @@ func (od *ObjectDetect) CaffeWorker(imgChan chan *pb.ImageFrame, drCh *nbc.NonBl
 		sec += e
 		count++
 		log.Println("Object_Detection_Latency_AVG:", sec/time.Duration(count))
-		log.Printf("Object_Detection_FPS_AVG: %v\n", float64(count) / float64(sec.Seconds()))
+		log.Printf("Object_Detection_FPS_AVG: %v\n", float64(count)/float64(sec.Seconds()))
 
 		dr := pb.DetectionResult{
 			Empty:         len(labels) == 0,
@@ -528,7 +528,7 @@ func (od *ObjectDetect) CaffeWorker(imgChan chan *pb.ImageFrame, drCh *nbc.NonBl
 
 		// to make the channel send non-blocking, in the case where there is heavy reads and the mongodb writer is
 		// waiting to acquire the reader-writer lock
-		drCh.Send <-dr
+		drCh.Send <- dr
 		drFilterCh <- dr
 		//if *matprofile {
 		//	log.Println("profile count:", gocv.MatProfile.Count())

@@ -2,8 +2,8 @@
 
 
 ## Preqrequisites
-- Need to install sqlite3 on raspberry pi and nvidia jetson
-- Need to have `edge/model/tiny_yolo.caffemodel`
+- `edge/model/tiny_yolo.caffemodel`
+- OpenCV 4.5.0
 
 # Nvidia Jetson Nano setup
 Install go
@@ -38,11 +38,10 @@ install gocv with cuda support
 make install_cuda
 ```
 
-[Ref](https://github.com/hybridgroup/gocv#ubuntulinux)
 
 # Raspberry Pi set up (Linux)
 
-1. Install the latest version of go and set your GOPATH and GOROOT in .bashrc. Clone this repo into $GOPATH/src/github.com/bosdhill/
+Install the latest version of go and set your GOPATH and GOROOT in .bashrc. Clone this repo into $GOPATH/src/github.com/bosdhill/
 
 ``` sh
 cd $HOME
@@ -57,21 +56,19 @@ EOF
 source ~/.bashrc
 ```
 
-2. add
+Add the following to your .bashrc
 
 ```
 export GOBIN=/home/pi/go/bin
 export GO111MODULE="on"
 ```
 
-to your .bashrc
-3. cd to`iot_detect_2020` and install [gocv](https://gocv.io/getting-started/linux/)
-4. cd to `iot_detect_2020` and run
+cd to`iot_detect_2020` and install [gocv](https://gocv.io/getting-started/linux/)
+cd to `iot_detect_2020` and run with
 
 ``` sh
 go build ./...
 ```
-5. OR go to `$GOPATH/pkg/mod/gocv.io/x/gocv@vX.YY.Z` if you tried to build first and run `make install`.
 
 # Mac set up
 ``` sh
@@ -85,44 +82,28 @@ protoc -I interfaces/ interfaces/interfaces.proto --go_out=plugins=grpc:interfac
 go build ./...
 ```
 
-gocv issues:
 
+# Installing this repo
 ``` sh
-may need to symlink /usr/local/lib/pkgconfig/opencv4.pc
-
-and add this to your ~/.bash_profile:
-export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig/opencv4.pc:$PATH"
+mkdir -p $GOPATH/src/github.com/bosdhill/
+cd $GOPATH/src/github.com/bosdhill/
+git clone git@github.com:bosdhill/iot_detect_2020.git
 ```
 
-``` sh
-which protoc
-which protoc-gen-go
-
-export GOPATH=$HOME/golang
-export GOBIN=$GOPATH/bin
-export GO111MODULE="on"
-export PATH=$PATH:$GOROOT:$GOPATH:$GOBIN
-```
-
+# Protobuf
 to generate interface.pb.go in each module
 ``` sh
-cd <module>
+cd $GOPATH/src/github.com/bosdhill
 protoc -I interfaces/ interfaces/interfaces.proto --go_out=plugins=grpc:interfaces
 ```
 
-# build
+# Building
 
 build modules with
 ``` sh
 cd <module>
 go build
 ```
-
-
-# coco speedup
-AVG detect time for mp4 = 94.796409ms
-AVG python detect time for mp4 = 10899154700380465ms
-~15% speedup on AVG
 
 ## CPU profiling
 ``` sh
@@ -143,65 +124,3 @@ and run with
 ./edge --matprofile true
 ```
 More [here](https://gocv.io/blog/2018-11-28-opencv-4-support-and-custom-profiling/)
-
-
-# Notes on gocv and opencv
-
-Ensure you uninstall prior your prior opencv versions, as this will cause symlinking issues
-with the package config files of opencv4
-``` sh
-brew uninstall opencv@2
-brew install opencv
-brew doctor
-```
-and ensure your gocv module version matches up with your opencv version.
-
-# Installing this repo
-``` sh
-mkdir -p $GOPATH/src/github.com/bosdhill/
-cd $GOPATH/src/github.com/bosdhill/
-git clone git@github.com:bosdhill/iot_detect_2020.git
-```
-
-
-# MongoDB
-
-Set up mongodb data directory
-```sh
-$ cd $GOPATH/src/github.com/bosdhill/iot_detect_2020
-$ sudo chown -R `id -un` edge/datastore/mongodata
-```
-
- 
-Run mongodb in the background
-```sh
-
-$ mongod --dbpath=$GOPATH/src/github.com/bosdhill/iot_detect_2020/edge/datastore/mongodata
-```
-
-To connect to mongodb
-
-```sh
-mongo
-```
-
-Mongodb shell
-```bash
-mongo
-```
-
-View and use a db
-```bash
-show dbs
-use detections
-```
-
-delete all documents from a collection
-```bash
-db.detections_result.remove( { } )
-```
-
-delete collection
-```sh
-db.detections_result.drop()
-```

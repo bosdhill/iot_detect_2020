@@ -24,7 +24,7 @@ var (
 )
 
 type EventsChannel struct {
-	C chan []*pb.Event
+	C    chan []*pb.Event
 	once sync.Once
 }
 
@@ -39,7 +39,7 @@ func (mc *EventsChannel) SafeClose() {
 }
 
 type AppContext struct {
-	ctx   context.Context
+	ctx    context.Context
 	cancel context.CancelFunc
 }
 
@@ -103,7 +103,7 @@ func (eod *EventOnDetect) GetEvents(req *pb.GetEventsRequest, stream pb.EventOnD
 		case <-ctx.Done():
 			appComm.appCtx.cancel()
 			return nil
-		case events := <- appComm.eventsChan.C:
+		case events := <-appComm.eventsChan.C:
 			resp := &pb.GetEventsResponse{
 				Events: events,
 			}
