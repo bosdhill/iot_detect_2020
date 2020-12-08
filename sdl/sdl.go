@@ -1,3 +1,4 @@
+// Ref: https://github.com/golang/go/wiki/LockOSThread
 package sdl
 
 import (
