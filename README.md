@@ -4,6 +4,7 @@
 ## Preqrequisites
 - `edge/model/tiny_yolo.caffemodel`
 - OpenCV 4.5.0
+- `edge/credentials.env` with `MONGO_URI` and optionally `MONGO_ATLAS_URI` 
 
 # Nvidia Jetson Nano setup
 Install go
