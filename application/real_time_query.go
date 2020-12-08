@@ -22,7 +22,7 @@ import (
 type EventOnDetect struct {
 	client       pb.EventOnDetectClient
 	ctx          context.Context
-	eventFilters *pb.EventFilters
+	eventFilters *pb.EventQueryFilters
 	rtFilter     *realtimefilter.Set
 	uuid         string
 	conn 		*grpc.ClientConn
@@ -52,13 +52,69 @@ func (eod *EventOnDetect) GetLabels() (*pb.Labels, error) {
 	return resp.GetLabels(), nil
 }
 
-// RegisterEventFilters is used to register the application's eventFilters
-func (eod *EventOnDetect) RegisterApp(labels *pb.Labels) error {
-	log.Println("RegisterApp")
-	eventFilters := &pb.EventFilters{}
+// RegisterEventQueryFilters is used to register the application's eventFilters
+func (eod *EventOnDetect) RegisterEventQueryFilters(labels *pb.Labels) error {
+	log.Println("RegisterEventQueryFilters")
+	eventFilters := &pb.EventQueryFilters{}
 	if labels.Labels["person"] && labels.Labels["bus"] {
 		filters := map[string]bson.D{
-			"FourPersonsOrFourBuses": {
+			//"FourPersonsOrFourBuses": {
+			//	bson.E{
+			//		Key: "$or",
+			//		Value: bson.D{
+			//			bson.E{
+			//				Key: "person",
+			//				Value: bson.E{
+			//					Key:   "$gte",
+			//					Value: 2,
+			//				},
+			//			},
+			//			bson.E{
+			//				Key: "bus",
+			//				Value: bson.E{
+			//					Key:   "$gte",
+			//					Value: 1,
+			//				},
+			//			},
+			//		},
+			//	},
+			//},
+			//"AtLeastOnePersonAndBus": {
+			//	bson.E{
+			//		Key: "$and",
+			//		Value: bson.D{
+			//			bson.E{
+			//				Key: "person",
+			//				Value: bson.E{
+			//					Key:   "$gte",
+			//					Value: 1,
+			//				},
+			//			},
+			//			bson.E{
+			//				Key: "bus",
+			//				Value: bson.E{
+			//					Key:   "$lte",
+			//					Value: 10,
+			//				},
+			//			},
+			//		},
+			//	},
+			//},
+			//"PersonAndBus": {
+			//	bson.E{
+			//		Key: "labels",
+			//		Value: bson.D{
+			//			bson.E{
+			//				Key: "$all",
+			//				Value: bson.A{
+			//					"person",
+			//					"bus",
+			//				},
+			//			},
+			//		},
+			//	},
+			//},
+			"AtLeast2People": {
 				bson.E{
 					Key: "$or",
 					Value: bson.D{
@@ -67,62 +123,6 @@ func (eod *EventOnDetect) RegisterApp(labels *pb.Labels) error {
 							Value: bson.E{
 								Key:   "$gte",
 								Value: 2,
-							},
-						},
-						bson.E{
-							Key: "bus",
-							Value: bson.E{
-								Key:   "$gte",
-								Value: 1,
-							},
-						},
-					},
-				},
-			},
-			"AtLeastOnePersonAndBus": {
-				bson.E{
-					Key: "$and",
-					Value: bson.D{
-						bson.E{
-							Key: "person",
-							Value: bson.E{
-								Key:   "$gte",
-								Value: 1,
-							},
-						},
-						bson.E{
-							Key: "bus",
-							Value: bson.E{
-								Key:   "$lte",
-								Value: 10,
-							},
-						},
-					},
-				},
-			},
-			"PersonAndBus": {
-				bson.E{
-					Key: "labels",
-					Value: bson.D{
-						bson.E{
-							Key: "$all",
-							Value: bson.A{
-								"person",
-								"bus",
-							},
-						},
-					},
-				},
-			},
-			"AtLeast3People": {
-				bson.E{
-					Key: "$or",
-					Value: bson.D{
-						bson.E{
-							Key: "person",
-							Value: bson.E{
-								Key:   "$gte",
-								Value: 3,
 							},
 						},
 					},
@@ -138,10 +138,10 @@ func (eod *EventOnDetect) RegisterApp(labels *pb.Labels) error {
 
 			var flags uint32 = 0
 			if *metadata {
-				flags = uint32(pb.EventFilter_METADATA)
+				flags = uint32(pb.EventQueryFilter_METADATA)
 			}
 
-			eFilter := &pb.EventFilter{
+			eFilter := &pb.EventQueryFilter{
 				Name:   name,
 				Filter: mFilter,
 				Flags:  flags,
@@ -150,12 +150,12 @@ func (eod *EventOnDetect) RegisterApp(labels *pb.Labels) error {
 			eventFilters.EventFilters = append(eventFilters.EventFilters, eFilter)
 		}
 	}
-
-	req := &pb.RegisterAppRequest{
+	
+	req := &pb.RegisterEventQueryFiltersRequest{
 		EventFilters: eventFilters,
 	}
 
-	resp, err := eod.client.RegisterApp(eod.ctx, req)
+	resp, err := eod.client.RegisterEventQueryFilters(eod.ctx, req)
 	if err != nil {
 		return err
 	}
@@ -193,7 +193,7 @@ func TimedTestEventOnDetect(group *sync.WaitGroup) {
 		log.Fatal(err)
 	}
 
-	if err = eod.RegisterApp(labels); err != nil {
+	if err = eod.RegisterEventQueryFilters(labels); err != nil {
 		log.Fatal(err)
 	}
 
@@ -243,7 +243,7 @@ func TimedTestEventOnDetect(group *sync.WaitGroup) {
 				cancel()
 				table := tablewriter.NewWriter(os.Stdout)
 				table.SetHeader([]string{"AVG Events Recv", "AVG Latency (msec/resp)", "TOTAL Events Recv", "TOTAL Responses Recv",
-					"AVG THROUGHPUT (resp/sec)", "PERIOD Timeout (sec)"})
+					"AVG RESPONSE THROUGHPUT (resp/sec)", "PERIOD Timeout (sec)", "AVG EVENTS THROUGHPUT (events/sec)"})
 				table.SetBorder(false)
 				data := [][]string{
 					{
@@ -253,6 +253,7 @@ func TimedTestEventOnDetect(group *sync.WaitGroup) {
 						strconv.Itoa(totalResp),
 						fmt.Sprintf("%.2f", float64(totalResp) / float64(testTimeout.Seconds())),
 						testTimeout.String(),
+						fmt.Sprintf("%0.2f", float64(totalEvents) / float64(totalRespLatency.Seconds())),
 					},
 				}
 				table.AppendBulk(data)

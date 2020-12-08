@@ -6,6 +6,7 @@ import (
 	"fmt"
 	eod "github.com/bosdhill/iot_detect_2020/edge/eventondetect"
 	pb "github.com/bosdhill/iot_detect_2020/interfaces"
+	"github.com/hectane/go-nonblockingchan"
 	"gocv.io/x/gocv"
 	"image"
 	"image/color"
@@ -427,7 +428,7 @@ func maxIndex(a []float32) int {
 }
 
 // imgToMat handles deserializing the pb.Image to a gocv.Mat
-func imgToMat(img *pb.Image) *gocv.Mat {
+func imgToMat(img *pb.ImageFrame) *gocv.Mat {
 	height := int(img.Rows)
 	width := int(img.Cols)
 	mType := gocv.MatType(img.Type)
@@ -464,7 +465,7 @@ func New(ctx context.Context, eod *eod.EventOnDetect, withCuda bool, proto, mode
 	return &ObjectDetect{net: &caffeNet, ctx: ctx, eod: eod}, nil
 }
 
-func (od *ObjectDetect) CaffeWorker(imgChan chan *pb.Image, drCh chan pb.DetectionResult, drFilterCh chan pb.DetectionResult) {
+func (od *ObjectDetect) CaffeWorker(imgChan chan *pb.ImageFrame, drCh *nbc.NonBlockingChan, drFilterCh chan pb.DetectionResult) {
 	log.Println("caffeWorker")
 	sec := time.Duration(0)
 	// compute average of last 100 frames
@@ -497,7 +498,8 @@ func (od *ObjectDetect) CaffeWorker(imgChan chan *pb.Image, drCh chan pb.Detecti
 		log.Println("detect time", e)
 		sec += e
 		count++
-		log.Println("Object_Detection_Time_AVG:", sec/time.Duration(count))
+		log.Println("Object_Detection_Latency_AVG:", sec/time.Duration(count))
+		log.Printf("Object_Detection_FPS_AVG: %v\n", float64(count) / float64(sec.Seconds()))
 
 		dr := pb.DetectionResult{
 			Empty:         len(labels) == 0,
@@ -524,13 +526,10 @@ func (od *ObjectDetect) CaffeWorker(imgChan chan *pb.Image, drCh chan pb.Detecti
 		}
 		runtime.GC()
 
-		go func() {
-			select {
-			case drFilterCh <- dr:
-			case drCh <- dr:
-			}
-		}()
-
+		// to make the channel send non-blocking, in the case where there is heavy reads and the mongodb writer is
+		// waiting to acquire the reader-writer lock
+		drCh.Send <-dr
+		drFilterCh <- dr
 		//if *matprofile {
 		//	log.Println("profile count:", gocv.MatProfile.Count())
 		//	var b bytes.Buffer

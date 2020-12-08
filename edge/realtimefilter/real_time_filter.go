@@ -31,11 +31,11 @@ type logicalQuery map[string]map[string]bson.D
 // query + pb.DetectionResult + pb.EventFilter = Event to send back to client
 type realTimeFilter struct {
 	query       interface{}
-	eventFilter *pb.EventFilter
+	eventFilter *pb.EventQueryFilter
 }
 
 // New returns a slice of eventLabelPairs
-func New(events *pb.EventFilters) (*Set, error) {
+func New(events *pb.EventQueryFilters) (*Set, error) {
 	log.Println("NewRealTimeFilter")
 	set := make(Set, 0)
 	for _, event := range events.GetEventFilters() {
@@ -202,9 +202,9 @@ func compareAnd(detectedLabels map[string]int32, labelQuery map[string]bson.D) b
 
 // NewEvent returns a new Event based on the EventFilter and DetectionResult
 // FIXME if multiple events found by event filter for an image frame, only one image frame should be returned
-func NewEvent(eventFilter *pb.EventFilter, dr pb.DetectionResult) *pb.Event {
+func NewEvent(eventFilter *pb.EventQueryFilter, dr pb.DetectionResult) *pb.Event {
 	log.Println("NewEvent")
-	if eventFilter.Flags & uint32(pb.EventFilter_METADATA) == uint32(pb.EventFilter_METADATA) {
+	if eventFilter.Flags & uint32(pb.EventQueryFilter_METADATA) == uint32(pb.EventQueryFilter_METADATA) {
 		dr.Img = nil
 		runtime.GC()
 	}
@@ -217,7 +217,7 @@ func NewEvent(eventFilter *pb.EventFilter, dr pb.DetectionResult) *pb.Event {
 }
 
 // NewEvents returns a set of Events for an EventFilter
-func NewEvents(eventFilter *pb.EventFilter, drSl []pb.DetectionResult) []*pb.Event {
+func NewEvents(eventFilter *pb.EventQueryFilter, drSl []pb.DetectionResult) []*pb.Event {
 	log.Println("NewEvents")
 	var events []*pb.Event
 	for _, dr := range drSl {

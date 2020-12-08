@@ -40,38 +40,38 @@ func NewEdgeComm(addr string) (*EdgeComm, error) {
 	return &EdgeComm{client}, nil
 }
 
-func imgToUploadReq(img gocv.Mat) *pb.UploadImageRequest {
+func imgToUploadReq(img gocv.Mat) *pb.UploadImageFramesRequest {
 	bImg := img.ToBytes()
 	rows := int32(img.Rows())
 	cols := int32(img.Cols())
 	mType := img.Type()
 	log.Println("dimensions:", rows, cols)
-	return &pb.UploadImageRequest{Image: &pb.Image{Image: bImg, Rows: rows, Cols: cols, Type: int32(mType)}}
+	return &pb.UploadImageFramesRequest{Image: &pb.ImageFrame{Image: bImg, Rows: rows, Cols: cols, Type: int32(mType)}}
 }
 
-// UploadImage streams image frames to the Edge
-func (e *EdgeComm) UploadImage(c chan gocv.Mat) {
-	log.Printf("UploadImage")
+// UploadImageFrames streams image frames to the Edge
+func (e *EdgeComm) UploadImageFrames(c chan gocv.Mat) {
+	log.Printf("UploadImageFrames")
 	ctx, _ := context.WithCancel(context.Background())
-	stream, err := e.client.UploadImage(ctx)
+	stream, err := e.client.UploadImageFrames(ctx)
 	if err != nil {
-		log.Fatalf("UploadImage: could not upload image with error = %v", err)
+		log.Fatalf("UploadImageFrames: could not upload image with error = %v", err)
 	}
 	for img := range c {
 		req := imgToUploadReq(img)
 		if err := stream.Send(req); err != nil {
-			log.Fatalf("UploadImage: Send: could not send to stream with error = %v and dimensions = %v, %v",
+			log.Fatalf("UploadImageFrames: Send: could not send to stream with error = %v and dimensions = %v, %v",
 				err, req.Image.GetCols(), req.Image.GetRows())
 		}
 		// prevent memory leak
 		if err := img.Close(); err != nil {
-			log.Fatalf("UploadImage: could not close img with error = %s", err)
+			log.Fatalf("UploadImageFrames: could not close img with error = %s", err)
 		}
 	}
 	close(c)
 	reply, err := stream.CloseAndRecv()
 	if err != nil {
-		log.Fatalf("UploadImage: could not CloseAndRecv() got error %v, want %v", err, nil)
+		log.Fatalf("UploadImageFramesFrames: could not CloseAndRecv() got error %v, want %v", err, nil)
 	}
-	log.Printf("UploadImageResponse: %v", reply.String())
+	log.Printf("UploadImageFramesResponse: %v", reply.String())
 }

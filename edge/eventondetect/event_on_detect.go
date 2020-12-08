@@ -66,9 +66,9 @@ func (eod *EventOnDetect) GetLabels(context.Context, *empty.Empty) (*pb.GetLabel
 	}, nil
 }
 
-// RegisterApp implements the register app rpc which accepts event filters for an app and assigns it a uuid
-func (eod *EventOnDetect) RegisterApp(ctx context.Context, req *pb.RegisterAppRequest) (*pb.RegisterAppResponse, error) {
-	log.Println("RegisterApp")
+// RegisterEventQueryFilters implements the register app rpc which accepts event filters for an app and assigns it a uuid
+func (eod *EventOnDetect) RegisterEventQueryFilters(ctx context.Context, req *pb.RegisterEventQueryFiltersRequest) (*pb.RegisterEventQueryFiltersResponse, error) {
+	log.Println("RegisterEventQueryFilters")
 	rtFilter, err := realtimefilter.New(req.EventFilters)
 	if err != nil {
 		return nil, err
@@ -82,7 +82,7 @@ func (eod *EventOnDetect) RegisterApp(ctx context.Context, req *pb.RegisterAppRe
 	ctx, cancel := context.WithCancel(context.Background())
 	eod.appComm[appId] = AppComm{eventsChan: NewEventsChannel(), rtFilter: rtFilter, appCtx: AppContext{ctx, cancel}}
 
-	return &pb.RegisterAppResponse{
+	return &pb.RegisterEventQueryFiltersResponse{
 		Uuid: appId,
 	}, nil
 }

@@ -37,7 +37,7 @@ func NewEventQueryClient(addr string) (*EventQuery, error) {
 }
 
 // Find makees a Find event filter query request to the EventQuery server on the Edge
-func (eQuery *EventQuery) Find(eFilter *pb.EventFilter) ([]*pb.Event, error) {
+func (eQuery *EventQuery) Find(eFilter *pb.EventQueryFilter) ([]*pb.Event, error) {
 	log.Printf("Find")
 	ctx, _ := context.WithCancel(context.Background())
 	resp, err := eQuery.client.Find(ctx, &pb.FindRequest{EventFilter: eFilter})
@@ -67,7 +67,7 @@ func TimedTestQuery(group *sync.WaitGroup) {
 			case <- timer.C:
 				table := tablewriter.NewWriter(os.Stdout)
 				table.SetHeader([]string{"AVG Events Recv (events/req)", "AVG Latency (msec/req)", "TOTAL Events Recv", "TOTAL Requests Sent",
-					"AVG THROUGHPUT (req/sec)", "PERIOD Timeout (sec)", "EVENTFILTER SECONDS (sec)"})
+					"AVG REQUEST THROUGHPUT (req/sec)", "PERIOD Timeout (sec)", "EVENTFILTER SECONDS (sec)", "AVG EVENTS THROUGHPUT (events/sec)"})
 				table.SetBorder(false)
 				data := [][]string{
 					{
@@ -77,7 +77,8 @@ func TimedTestQuery(group *sync.WaitGroup) {
 						strconv.Itoa(totalReq),
 						fmt.Sprintf("%.2f", float64(totalReq) / float64(testTimeout.Seconds())),
 						testTimeout.String(),
-						fmt.Sprintf("%vs", *eventQuerySeconds),
+						fmt.Sprintf("%v", *eventQuerySeconds),
+						fmt.Sprintf("%0.2f", float64(totalEvents) / float64(totalReqLatency.Seconds())),
 					},
 				}
 				table.AppendBulk(data)
@@ -114,16 +115,16 @@ func (eQuery *EventQuery) TestEventQuery() (time.Duration, []*pb.Event) {
 				Key: "labelnumber.person",
 				Value: bson.D{{
 					Key:   "$gte",
-					Value: 1,
+					Value: 2,
 				}},
 			},
-			{
-				Key: "labelnumber.bus",
-				Value: bson.D{{
-					Key:   "$gte",
-					Value: 1,
-				}},
-			},
+			//{
+			//	Key: "labelnumber.bus",
+			//	Value: bson.D{{
+			//		Key:   "$gte",
+			//		Value: 1,
+			//	}},
+			//},
 		},
 		},
 	}
@@ -135,13 +136,13 @@ func (eQuery *EventQuery) TestEventQuery() (time.Duration, []*pb.Event) {
 
 	var flags uint32 = 0
 	if *metadata {
-		flags = uint32(pb.EventFilter_METADATA)
+		flags = uint32(pb.EventQueryFilter_METADATA)
 	}
 
 	// Get Events from the last eventQuerySeconds that match filter
-	eFilter := &pb.EventFilter{
-		Seconds: *eventQuerySeconds,
-		Name:    "TestQueryEvent",
+	eFilter := &pb.EventQueryFilter{
+		QuerySeconds: *eventQuerySeconds,
+		Name:    "AtLeast2People",
 		Filter:  filter,
 		Flags:   flags,
 	}

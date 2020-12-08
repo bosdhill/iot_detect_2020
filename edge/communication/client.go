@@ -12,6 +12,7 @@ import (
 
 	pb "github.com/bosdhill/iot_detect_2020/interfaces"
 	"google.golang.org/grpc"
+	"github.com/hectane/go-nonblockingchan"
 )
 
 // ClientComm is a wrapper around the uploader server which is used to serve
@@ -31,13 +32,13 @@ type ClientComm struct {
 // then passed to the image detection pipeline, where the frame is then inserted
 // into the db.
 // TODO: find a way to annotate image frames after object detection.
-func (comm *ClientComm) UploadImage(stream pb.Uploader_UploadImageServer) error {
-	log.Println("UploadImage")
+func (comm *ClientComm) UploadImageFrames(stream pb.Uploader_UploadImageFramesServer) error {
+	log.Println("UploadImageFrames")
 	count := 0
-	drCh := make(chan pb.DetectionResult)
-	drFilterCh := make(chan pb.DetectionResult)
+	drCh := nbc.New()
+	drFilterCh := make(chan pb.DetectionResult, 100)
 	// Buffered channel might greatly affect memory on Raspberry Pi and Nano
-	imgCh := make(chan *pb.Image, 100)
+	imgCh := make(chan *pb.ImageFrame, 100)
 	go comm.od.CaffeWorker(imgCh, drCh, drFilterCh)
 	go comm.eod.FilterEventsWorker(drFilterCh)
 	go comm.ds.InsertWorker(drCh)
@@ -46,7 +47,7 @@ func (comm *ClientComm) UploadImage(stream pb.Uploader_UploadImageServer) error 
 		count++
 		if err == io.EOF {
 			log.Println("EOF")
-			return stream.SendAndClose(&pb.UploadImageResponse{Success: true})
+			return stream.SendAndClose(&pb.UploadImageFramesResponse{Success: true})
 		}
 		if err != nil {
 			log.Println("err=", err)

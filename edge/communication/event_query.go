@@ -5,6 +5,7 @@ import (
 	"github.com/bosdhill/iot_detect_2020/edge/datastore"
 	"github.com/bosdhill/iot_detect_2020/edge/realtimefilter"
 	pb "github.com/bosdhill/iot_detect_2020/interfaces"
+	"github.com/golang/protobuf/ptypes/empty"
 	"go.mongodb.org/mongo-driver/bson"
 	"google.golang.org/grpc"
 	"log"
@@ -22,6 +23,10 @@ type AppComm struct {
 	eCtx   context.Context
 }
 
+func (comm *AppComm) GetLabels(context.Context, *empty.Empty) (*pb.GetLabelsResponse, error) {
+	panic("implement me")
+}
+
 // Find extracts the filter from EventFilter and queries the local mongodb instance a given number of seconds back.
 // If there are detection results returned, it creates and returns the corresponding Events.
 func (comm *AppComm) Find(ctx context.Context, req *pb.FindRequest) (*pb.FindResponse, error) {
@@ -30,7 +35,7 @@ func (comm *AppComm) Find(ctx context.Context, req *pb.FindRequest) (*pb.FindRes
 	if err != nil {
 		return nil, err
 	}
-	secondsNano := (time.Duration(req.GetEventFilter().GetSeconds()) * time.Second).Nanoseconds()
+	secondsNano := (time.Duration(req.GetEventFilter().GetQuerySeconds()) * time.Second).Nanoseconds()
 
 	log.Printf("Querying from last %v nano seconds\n", secondsNano)
 

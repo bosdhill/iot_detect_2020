@@ -2,6 +2,7 @@ package communication
 
 import (
 	"context"
+	"fmt"
 	"github.com/bosdhill/iot_detect_2020/edge/connection"
 	"github.com/bosdhill/iot_detect_2020/edge/datastore"
 	pb "github.com/bosdhill/iot_detect_2020/interfaces"
@@ -33,6 +34,17 @@ func NewCloudUpload(ctx context.Context, ds *datastore.MongoDataStore, mongoAtla
 	if err != nil {
 		return nil, err
 	}
+
+	indexName, err := client.Database(dbName).Collection(drColName).Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{"detectiontime", 1}},
+		Options: nil,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	log.Println("created new index:", indexName)
+
 	return &CloudComm{ctx: ctx, client: client, ds: ds}, nil
 }
 
@@ -68,6 +80,10 @@ func (cComm *CloudComm) CloudUpload(batchSize int64, uploadTTL, deleteTTL int64)
 		dTime, err := cComm.remoteInsert(drSl)
 		if err != nil {
 			log.Printf("Error while remotely inserting: %v", err)
+		}
+		if dTime == nil {
+			fmt.Printf("dTime was nil. Len(drSl) = %v\n", len(drSl))
+			log.Fatalf("dTime was nil. Len(drSl) = %v\n", len(drSl))
 		}
 		log.Printf("Last detection time inserted was: %v\n", *dTime)
 

@@ -43,5 +43,5 @@ func main() {
 		go ds.GetFrames(c)
 	}
 
-	ec.UploadImage(c)
+	ec.UploadImageFrames(c)
 }

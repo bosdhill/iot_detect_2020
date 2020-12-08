@@ -16,6 +16,7 @@ function print_db_stats {
 
 function test_base {
     pushd edge &> /dev/null
+    rm logs/logs.txt &> /dev/null
     go build
     ./edge $1 &
     EDGE_PID=$!
@@ -28,8 +29,8 @@ function test_base {
     popd  &> /dev/null
     ./application $3
     popd &> /dev/null
-    tac logs/logs.txt | awk '/Object_Detection_Time_AVG/ {print;exit}'
-    rm logs/logs.txt
+    tac logs/logs.txt | awk '/Object_Detection_Latency_AVG/ {print;exit}'
+    tac logs/logs.txt | awk '/Object_Detection_FPS_AVG/ {print;exit}'
     disown ${EDGE_PID}
     kill -9 ${EDGE_PID} &> /dev/null
     disown ${CLIENT_PID}
@@ -153,6 +154,29 @@ function test_realtime_db_persist {
     done
 }
 
+function test_query_db_delete_single {
+    echo "TEST_QUERY_DB_DELETE_SINGLE"
+    EDGE_FLAGS="-with-cloud=false"
+    CLIENT_FLAGS="--cont-stream=true"
+    APP_FLAGS="--query=true --timeout 60s --seconds=60"
+    echo "flags: ${EDGE_FLAGS} ${CLIENT_FLAGS} ${APP_FLAGS}"
+    echo -e "use detections\ndb.dropDatabase()" | mongo &> /dev/null
+    test_base "${EDGE_FLAGS}" "${CLIENT_FLAGS}" "${APP_FLAGS}"
+    test_base "${EDGE_FLAGS}" "${CLIENT_FLAGS}" "${APP_FLAGS}"
+}
+
+function test_realtime_db_delete_upload_fast {
+    echo "TEST_REALTIME_DB_DELETE_UPLOAD_FAST"
+    EDGE_FLAGS="-with-cloud=true --batchsize=100 --uploadTTL=15 --deleteTTL=40"
+    CLIENT_FLAGS="--cont-stream=true"
+    APP_FLAGS="--realtime=true --timeout 60s"
+    echo "flags: ${EDGE_FLAGS} ${CLIENT_FLAGS} ${APP_FLAGS}"
+    echo -e "use detections\ndb.dropDatabase()" | mongo &> /dev/null
+    for (( c=1; c<=$NUM_UPLOAD_TEST_RUNS; c++ ))
+    do
+        test_base "${EDGE_FLAGS}" "${CLIENT_FLAGS}" "${APP_FLAGS}"
+    done
+}
 
 case "$1" in
      "query_db_delete")
@@ -181,5 +205,11 @@ case "$1" in
         ;;
     "query_realtime_db_delete_upload")
         test_query_realtime_db_delete_upload
+        ;;
+    "query_db_delete_single")
+        test_query_db_delete_single
+        ;;
+    "realtime_db_delete_upload_fast")
+        test_realtime_db_delete_upload_fast
         ;;
 esac

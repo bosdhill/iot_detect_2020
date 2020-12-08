@@ -11,23 +11,23 @@ service Uploader {
     //
     // Streams image frames from the data source in the client to the server
     // in the edge.
-    rpc UploadImage(stream UploadImageRequest) returns (UploadImageResponse) {}
+    rpc UploadImageFrames(stream UploadImageFramesRequest) returns (UploadImageFramesResponse) {}
 }
 
-message UploadImageRequest {
-    Image image = 1;
+message UploadImageFramesRequest {
+    ImageFrame image = 1;
 }
 
 // Image is a gocv.Mat representation of an image frame
-message Image {
+message ImageFrame {
     bytes image = 1;
     int32 rows = 2;
     int32 cols = 3;
     int32 type = 4;
 }
 
-// UploadImageResponse is a message that has a boolean that tells whether upload was successful
-message UploadImageResponse {
+// UploadImageFramesResponse is a message that has a boolean that tells whether upload was successful
+message UploadImageFramesResponse {
     bool success = 1;
 }
 
@@ -37,8 +37,8 @@ service EventOnDetect {
     // GetLabels returns the labels that the Edge can detect
     rpc GetLabels(google.protobuf.Empty) returns (GetLabelsResponse) {}
 
-    // RegisterApp allows the Application to register with the Edge
-    rpc RegisterApp(RegisterAppRequest) returns (RegisterAppResponse) {}
+    // RegisterEventQueryFilters allows the Application to register with the Edge
+    rpc RegisterEventQueryFilters(RegisterEventQueryFiltersRequest) returns (RegisterEventQueryFiltersResponse) {}
 
     // StreamEvents streams Events from the Edge to the Application
     // server-side streaming RPC where the client sends a request to the server and gets a stream to read a sequence of messages back
@@ -49,14 +49,14 @@ message GetLabelsResponse {
     Labels labels = 1;
 }
 
-// RegisterAppRequest allows the application to register with the Edge
-message RegisterAppRequest {
-    EventFilters event_filters = 2;
+// RegisterEventQueryFiltersRequest allows the application to register with the Edge
+message RegisterEventQueryFiltersRequest {
+    EventQueryFilters event_filters = 2;
 }
 
-// RegisterAppResponse returns the uid assigned to the application, which is used
+// RegisterEventQueryFiltersResponse returns the uid assigned to the application, which is used
 // in StreamEvents
-message RegisterAppResponse {
+message RegisterEventQueryFiltersResponse {
     string uuid = 1;
 }
 
@@ -74,16 +74,16 @@ message Labels {
 }
 
 // EventFilters is an array of EventFilter
-message EventFilters {
-  repeated EventFilter event_filters = 1;
+message EventQueryFilters {
+  repeated EventQueryFilter event_filters = 1;
 }
 
 // EventFilter is used in both real time event filtration and historic queries. It provides the marshalled bson
 // object to be used for real time event filtration and for mongodb in historic queries, as well as flags to determine
 // the exact fields to be set and returned.
-message EventFilter {
+message EventQueryFilter {
     //  Used to query detection results within the last n seconds. This is field is ignored in real time event filtration.
-    int64 seconds = 1;
+    int64 query_seconds = 1;
 
     // The name of the event, which is used when returning the event to the application. This field is ignored in query
     // event filtration.
@@ -114,6 +114,9 @@ message EventFilter {
 
         // Return confidence
         CONFIDENCE = 16;
+
+        // Return empty results
+        EMPTY = 32;
     }
 }
 
@@ -140,19 +143,19 @@ message DetectionResult {
     // Whether or not the result has any objects
 	bool empty = 1;
 
-	// The time of detection
+    // The time of detection
 	int64 detection_time = 2;
 
-	// A map of labels to number detected
+    // A map of labels to number detected
 	map<string, int32> label_number = 3;
 
     // A list of labels
     repeated string labels = 4;
 
-	// The matrix representation of the image frame
-	Image img = 5;
+    // The matrix representation of the image frame
+    ImageFrame img = 5;
 
-	// A map from label to its bounding box
+    // A map from label to its bounding box
 	map<string, BoundingBoxes> label_boxes = 6;
 }
 
@@ -171,12 +174,14 @@ message BoundingBox {
 }
 
 service EventQuery {
+    // GetLabels returns the labels that the Edge can detect
+    rpc GetLabels(google.protobuf.Empty) returns (GetLabelsResponse) {}
     rpc Find (FindRequest) returns (FindResponse) {}
     rpc EventStream(EventStreamRequest) returns (stream EventStreamResponse) {}
 }
 
 message FindRequest {
-    EventFilter event_filter = 1;
+    EventQueryFilter event_filter = 1;
 }
 
 message FindResponse {
@@ -184,7 +189,7 @@ message FindResponse {
 }
 
 message EventStreamRequest {
-    EventFilter event_filter = 1;
+    EventQueryFilter event_filter = 1;
 }
 
 message EventStreamResponse {

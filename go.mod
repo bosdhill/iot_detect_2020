@@ -15,6 +15,7 @@ require (
 	github.com/google/flatbuffers v1.12.0 // indirect
 	github.com/google/uuid v1.1.2
 	github.com/hashicorp/go-memdb v1.2.1
+	github.com/hectane/go-nonblockingchan v0.1.0
 	github.com/joho/godotenv v1.3.0
 	github.com/klauspost/compress v1.11.2 // indirect
 	github.com/leesper/go_rng v0.0.0-20190531154944-a612b043e353 // indirect

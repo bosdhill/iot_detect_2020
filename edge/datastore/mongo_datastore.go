@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/bosdhill/iot_detect_2020/edge/connection"
 	pb "github.com/bosdhill/iot_detect_2020/interfaces"
+	"github.com/hectane/go-nonblockingchan"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -38,16 +39,26 @@ func New(ctx context.Context, mongoUri string) (*MongoDataStore, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	indexName, err := client.Database(dbName).Collection(drColName).Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{"detectiontime", 1}},
+		Options: nil,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	log.Println("created new index:", indexName)
 	return &MongoDataStore{ctx: ctx, client: client}, nil
 }
 
 // InsertWorker pulls from the detection result channel and calls insertDetectionResult
-func (ds *MongoDataStore) InsertWorker(drCh chan pb.DetectionResult) {
+func (ds *MongoDataStore) InsertWorker(drCh *nbc.NonBlockingChan) {
 	log.Println("InsertWorker")
-
-	for dr := range drCh {
+	for drR := range drCh.Recv {
+		dr, ok := drR.(pb.DetectionResult)
 		// TODO: have option for storing non-empty detection results for the application
-		if !dr.Empty {
+		if ok && !dr.Empty {
 			if err := ds.insert(dr); err != nil {
 				log.Printf("could not insert detection result to mongodb: %v", err)
 			}
