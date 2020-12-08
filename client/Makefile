@@ -2,6 +2,6 @@ client:
 	go build
 run:
 	make client
-	client --edge-server-addr $(EDGE_SERVER)
+	client
 clean:
 	rm client

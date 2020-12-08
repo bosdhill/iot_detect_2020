@@ -1,5 +1,5 @@
 application:
-	go build
+	go build .
 run:
 	make application
 	application 
