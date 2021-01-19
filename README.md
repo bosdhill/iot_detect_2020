@@ -73,7 +73,7 @@ go build ./...
 
 # Mac set up
 ``` sh
-brew install opencv4
+brew install opencv@4
 brew install pkgconfig
 go get -u -d gocv.io/x/gocv # may need to symlink /usr/local/lib/pkgconfig/opencv4.pc
 go get google.golang.org/grpc
