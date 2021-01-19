@@ -75,7 +75,7 @@ go build ./...
 ``` sh
 brew install opencv@4
 brew install pkgconfig
-brew install golang
+brew install golang # follow set up https://medium.com/@jimkang/install-go-on-mac-with-homebrew-5fa421fc55f5
 go get -u -d gocv.io/x/gocv # may need to symlink /usr/local/lib/pkgconfig/opencv4.pc
 go get google.golang.org/grpc
 go get -u github.com/golang/protobuf/protoc-gen-go
