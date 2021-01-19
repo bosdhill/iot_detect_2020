@@ -93,7 +93,6 @@ git clone git@github.com:bosdhill/iot_detect_2020.git
 ```
 
 # Protobuf
-to generate interface.pb.go in each module
 ``` sh
 cd $GOPATH/src/github.com/bosdhill
 protoc -I interfaces/ interfaces/interfaces.proto --go_out=plugins=grpc:interfaces
